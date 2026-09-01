@@ -5,7 +5,7 @@ type AuthContextType = {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string, jobRole: string, role: 'employee' | 'admin') => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string, jobRoleId: string, role: 'employee' | 'admin') => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -53,14 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
-  async function signUp(email: string, password: string, fullName: string, jobRole: string, role: 'employee' | 'admin') {
+  async function signUp(email: string, password: string, fullName: string, jobRoleId: string, role: 'employee' | 'admin') {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return { error: error.message };
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').insert({
         id: data.user.id,
         full_name: fullName,
-        job_role: jobRole,
+        email,
+        job_role_id: jobRoleId,
         role,
       });
       if (profileError) return { error: profileError.message };
