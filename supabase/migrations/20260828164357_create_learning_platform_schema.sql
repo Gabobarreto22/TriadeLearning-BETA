@@ -32,11 +32,28 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+CREATE OR REPLACE FUNCTION public.is_admin_user()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE p.id = auth.uid()
+      AND p.role = 'admin'
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_admin_user() TO authenticated;
+
 DROP POLICY IF EXISTS "select_own_profile" ON profiles;
 CREATE POLICY "select_own_profile" ON profiles FOR SELECT TO authenticated USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS "admin_select_all_profiles" ON profiles;
-CREATE POLICY "admin_select_all_profiles" ON profiles FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_select_all_profiles" ON profiles FOR SELECT TO authenticated USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "update_own_profile" ON profiles;
 CREATE POLICY "update_own_profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);

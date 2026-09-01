@@ -40,6 +40,23 @@ CREATE TABLE IF NOT EXISTS job_roles (
 
 ALTER TABLE job_roles ENABLE ROW LEVEL SECURITY;
 
+CREATE OR REPLACE FUNCTION public.is_admin_user()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE p.id = auth.uid()
+      AND p.role = 'admin'
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_admin_user() TO authenticated;
+
 -- All authenticated users can read job roles
 DROP POLICY IF EXISTS "read_job_roles" ON job_roles;
 CREATE POLICY "read_job_roles" ON job_roles FOR SELECT TO authenticated USING (true);
@@ -47,36 +64,36 @@ CREATE POLICY "read_job_roles" ON job_roles FOR SELECT TO authenticated USING (t
 -- Admin-only CRUD on job_roles
 DROP POLICY IF EXISTS "admin_insert_job_roles" ON job_roles;
 CREATE POLICY "admin_insert_job_roles" ON job_roles FOR INSERT TO authenticated
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+  WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_update_job_roles" ON job_roles;
 CREATE POLICY "admin_update_job_roles" ON job_roles FOR UPDATE TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+  USING (public.is_admin_user())
+  WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_delete_job_roles" ON job_roles;
 CREATE POLICY "admin_delete_job_roles" ON job_roles FOR DELETE TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+  USING (public.is_admin_user());
 
 -- PROFILES: Admin management policies
 DROP POLICY IF EXISTS "admin_insert_profiles" ON profiles;
 CREATE POLICY "admin_insert_profiles" ON profiles FOR INSERT TO authenticated
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+  WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_update_profiles" ON profiles;
 CREATE POLICY "admin_update_profiles" ON profiles FOR UPDATE TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+  USING (public.is_admin_user())
+  WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_delete_profiles" ON profiles;
 CREATE POLICY "admin_delete_profiles" ON profiles FOR DELETE TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+  USING (public.is_admin_user());
 
 -- COURSE ASSIGNMENTS: Admin update policy
 DROP POLICY IF EXISTS "admin_update_assignments" ON course_assignments;
 CREATE POLICY "admin_update_assignments" ON course_assignments FOR UPDATE TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+  USING (public.is_admin_user())
+  WITH CHECK (public.is_admin_user());
 
 -- Seed default job roles if table is empty
 INSERT INTO job_roles (name, description)
