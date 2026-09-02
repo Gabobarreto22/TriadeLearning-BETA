@@ -26,8 +26,8 @@ all employee/admin accounts. Adds admin update/delete policies on `course_assign
    The admin panel will use `job_roles` to populate the dropdown of available positions.
 2. Admins can now create new users by inserting into `profiles` — the actual auth
    account creation uses a SECURITY DEFINER function or the admin API.
-3. All policies use `EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')`
-   for admin checks.
+3. Admin policies use the `public.is_admin_user()` SECURITY DEFINER function to avoid
+  recursive RLS evaluation on `profiles`.
 */
 
 -- JOB ROLES TABLE

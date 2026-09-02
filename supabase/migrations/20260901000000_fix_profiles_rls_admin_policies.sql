@@ -1,60 +1,22 @@
-create or replace function public.is_admin_user()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'admin'
-  );
+-- Remove every policy, including policies created with names not tracked here.
+do $$
+declare
+  policy_record record;
+begin
+  for policy_record in
+    select policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'profiles'
+  loop
+    execute format('drop policy if exists %I on public.profiles', policy_record.policyname);
+  end loop;
+end
 $$;
 
-grant execute on function public.is_admin_user() to authenticated;
+alter table public.profiles enable row level security;
 
-drop policy if exists "select_own_profile" on public.profiles;
-create policy "select_own_profile"
+create policy "profiles_select_own"
 on public.profiles
 for select to authenticated
-using (auth.uid() = id);
-
-drop policy if exists "admin_select_all_profiles" on public.profiles;
-create policy "admin_select_all_profiles"
-on public.profiles
-for select to authenticated
-using (public.is_admin_user());
-
-drop policy if exists "update_own_profile" on public.profiles;
-create policy "update_own_profile"
-on public.profiles
-for update to authenticated
-using (auth.uid() = id)
-with check (auth.uid() = id);
-
-drop policy if exists "insert_own_profile" on public.profiles;
-create policy "insert_own_profile"
-on public.profiles
-for insert to authenticated
-with check (auth.uid() = id);
-
-drop policy if exists "admin_insert_profiles" on public.profiles;
-create policy "admin_insert_profiles"
-on public.profiles
-for insert to authenticated
-with check (public.is_admin_user());
-
-drop policy if exists "admin_update_profiles" on public.profiles;
-create policy "admin_update_profiles"
-on public.profiles
-for update to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
-drop policy if exists "admin_delete_profiles" on public.profiles;
-create policy "admin_delete_profiles"
-on public.profiles
-for delete to authenticated
-using (public.is_admin_user());
+using ((select auth.uid()) = id);

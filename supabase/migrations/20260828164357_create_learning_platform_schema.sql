@@ -80,13 +80,13 @@ DROP POLICY IF EXISTS "read_courses" ON courses;
 CREATE POLICY "read_courses" ON courses FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "admin_insert_courses" ON courses;
-CREATE POLICY "admin_insert_courses" ON courses FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_insert_courses" ON courses FOR INSERT TO authenticated WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_update_courses" ON courses;
-CREATE POLICY "admin_update_courses" ON courses FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')) WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_update_courses" ON courses FOR UPDATE TO authenticated USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_delete_courses" ON courses;
-CREATE POLICY "admin_delete_courses" ON courses FOR DELETE TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_delete_courses" ON courses FOR DELETE TO authenticated USING (public.is_admin_user());
 
 -- MODULES
 CREATE TABLE IF NOT EXISTS modules (
@@ -107,13 +107,13 @@ DROP POLICY IF EXISTS "read_modules" ON modules;
 CREATE POLICY "read_modules" ON modules FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "admin_insert_modules" ON modules;
-CREATE POLICY "admin_insert_modules" ON modules FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_insert_modules" ON modules FOR INSERT TO authenticated WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_update_modules" ON modules;
-CREATE POLICY "admin_update_modules" ON modules FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')) WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_update_modules" ON modules FOR UPDATE TO authenticated USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_delete_modules" ON modules;
-CREATE POLICY "admin_delete_modules" ON modules FOR DELETE TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_delete_modules" ON modules FOR DELETE TO authenticated USING (public.is_admin_user());
 
 CREATE INDEX IF NOT EXISTS idx_modules_course_id ON modules(course_id);
 
@@ -133,13 +133,13 @@ DROP POLICY IF EXISTS "read_exam_questions" ON exam_questions;
 CREATE POLICY "read_exam_questions" ON exam_questions FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "admin_insert_exam_questions" ON exam_questions;
-CREATE POLICY "admin_insert_exam_questions" ON exam_questions FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_insert_exam_questions" ON exam_questions FOR INSERT TO authenticated WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_update_exam_questions" ON exam_questions;
-CREATE POLICY "admin_update_exam_questions" ON exam_questions FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')) WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_update_exam_questions" ON exam_questions FOR UPDATE TO authenticated USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_delete_exam_questions" ON exam_questions;
-CREATE POLICY "admin_delete_exam_questions" ON exam_questions FOR DELETE TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_delete_exam_questions" ON exam_questions FOR DELETE TO authenticated USING (public.is_admin_user());
 
 CREATE INDEX IF NOT EXISTS idx_exam_questions_course_id ON exam_questions(course_id);
 
@@ -157,10 +157,10 @@ DROP POLICY IF EXISTS "read_assignments" ON course_assignments;
 CREATE POLICY "read_assignments" ON course_assignments FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "admin_insert_assignments" ON course_assignments;
-CREATE POLICY "admin_insert_assignments" ON course_assignments FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_insert_assignments" ON course_assignments FOR INSERT TO authenticated WITH CHECK (public.is_admin_user());
 
 DROP POLICY IF EXISTS "admin_delete_assignments" ON course_assignments;
-CREATE POLICY "admin_delete_assignments" ON course_assignments FOR DELETE TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_delete_assignments" ON course_assignments FOR DELETE TO authenticated USING (public.is_admin_user());
 
 CREATE INDEX IF NOT EXISTS idx_assignments_job_role ON course_assignments(job_role);
 
@@ -180,7 +180,7 @@ DROP POLICY IF EXISTS "select_own_progress" ON module_progress;
 CREATE POLICY "select_own_progress" ON module_progress FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "admin_select_all_progress" ON module_progress;
-CREATE POLICY "admin_select_all_progress" ON module_progress FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_select_all_progress" ON module_progress FOR SELECT TO authenticated USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "insert_own_progress" ON module_progress;
 CREATE POLICY "insert_own_progress" ON module_progress FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
@@ -210,7 +210,7 @@ DROP POLICY IF EXISTS "select_own_exam_results" ON exam_results;
 CREATE POLICY "select_own_exam_results" ON exam_results FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "admin_select_all_exam_results" ON exam_results;
-CREATE POLICY "admin_select_all_exam_results" ON exam_results FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+CREATE POLICY "admin_select_all_exam_results" ON exam_results FOR SELECT TO authenticated USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "insert_own_exam_results" ON exam_results;
 CREATE POLICY "insert_own_exam_results" ON exam_results FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
