@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Video, X, Download, Check, GripVertical, Star } from 'lucide-react';
+import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star } from 'lucide-react';
 import { supabase, type CourseWithRelations, type Profile, type JobRole, type Module, type ExamQuestion, type Resource, type ModuleType } from '@/lib/supabase';
 import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createResource, deleteResource, createExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
 import { getIcon, availableIcons, availableAccents } from '@/lib/icons';

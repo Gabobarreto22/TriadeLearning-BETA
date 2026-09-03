@@ -1,17 +1,17 @@
-import { type Profile, type JobRole, type Department, type UserJobRoleHistory, type CourseWithRelations, type CourseAssignment, type UserCourseRequirement, type ModuleProgress, type ExamAttempt, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog } from '@/lib/supabase';
+import { type Profile, type JobRole, type Department, type UserJobRoleHistory, type Course, type CourseWithRelations, type CourseAssignment, type UserCourseRequirement, type ModuleProgress, type ExamAttempt, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog } from '@/lib/supabase';
 
 export type AdminData = {
   courses: CourseWithRelations[];
   team: Profile[];
   jobRoles: JobRole[];
   departments: Department[];
-  userCourseReqs: (UserCourseRequirement & { user?: Profile; course?: CourseWithRelations; job_role?: JobRole })[];
+  userCourseReqs: (UserCourseRequirement & { user?: Profile; course?: Course; job_role?: JobRole })[];
   moduleProgress: ModuleProgress[];
   examAttempts: ExamAttempt[];
-  certificates: (Certificate & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: CourseWithRelations } })[];
+  certificates: (Certificate & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } })[];
   roleCertifications: (RoleCertification & { user?: Profile; job_role?: JobRole })[];
   notifications: (Notification & { user?: Profile })[];
-  feedback: (CourseFeedback & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: CourseWithRelations } })[];
+  feedback: (CourseFeedback & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } })[];
   badges: Badge[];
   userBadges: (UserBadge & { user?: Profile; badge?: Badge })[];
   settings: SystemSetting[];

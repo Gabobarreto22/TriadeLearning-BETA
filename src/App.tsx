@@ -342,7 +342,7 @@ function Dashboard({ t, navigate, courses, getCourseState, onSelect, profile }: 
         {inProgress.length > 0 ? inProgress.slice(0, 3).map((c) => <CourseRow key={c.id} course={c} t={t} getCourseState={getCourseState} onSelect={onSelect} />) : <p className="muted" style={{ padding: '20px 0' }}>{t.selectCourse}</p>}
       </section>
       <section className="section-card deadline-card"><div className="section-title"><div><h2>{t.deadline}</h2><p className="muted">Mantente al día.</p></div><Clock3 size={18} className="section-icon" /></div>
-        {courses.filter((c) => c.assignments.some((a) => a.deadline)).slice(0, 3).map((c) => { const a = c.assignments.find((a) => a.deadline); const dl = a?.deadline ?? ''; const d = new Date(dl); return <div key={c.id} className="deadline-item"><div className="date-badge"><strong>{isNaN(d.getDate()) ? '--' : d.getDate()}</strong><span>{isNaN(d.getMonth()) ? '---' : (copy as any).es_months?.[d.getMonth()] ?? MONTHS_ES[d.getMonth()].slice(0, 3).toUpperCase()}</span></div><div><strong>{c.title}</strong><p>{c.category}</p></div><ChevronRight size={17} /></div>; })}
+        {courses.filter((c) => c.assignments.some((a) => a.completion_deadline_days)).slice(0, 3).map((c) => { const a = c.assignments.find((a) => a.completion_deadline_days); const dl = a ? new Date(Date.now() + (a.completion_deadline_days ?? 0) * 86400000).toISOString() : ''; const d = new Date(dl); return <div key={c.id} className="deadline-item"><div className="date-badge"><strong>{isNaN(d.getDate()) ? '--' : d.getDate()}</strong><span>{isNaN(d.getMonth()) ? '---' : (copy as any).es_months?.[d.getMonth()] ?? MONTHS_ES[d.getMonth()].slice(0, 3).toUpperCase()}</span></div><div><strong>{c.title}</strong><p>{c.category}</p></div><ChevronRight size={17} /></div>; })}
         <button className="outline-button" onClick={() => navigate('calendar')}>{t.calendar}</button>
       </section>
     </div>
@@ -409,7 +409,7 @@ function CalendarView({ t, language, courses, onSelect }: { t: typeof copy.ES; l
   const offset = firstDay === 0 ? 6 : firstDay - 1;
   const daysInMonth = new Date(year, currentMonth + 1, 0).getDate();
   const eventsByDay: Record<number, CourseWithRelations[]> = {};
-  courses.forEach((c) => { c.assignments.forEach((a) => { if (a.deadline) { const d = new Date(a.deadline); if (d.getMonth() === currentMonth && d.getFullYear() === year) { const day = d.getDate(); if (!eventsByDay[day]) eventsByDay[day] = []; eventsByDay[day].push(c); } } }); });
+  courses.forEach((c) => { c.assignments.forEach((a) => { if (a.completion_deadline_days) { const d = new Date(Date.now() + a.completion_deadline_days * 86400000); if (d.getMonth() === currentMonth && d.getFullYear() === year) { const day = d.getDate(); if (!eventsByDay[day]) eventsByDay[day] = []; eventsByDay[day].push(c); } } }); });
   const cells: (number | null)[] = [];
   for (let i = 0; i < offset; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -421,7 +421,7 @@ function CalendarView({ t, language, courses, onSelect }: { t: typeof copy.ES; l
         <div className="calendar-grid">{days.map((d) => <div key={d} className="cal-day-header">{d}</div>)}{cells.map((day, i) => <div key={i} className={day ? 'cal-day' : 'cal-day empty'}>{day && <><span className="cal-day-num">{day}</span>{eventsByDay[day]?.map((c) => { const Icon = getIcon(c.icon_name); return <button key={c.id} className={`cal-event ${c.accent}`} onClick={() => onSelect(c)}><span><Icon size={10} /><i />{c.title}</span></button>; })}</>}</div>)}</div>
       </div>
       <div className="section-card calendar-sidebar"><div className="section-title"><div><h2>{t.upcomingCourses}</h2><p className="muted">{t.activeCourses}</p></div></div>
-        {courses.filter((c) => c.assignments.some((a) => a.deadline && new Date(a.deadline) >= new Date())).sort((a, b) => (a.assignments[0]?.deadline ?? '').localeCompare(b.assignments[0]?.deadline ?? '')).slice(0, 5).map((c) => { const Icon = getIcon(c.icon_name); const dl = c.assignments.find((a) => a.deadline)?.deadline ?? ''; return <button key={c.id} className="upcoming-item" onClick={() => onSelect(c)}><div className={`course-icon ${c.accent}`}><Icon size={24} /></div><div><strong>{c.title}</strong><span><CalendarDays size={13} />{dl}</span></div><ChevronRight size={16} /></button>; })}
+        {courses.filter((c) => c.assignments.some((a) => a.completion_deadline_days)).sort((a, b) => (a.assignments[0]?.completion_deadline_days ?? 0) - (b.assignments[0]?.completion_deadline_days ?? 0)).slice(0, 5).map((c) => { const Icon = getIcon(c.icon_name); const dl = c.assignments.find((a) => a.completion_deadline_days) ? new Date(Date.now() + (c.assignments.find((a) => a.completion_deadline_days)?.completion_deadline_days ?? 0) * 86400000).toLocaleDateString() : ''; return <button key={c.id} className="upcoming-item" onClick={() => onSelect(c)}><div className={`course-icon ${c.accent}`}><Icon size={24} /></div><div><strong>{c.title}</strong><span><CalendarDays size={13} />{dl}</span></div><ChevronRight size={16} /></button>; })}
       </div>
     </div>
   </div>;
