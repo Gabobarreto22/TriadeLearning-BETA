@@ -433,3 +433,92 @@ export async function removePrerequisite(prereqId: string): Promise<{ error: str
   const { error } = await supabase.from('course_prerequisites').delete().eq('id', prereqId);
   return { error: error?.message ?? null };
 }
+
+// ===================== EMPLOYEE: NOTIFICATIONS =====================
+export async function fetchNotificationsForUser(userId: string): Promise<Notification[]> {
+  const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('sent_at', { ascending: false });
+  if (error || !data) return [];
+  return data as Notification[];
+}
+
+export async function markNotificationAsRead(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function markAllNotificationsAsRead(userId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('user_id', userId).eq('is_read', false);
+  return { error: error?.message ?? null };
+}
+
+// ===================== EMPLOYEE: BADGES =====================
+export async function fetchUserBadgesForUser(userId: string): Promise<(UserBadge & { badge?: Badge })[]> {
+  const { data, error } = await supabase
+    .from('user_badges')
+    .select('*, badge:badges(*)')
+    .eq('user_id', userId)
+    .order('earned_at', { ascending: false });
+  if (error || !data) return [];
+  return data as (UserBadge & { badge?: Badge })[];
+}
+
+// ===================== EMPLOYEE: FEEDBACK =====================
+export async function fetchFeedbackForUser(userId: string): Promise<CourseFeedback[]> {
+  const { data, error } = await supabase
+    .from('course_feedback')
+    .select('*, user_course_requirement:user_course_requirements!inner(user_id)')
+    .eq('user_course_requirement.user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data as CourseFeedback[];
+}
+
+export async function saveCourseFeedback(
+  userCourseRequirementId: string,
+  rating: number,
+  feedbackText: string | null,
+  wouldRecommend: boolean | null,
+  difficultyLevel: string | null,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('course_feedback').insert({
+    user_course_requirement_id: userCourseRequirementId,
+    rating,
+    feedback_text: feedbackText,
+    would_recommend: wouldRecommend,
+    difficulty_level: difficultyLevel,
+  });
+  return { error: error?.message ?? null };
+}
+
+// ===================== EMPLOYEE: CERTIFICATES =====================
+export async function fetchCertificatesForUser(userId: string): Promise<(Certificate & { user_course_requirement?: UserCourseRequirement & { course?: Course } })[]> {
+  const { data, error } = await supabase
+    .from('certificates')
+    .select('*, user_course_requirement:user_course_requirements!inner(*, course:courses(*))')
+    .eq('user_course_requirement.user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data as (Certificate & { user_course_requirement?: UserCourseRequirement & { course?: Course } })[];
+}
+
+// ===================== EMPLOYEE: ROLE CERTIFICATIONS =====================
+export async function fetchRoleCertificationsForUser(userId: string): Promise<(RoleCertification & { job_role?: JobRole })[]> {
+  const { data, error } = await supabase
+    .from('role_certifications')
+    .select('*, job_role:job_roles(*)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data as (RoleCertification & { job_role?: JobRole })[];
+}
+
+// ===================== EMPLOYEE: USER COURSE REQUIREMENTS FOR USER =====================
+export async function fetchUserCourseRequirementsForUser(userId: string): Promise<(UserCourseRequirement & { course?: Course; job_role?: JobRole })[]> {
+  const { data, error } = await supabase
+    .from('user_course_requirements')
+    .select('*, course:courses(*), job_role:job_roles(*)')
+    .eq('user_id', userId)
+    .order('assigned_at', { ascending: false });
+  if (error || !data) return [];
+  return data as (UserCourseRequirement & { course?: Course; job_role?: JobRole })[];
+}
