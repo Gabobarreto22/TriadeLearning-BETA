@@ -39,11 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loadProfile(userId: string) {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, job_role:job_roles(name)')
+      .eq('id', userId)
+      .maybeSingle();
     if (error || !data) {
       setProfile(null);
     } else {
-      setProfile(data as Profile);
+      const { job_role, ...profileData } = data;
+      setProfile({ ...profileData, job_role: job_role?.name ?? '' } as Profile);
     }
     setLoading(false);
   }

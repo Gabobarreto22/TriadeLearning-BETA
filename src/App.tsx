@@ -114,7 +114,7 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
 
   useEffect(() => {
     (async () => {
-      const data = await fetchCoursesForRole(profile.job_role);
+      const data = await fetchCoursesForRole(profile.job_role_id ?? '');
       setCourses(data);
       const allModuleIds = data.flatMap((c) => c.modules.map((m) => m.id));
       const pMap = await fetchModuleProgress(profile.id, allModuleIds);
@@ -124,7 +124,7 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
       setExamResults(results.map((r) => ({ course_id: r.course_id, exam_type: r.exam_type, passed: r.passed, direct_failed: r.direct_failed })));
       setDataLoading(false);
     })();
-  }, [profile.id, profile.job_role]);
+  }, [profile.id, profile.job_role_id]);
 
   const navigate = (v: View) => { setView(v); setMobileOpen(false); };
   const isFullscreen = view === 'player' || view === 'exam';

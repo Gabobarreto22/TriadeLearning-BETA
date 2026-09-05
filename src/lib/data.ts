@@ -1,11 +1,11 @@
 import { supabase, type Course, type Module, type ExamQuestion, type CourseAssignment, type CourseWithRelations, type Profile, type JobRole, type Department, type UserJobRoleHistory, type Resource, type CoursePrerequisite, type UserCourseRequirement, type ModuleProgress, type ExamAttempt, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog } from './supabase';
 
 // ===================== COURSES =====================
-export async function fetchCoursesForRole(jobRole: string): Promise<CourseWithRelations[]> {
+export async function fetchCoursesForRole(jobRoleId: string): Promise<CourseWithRelations[]> {
   const { data: assignments, error: assignErr } = await supabase
     .from('course_assignments')
     .select('course_id')
-    .eq('job_role', jobRole);
+    .eq('job_role_id', jobRoleId);
   if (assignErr) return [];
   const courseIds = (assignments ?? []).map((a) => a.course_id);
   if (courseIds.length === 0) return [];
@@ -130,9 +130,15 @@ export async function deleteExamQuestion(questionId: string) {
 
 // ===================== PROFILES =====================
 export async function fetchAllProfiles(): Promise<Profile[]> {
-  const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*, job_role:job_roles(name)')
+    .order('created_at', { ascending: false });
   if (error || !data) return [];
-  return data as Profile[];
+  return data.map((row: Record<string, unknown>) => {
+    const { job_role, ...rest } = row;
+    return { ...rest, job_role: (job_role as { name?: string })?.name ?? '' } as Profile;
+  });
 }
 
 export async function updateProfile(id: string, updates: Partial<Profile>): Promise<{ error: string | null }> {
