@@ -9,8 +9,8 @@ html,body,#root{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--ink)}
 button,input,textarea,select{font:inherit}
 button{font-family:'Manrope',sans-serif}
-.app-shell{--bg:#f4f4f5;--surface:#ffffff;--surface-2:#f9fafb;--surface-3:#f3f4f6;--ink:#1f2937;--ink-2:#374151;--muted:#6b7280;--muted-2:#9ca3af;--line:#e5e7eb;--line-2:#d1d5db;--accent:#374151;--accent-dark:#1f2937;--accent-contrast:#fff;--soft:#f3f4f6;--hover:#f9fafb;min-height:100vh;background:var(--bg);color:var(--ink);display:flex;position:relative;isolation:isolate}
-.app-shell.dark{--bg:#111827;--surface:#1a1f2a;--surface-2:#202733;--surface-3:#262f3b;--ink:#f3f4f6;--ink-2:#e5e7eb;--muted:#a3aab7;--muted-2:#8f96a3;--line:#2f3747;--line-2:#3b4657;--accent:#dfe4eb;--accent-dark:#f3f4f6;--accent-contrast:#111827;--soft:#1f2733;--hover:#28313d}
+.app-shell{--bg:#f4f4f5;--surface:#ffffff;--surface-2:#f9fafb;--surface-3:#f3f4f6;--ink:#1f2937;--ink-2:#374151;--muted:#6b7280;--muted-2:#9ca3af;--line:#e5e7eb;--line-2:#d1d5db;--accent:#374151;--accent-dark:#1f2937;--accent-contrast:#fff;--soft:#f3f4f6;--hover:#f9fafb;--primary:#374151;--success:#059669;--error:#dc2626;--warning:#d97706;--border:#e5e7eb;--card:#ffffff;--card-hover:#f9fafb;--text:#1f2937;min-height:100vh;background:var(--bg);color:var(--ink);display:flex;position:relative;isolation:isolate}
+.app-shell.dark{--bg:#111827;--surface:#1a1f2a;--surface-2:#202733;--surface-3:#262f3b;--ink:#f3f4f6;--ink-2:#e5e7eb;--muted:#a3aab7;--muted-2:#8f96a3;--line:#2f3747;--line-2:#3b4657;--accent:#dfe4eb;--accent-dark:#f3f4f6;--accent-contrast:#111827;--soft:#1f2733;--hover:#28313d;--primary:#dfe4eb;--success:#34d399;--error:#f87171;--warning:#fbbf24;--border:#2f3747;--card:#1a1f2a;--card-hover:#28313d;--text:#f3f4f6}
 .app-shell.dark .primary-button{background:linear-gradient(135deg,#e5e7eb,#d1d5db);color:#111827;box-shadow:0 10px 22px rgba(15,23,42,.24)}
 .app-shell.dark .primary-button:hover{background:linear-gradient(135deg,#f3f4f6,#dfe4eb);color:#111827}
 .app-shell.dark .outline-button{background:linear-gradient(180deg,#202733,#171d26);border-color:rgba(148,163,184,.35);color:#e5e7eb}
@@ -689,8 +689,8 @@ select.auth-input{cursor:pointer;appearance:none;background-image:url("data:imag
 
 /* FEEDBACK MODAL */
 .feedback-modal{background:var(--card);border-radius:20px;padding:32px;max-width:480px;width:90%;box-shadow:0 20px 60px #00000020;position:relative;animation:rise .3s ease both}
-.modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;border:none;background:var(--surface);color:var(--muted);cursor:pointer;font-size:16px;display:grid;place-items:center;transition:background .15s}
-.modal-close:hover{background:var(--card-hover)}
+.feedback-modal .modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;border:none;background:var(--surface);color:var(--muted);cursor:pointer;font-size:16px;display:grid;place-items:center;transition:background .15s}
+.feedback-modal .modal-close:hover{background:var(--card-hover)}
 .feedback-modal-header{text-align:center;margin-bottom:24px}
 .feedback-modal-header svg{color:var(--primary);margin-bottom:8px}
 .feedback-modal-header h2{font:700 20px 'Manrope';color:var(--text);margin-bottom:4px}
