@@ -48,6 +48,10 @@ export default function App() {
   const [language, setLanguage] = useState<Language>('ES');
   const [dark, setDark] = useState(false);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
   if (loading) return <div className="app-shell" style={{ display: 'grid', placeItems: 'center', height: '100vh' }}><p style={{ color: '#6b7280' }}>{copy[language].loading}</p></div>;
   if (!profile) return <AuthScreen language={language} setLanguage={setLanguage} dark={dark} setDark={setDark} />;
   if (profile.role === 'admin') return <AdminApp profile={profile} language={language} setLanguage={setLanguage} dark={dark} setDark={setDark} />;

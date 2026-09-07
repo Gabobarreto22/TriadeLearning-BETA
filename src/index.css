@@ -3,33 +3,33 @@
 @tailwind components;
 @tailwind utilities;
 
-:root{font-family:'Manrope',sans-serif;color:#1f2937;background:#f4f4f5;font-synthesis:none;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+:root{font-family:'Manrope',sans-serif;color:#1f2937;background:#f4f4f5;font-synthesis:none;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;--bg:#f4f4f5;--surface:#ffffff;--surface-2:#f9fafb;--surface-3:#f3f4f6;--ink:#1f2937;--ink-2:#374151;--muted:#6b7280;--muted-2:#9ca3af;--line:#e5e7eb;--line-2:#d1d5db;--accent:#374151;--accent-dark:#1f2937;--accent-contrast:#fff;--soft:#f3f4f6;--hover:#f9fafb;--primary:#374151;--success:#059669;--error:#dc2626;--warning:#d97706;--border:#e5e7eb;--card:#ffffff;--card-hover:#f9fafb;--text:#1f2937}
 *{box-sizing:border-box}
 html,body,#root{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--ink)}
 button,input,textarea,select{font:inherit}
 button{font-family:'Manrope',sans-serif}
-.app-shell{--bg:#f4f4f5;--surface:#ffffff;--surface-2:#f9fafb;--surface-3:#f3f4f6;--ink:#1f2937;--ink-2:#374151;--muted:#6b7280;--muted-2:#9ca3af;--line:#e5e7eb;--line-2:#d1d5db;--accent:#374151;--accent-dark:#1f2937;--accent-contrast:#fff;--soft:#f3f4f6;--hover:#f9fafb;--primary:#374151;--success:#059669;--error:#dc2626;--warning:#d97706;--border:#e5e7eb;--card:#ffffff;--card-hover:#f9fafb;--text:#1f2937;min-height:100vh;background:var(--bg);color:var(--ink);display:flex;position:relative;isolation:isolate}
-.app-shell.dark{--bg:#111827;--surface:#1a1f2a;--surface-2:#202733;--surface-3:#262f3b;--ink:#f3f4f6;--ink-2:#e5e7eb;--muted:#a3aab7;--muted-2:#8f96a3;--line:#2f3747;--line-2:#3b4657;--accent:#dfe4eb;--accent-dark:#f3f4f6;--accent-contrast:#111827;--soft:#1f2733;--hover:#28313d;--primary:#dfe4eb;--success:#34d399;--error:#f87171;--warning:#fbbf24;--border:#2f3747;--card:#1a1f2a;--card-hover:#28313d;--text:#f3f4f6}
-.app-shell.dark .primary-button{background:linear-gradient(135deg,#e5e7eb,#d1d5db);color:#111827;box-shadow:0 10px 22px rgba(15,23,42,.24)}
-.app-shell.dark .primary-button:hover{background:linear-gradient(135deg,#f3f4f6,#dfe4eb);color:#111827}
-.app-shell.dark .outline-button{background:linear-gradient(180deg,#202733,#171d26);border-color:rgba(148,163,184,.35);color:#e5e7eb}
-.app-shell.dark .outline-button:hover{background:linear-gradient(180deg,#2a3240,#202733)}
-.app-shell.dark .auth-input{background:#111827;color:#f8fafc;border-color:rgba(148,163,184,.28)}
-.app-shell.dark .auth-input::placeholder{color:#98a3b4}
-.app-shell.dark .auth-role-select button{background:linear-gradient(180deg,#202733,#171d26);border-color:rgba(148,163,184,.28);color:#e5e7eb}
-.app-shell.dark .auth-role-select button.active{background:linear-gradient(180deg,#f3f4f6,#e5e7eb);color:#111827;border-color:rgba(203,213,225,.9)}
-.app-shell.dark .auth-role-select button:hover{background:linear-gradient(180deg,#293041,#202733)}
-.app-shell.dark .course-modal{background:linear-gradient(180deg,#1a1f2a,#141a24);border-color:rgba(148,163,184,.16);box-shadow:0 28px 80px rgba(2,6,23,.6)}
-.app-shell.dark .modal-body h2,.app-shell.dark .field-group label,.app-shell.dark .modal-body>p,.app-shell.dark .module-list strong,.app-shell.dark .module-list small,.app-shell.dark .exam-type-header strong,.app-shell.dark .exam-type-header small,.app-shell.dark .exam-badge,.app-shell.dark .player-module-item strong,.app-shell.dark .player-course-info strong,.app-shell.dark .player-text h2,.app-shell.dark .player-text p,.app-shell.dark .auth-title,.app-shell.dark .auth-subtitle,.app-shell.dark .auth-switch,.app-shell.dark .auth-error{color:var(--ink)}
-.app-shell.dark .modal-close{background:rgba(17,24,39,.9);border-color:rgba(148,163,184,.26);color:#e2e8f0}
-.app-shell.dark .modal-body>p,.app-shell.dark .module-list small,.app-shell.dark .exam-type-header small,.app-shell.dark .player-course-info small,.app-shell.dark .muted,.app-shell.dark .auth-subtitle,.app-shell.dark .auth-switch{color:#9aa4b3}
-.app-shell.dark .auth-role-select button.active:hover{background:linear-gradient(180deg,#f8fafc,#e5e7eb);color:#111827}
-.app-shell.dark .status-badge.in_progress{background:#1e3a5f;color:#60a5fa}
-.app-shell.dark .status-badge.completed{background:#14352f;color:#34d399}
-.app-shell.dark .status-badge.overdue{background:#3b1d1d;color:#f87171}
-.app-shell.dark .status-badge.exempted{background:#3d3417;color:#fbbf24}
-.app-shell.dark .quick-link-card:hover,.app-shell.dark .report-card:hover{box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.app-shell{min-height:100vh;background:var(--bg);color:var(--ink);display:flex;position:relative;isolation:isolate}
+html.dark{--bg:#111827;--surface:#1a1f2a;--surface-2:#202733;--surface-3:#262f3b;--ink:#f3f4f6;--ink-2:#e5e7eb;--muted:#a3aab7;--muted-2:#8f96a3;--line:#2f3747;--line-2:#3b4657;--accent:#dfe4eb;--accent-dark:#f3f4f6;--accent-contrast:#111827;--soft:#1f2733;--hover:#28313d;--primary:#dfe4eb;--success:#34d399;--error:#f87171;--warning:#fbbf24;--border:#2f3747;--card:#1a1f2a;--card-hover:#28313d;--text:#f3f4f6}
+html.dark .primary-button{background:linear-gradient(135deg,#e5e7eb,#d1d5db);color:#111827;box-shadow:0 10px 22px rgba(15,23,42,.24)}
+html.dark .primary-button:hover{background:linear-gradient(135deg,#f3f4f6,#dfe4eb);color:#111827}
+html.dark .outline-button{background:linear-gradient(180deg,#202733,#171d26);border-color:rgba(148,163,184,.35);color:#e5e7eb}
+html.dark .outline-button:hover{background:linear-gradient(180deg,#2a3240,#202733)}
+html.dark .auth-input{background:#111827;color:#f8fafc;border-color:rgba(148,163,184,.28)}
+html.dark .auth-input::placeholder{color:#98a3b4}
+html.dark .auth-role-select button{background:linear-gradient(180deg,#202733,#171d26);border-color:rgba(148,163,184,.28);color:#e5e7eb}
+html.dark .auth-role-select button.active{background:linear-gradient(180deg,#f3f4f6,#e5e7eb);color:#111827;border-color:rgba(203,213,225,.9)}
+html.dark .auth-role-select button:hover{background:linear-gradient(180deg,#293041,#202733)}
+html.dark .course-modal{background:linear-gradient(180deg,#1a1f2a,#141a24);border-color:rgba(148,163,184,.16);box-shadow:0 28px 80px rgba(2,6,23,.6)}
+html.dark .modal-body h2,html.dark .field-group label,html.dark .modal-body>p,html.dark .module-list strong,html.dark .module-list small,html.dark .exam-type-header strong,html.dark .exam-type-header small,html.dark .exam-badge,html.dark .player-module-item strong,html.dark .player-course-info strong,html.dark .player-text h2,html.dark .player-text p,html.dark .auth-title,html.dark .auth-subtitle,html.dark .auth-switch,html.dark .auth-error{color:var(--ink)}
+html.dark .modal-close{background:rgba(17,24,39,.9);border-color:rgba(148,163,184,.26);color:#e2e8f0}
+html.dark .modal-body>p,html.dark .module-list small,html.dark .exam-type-header small,html.dark .player-course-info small,html.dark .muted,html.dark .auth-subtitle,html.dark .auth-switch{color:#9aa4b3}
+html.dark .auth-role-select button.active:hover{background:linear-gradient(180deg,#f8fafc,#e5e7eb);color:#111827}
+html.dark .status-badge.in_progress{background:#1e3a5f;color:#60a5fa}
+html.dark .status-badge.completed{background:#14352f;color:#34d399}
+html.dark .status-badge.overdue{background:#3b1d1d;color:#f87171}
+html.dark .status-badge.exempted{background:#3d3417;color:#fbbf24}
+html.dark .quick-link-card:hover,html.dark .report-card:hover{box-shadow:0 8px 20px rgba(0,0,0,.3)}
 
 /* SIDEBAR */
 .sidebar{width:250px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:29px 17px 18px;position:fixed;inset:0 auto 0 0;z-index:20}
@@ -72,10 +72,10 @@ button{font-family:'Manrope',sans-serif}
 .page h1{font-size:32px;letter-spacing:-.04em;line-height:1.2}
 .muted{color:var(--muted);font-size:13px;margin:8px 0 0;line-height:1.5}
 .section-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
-.primary-button{border:0;background:linear-gradient(135deg,#1f2937,#0f172a);color:var(--accent-contrast);display:flex;align-items:center;justify-content:center;gap:9px;border-radius:12px;padding:13px 17px;min-height:48px;font:700 12px 'Manrope',sans-serif;cursor:pointer;box-shadow:0 10px 20px rgba(15,23,42,.14);transition:background .2s ease, box-shadow .2s ease, opacity .2s ease;transform:none}
+.primary-button{border:0;background:linear-gradient(135deg,#1f2937,#0f172a);color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:12px;padding:13px 17px;min-height:48px;font:700 12px 'Manrope',sans-serif;cursor:pointer;box-shadow:0 10px 20px rgba(15,23,42,.14);transition:background .2s ease, box-shadow .2s ease, opacity .2s ease;transform:none}
 .primary-button:hover{background:linear-gradient(135deg,#111827,#1f2937);box-shadow:0 12px 22px rgba(15,23,42,.18);transform:none}
 .primary-button:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
-.outline-button{border:1px solid rgba(148,163,184,.5);background:linear-gradient(180deg,#fff,#f8fafc);color:var(--ink);padding:10px 14px;min-height:48px;border-radius:12px;font:600 12px 'Manrope',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.2s}
+.outline-button{border:1px solid rgba(148,163,184,.5);background:linear-gradient(180deg,#fff,#f8fafc);color:#1f2937;padding:10px 14px;min-height:48px;border-radius:12px;font:600 12px 'Manrope',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.2s}
 .outline-button:hover{background:linear-gradient(180deg,#f8fafc,#f1f5f9)}
 .back-button{border:0;background:none;color:var(--muted);display:flex;align-items:center;gap:7px;font:600 12px 'Manrope',sans-serif;cursor:pointer}
 .back-button:hover{color:var(--ink)}
@@ -148,7 +148,7 @@ button{font-family:'Manrope',sans-serif}
 .step{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted-2)}
 .step>span{border:1px solid var(--line-2);width:30px;height:30px;display:grid;place-items:center;border-radius:50%;font-size:10px}
 .step.done,.step.current{color:var(--ink)}
-.step.done>span{background:var(--ink-2);color:var(--accent-contrast);border-color:var(--ink-2)}
+.step.done>span{background:var(--ink-2);color:#fff;border-color:var(--ink-2)}
 .step.current>span{border:2px solid var(--ink)}
 .step small{font-size:9px;color:var(--muted-2)}
 .step b{font-size:10px;white-space:nowrap}
@@ -472,14 +472,14 @@ select.auth-input{cursor:pointer;appearance:none;background-image:url("data:imag
 .editor-cancel-button, .form-actions-row .outline-button{order:1;flex:0 0 auto;min-width:120px;max-width:180px;margin-top:0;background:#f3f4f6;border:1px solid rgba(15,23,42,.1);color:var(--ink);box-shadow:none}
 .editor-save-button, .form-actions-row .primary-button{order:2;flex:0 0 auto;min-width:180px;width:auto;margin-left:12px;justify-self:flex-end;background:#1f2937;border:1px solid #1f2937;color:#fff;transition:background .2s ease, box-shadow .2s ease, opacity .2s ease}
 .editor-save-button:hover,.editor-save-button:focus-visible,.editor-save-button:active,.form-actions-row .primary-button:hover,.form-actions-row .primary-button:focus-visible,.form-actions-row .primary-button:active{background:#111827;color:#fff;box-shadow:0 12px 22px rgba(15,23,42,.18);transform:none}
-.app-shell.dark .editor-save-button,
-.app-shell.dark .editor-save-button:hover,
-.app-shell.dark .editor-save-button:focus-visible,
-.app-shell.dark .editor-save-button:active,
-.app-shell.dark .form-actions-row .primary-button,
-.app-shell.dark .form-actions-row .primary-button:hover,
-.app-shell.dark .form-actions-row .primary-button:focus-visible,
-.app-shell.dark .form-actions-row .primary-button:active{background:#ffffff !important;border-color:#ffffff !important;color:#0f172a !important;box-shadow:0 10px 20px rgba(15,23,42,.22);transform:none}
+html.dark .editor-save-button,
+html.dark .editor-save-button:hover,
+html.dark .editor-save-button:focus-visible,
+html.dark .editor-save-button:active,
+html.dark .form-actions-row .primary-button,
+html.dark .form-actions-row .primary-button:hover,
+html.dark .form-actions-row .primary-button:focus-visible,
+html.dark .form-actions-row .primary-button:active{background:#ffffff !important;border-color:#ffffff !important;color:#0f172a !important;box-shadow:0 10px 20px rgba(15,23,42,.22);transform:none}
 .editor-section{margin-top:28px;padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;gap:18px}
 .editor-section h2{font:700 16px 'Manrope';letter-spacing:-.02em;margin:0}
 .editor-section > .section-title{display:flex;justify-content:space-between;align-items:center;margin:0 0 2px}
