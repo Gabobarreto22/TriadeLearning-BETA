@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, Clock3, Download, FileText, History, Plus, Settings, ShieldCheck, Star, Trash2, Users, X, Zap } from 'lucide-react';
+import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, Clock3, Download, FileText, History, Plus, Settings, ShieldCheck, Star, Trash2, Users, X, Zap, User } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
 import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications, createNotification, deleteNotification, fetchAllFeedback, fetchBadges, createBadge, deleteBadge, fetchUserBadges, fetchSystemSettings, updateSystemSetting, createSystemSetting, fetchAuditLogs } from '@/lib/data';
 import { getIcon } from '@/lib/icons';
@@ -64,10 +64,10 @@ export function DashboardModule({ t, data, onNavigate }: {
           <div className="section-card">
             <div className="section-title"><div><h2>{t.courses}</h2><p className="muted">{courses.length} {t.totalCourses.toLowerCase()}</p></div><button className="text-button" onClick={() => onNavigate('courses')}>{t.viewAll}</button></div>
             {courses.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noCourses}</p> :
-             courses.slice(0, 5).map((c) => {
+             <div className="admin-list-stack">{courses.slice(0, 4).map((c) => {
                const Icon = getIcon(c.icon_name);
                return <div key={c.id} className="admin-course-row"><div className={`course-icon ${c.accent}`}><Icon size={20} /></div><div><strong>{c.title}</strong><small>{c.modules.length} {t.modulesLabel} · {c.assignments.length} {t.assignedRole}s</small></div></div>;
-             })}
+             })}</div>}
           </div>
           <div className="section-card">
             <div className="section-title"><div><h2>{t.feedback}</h2><p className="muted">{feedback.length} {t.totalFeedback.toLowerCase()}</p></div><button className="text-button" onClick={() => onNavigate('feedback')}>{t.viewAll}</button></div>
@@ -401,7 +401,8 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
           const Icon = r.icon;
           return <div key={i} className="report-card">
             <div className="report-card-icon"><Icon size={24} /></div>
-            <div><strong>{r.title}</strong><small>{r.count} {r.desc.toLowerCase()}</small></div>
+            <div><strong>{r.title}</strong><small>{r.desc}</small></div>
+            <div className="report-count">{r.count}</div>
             <button className="outline-button report-export-btn" onClick={() => exportData('csv')}><Download size={14} />{t.exportCsv}</button>
           </div>;
         })}
@@ -507,15 +508,36 @@ export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
       <div className="page-heading"><div><p className="eyebrow">AUDITORÍA</p><h1>{t.audit}</h1><p className="muted">{t.auditDesc}</p></div></div>
       <div className="section-card">
         {auditLogs.length === 0 ? <div className="empty-state"><History size={30} /><h3>{t.noAudit}</h3></div> :
-         <div className="admin-list-stack">{auditLogs.map((log) => (
-           <div key={log.id} className="audit-row">
-             <div className="audit-action"><History size={16} /></div>
-             <div className="audit-content">
-               <strong>{log.action}</strong>
-               <small>{log.entity_type} · {log.user?.full_name ?? '—'} · {new Date(log.created_at).toLocaleString()}</small>
+         <div className="admin-list-stack">{auditLogs.map((log) => {
+           const date = new Date(log.created_at);
+           const dateStr = date.toLocaleDateString();
+           const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+           return (
+             <div key={log.id} className="audit-row">
+               <div className="audit-user-avatar">
+                 <User size={16} />
+               </div>
+               <div className="audit-content">
+                 <div className="audit-top">
+                   <strong>{log.action}</strong>
+                   <span className="audit-entity">{log.entity_type}</span>
+                 </div>
+                 <div className="audit-detail">
+                   <span className="audit-who"><User size={12} />{log.user?.full_name ?? 'Sistema'}</span>
+                   {log.ip_address && <span className="audit-ip">IP: {log.ip_address}</span>}
+                   <span className="audit-time"><Clock3 size={12} />{dateStr} · {timeStr}</span>
+                 </div>
+                 {log.new_values && Object.keys(log.new_values).length > 0 && (
+                   <div className="audit-changes">
+                     {Object.entries(log.new_values).slice(0, 3).map(([k, v]) => (
+                       <span key={k} className="audit-change-tag">{k}: {String(v).slice(0, 40)}</span>
+                     ))}
+                   </div>
+                 )}
+               </div>
              </div>
-           </div>
-         ))}</div>}
+           );
+         })}</div>}
       </div>
     </div>
   );

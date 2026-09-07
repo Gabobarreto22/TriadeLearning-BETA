@@ -269,7 +269,7 @@ export function EmployeeCertifications({ userId, t }: { userId: string; t: Emplo
           <div className="empty-state"><Award size={28} /><h3>{t.noCertificates}</h3></div>
         ) : (
           <div className="certificate-grid">
-            {certificates.map((c, i) => <article className="certificate-card" key={c.id}>
+            {certificates.map((c) => <article className="certificate-card" key={c.id}>
               <div className="certificate-art">
                 <div className="certificate-mark"><Award size={26} /></div>
                 <span>TRIADE</span>
@@ -277,7 +277,7 @@ export function EmployeeCertifications({ userId, t }: { userId: string; t: Emplo
                 <strong>{c.user_course_requirement?.course?.title ?? 'Curso'}</strong>
                 <em>{t.awardedTo}</em>
                 <div className="certificate-art-footer">
-                  <span>TRD-{new Date().getFullYear()}-{String(i + 1).padStart(5, '0')}</span>
+                  <span>{c.certificate_number || `TRD-${new Date(c.issue_date).getFullYear()}-${c.id.slice(-5).toUpperCase()}`}</span>
                   <span>{new Date(c.issue_date).toLocaleDateString()}</span>
                 </div>
               </div>

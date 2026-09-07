@@ -449,7 +449,18 @@ function CalendarView({ t, language, courses, onSelect }: { t: typeof copy.ES; l
   const offset = firstDay === 0 ? 6 : firstDay - 1;
   const daysInMonth = new Date(year, currentMonth + 1, 0).getDate();
   const eventsByDay: Record<number, CourseWithRelations[]> = {};
-  courses.forEach((c) => { c.assignments.forEach((a) => { if (a.completion_deadline_days) { const d = new Date(Date.now() + a.completion_deadline_days * 86400000); if (d.getMonth() === currentMonth && d.getFullYear() === year) { const day = d.getDate(); if (!eventsByDay[day]) eventsByDay[day] = []; eventsByDay[day].push(c); } } }); });
+  courses.forEach((c) => {
+    const hasDeadline = c.assignments.some((a) => a.completion_deadline_days);
+    if (!hasDeadline) return;
+    const a = c.assignments.find((a) => a.completion_deadline_days);
+    if (!a?.completion_deadline_days) return;
+    const d = new Date(Date.now() + a.completion_deadline_days * 86400000);
+    if (d.getMonth() === currentMonth && d.getFullYear() === year) {
+      const day = d.getDate();
+      if (!eventsByDay[day]) eventsByDay[day] = [];
+      if (!eventsByDay[day].some((existing) => existing.id === c.id)) eventsByDay[day].push(c);
+    }
+  });
   const cells: (number | null)[] = [];
   for (let i = 0; i < offset; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
