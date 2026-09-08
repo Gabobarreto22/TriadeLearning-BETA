@@ -148,7 +148,8 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
   };
 
   const handleMarkComplete = async (moduleId: string) => {
-    await markModuleComplete(profile.id, moduleId);
+    const { error } = await markModuleComplete(profile.id, moduleId);
+    if (error) return;
     setProgressMap((prev) => { const n = new Map(prev); n.set(moduleId, true); return n; });
   };
 
@@ -156,31 +157,39 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
 
   const handleExamResult = async (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[]) => {
     const reqId = courseReqMap[courseId] ?? null;
-    await saveExamResult(profile.id, courseId, type, score, passed, directFailed, reqId ?? undefined, totalQuestions, correctAnswers, answers);
+    const { error } = await saveExamResult(profile.id, courseId, type, score, passed, directFailed, reqId ?? undefined, totalQuestions, correctAnswers, answers);
+    if (error) return;
     setExamResults((prev) => [...prev, { course_id: courseId, exam_type: type, passed, direct_failed: directFailed }]);
   };
 
-  const handleFeedbackSave = async (rating: number, text: string, wouldRecommend: boolean | null, difficulty: string | null) => {
-    if (!feedbackCourse) return;
+  const handleFeedbackSave = async (rating: number, text: string, wouldRecommend: boolean | null, difficulty: string | null): Promise<{ error: string | null }> => {
+    if (!feedbackCourse) return { error: 'No hay curso seleccionado' };
     let reqId = courseReqMap[feedbackCourse.id];
     if (!reqId) {
-      const req = await ensureUserCourseRequirement(profile.id, feedbackCourse.id, profile.job_role_id ?? '');
-      if (req) {
-        reqId = req.id;
-        setCourseReqMap((prev) => ({ ...prev, [feedbackCourse.id]: req.id }));
+      const { req, error: reqErr } = await ensureUserCourseRequirement(profile.id, feedbackCourse.id, profile.job_role_id ?? '');
+      if (reqErr || !req) {
+        return { error: 'No se pudo registrar el progreso del curso. Intenta abrir el curso primero.' };
       }
+      reqId = req.id;
+      setCourseReqMap((prev) => ({ ...prev, [feedbackCourse.id]: req.id }));
     }
-    if (reqId) await saveCourseFeedback(reqId, rating, text, wouldRecommend, difficulty);
+    const { error } = await saveCourseFeedback(reqId, rating, text, wouldRecommend, difficulty);
+    if (error) {
+      return { error: 'No se pudo guardar tu calificación. Intenta nuevamente.' };
+    }
+    return { error: null };
   };
 
   const openPlayer = async (course: CourseWithRelations) => {
-    const req = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
-    if (req) setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
+    const { req, error } = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
+    if (error || !req) return;
+    setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
     setActiveCourse(course); setView('player'); setMobileOpen(false); setSelectedCourse(null);
   };
   const openExam = async (course: CourseWithRelations, type: ExamType) => {
-    const req = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
-    if (req) setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
+    const { req, error } = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
+    if (error || !req) return;
+    setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
     setActiveCourse(course); setExamType(type); setView('exam'); setMobileOpen(false); setSelectedCourse(null);
   };
   const requestExit = (onConfirm: () => void) => { setPendingBack(() => onConfirm); setShowExitWarning(true); };

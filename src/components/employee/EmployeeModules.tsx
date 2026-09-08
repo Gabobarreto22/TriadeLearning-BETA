@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Award, Bell, BellOff, BookOpen, CalendarDays, Check, Clock3, Download,
+  AlertCircle, Award, Bell, BellOff, BookOpen, CalendarDays, Check, Clock3, Download,
   FileText, History, Lock, Mail, Star, TrendingUp, Trophy, Zap,
 } from 'lucide-react';
 import { supabase, type Profile, type Notification, type Badge, type UserBadge, type Certificate, type RoleCertification, type UserCourseRequirement, type Course, type JobRole, type UserJobRoleHistory } from '@/lib/supabase';
@@ -445,7 +445,7 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
 // ===================== COURSE FEEDBACK MODAL =====================
 export function CourseFeedbackModal({ courseTitle, onSave, onClose, t }: {
   courseTitle: string;
-  onSave: (rating: number, text: string, wouldRecommend: boolean | null, difficulty: string | null) => void;
+  onSave: (rating: number, text: string, wouldRecommend: boolean | null, difficulty: string | null) => Promise<{ error: string | null }>;
   onClose: () => void;
   t: EmployeeStrings;
 }) {
@@ -455,10 +455,19 @@ export function CourseFeedbackModal({ courseTitle, onSave, onClose, t }: {
   const [wouldRecommend, setWouldRecommend] = useState<boolean | null>(null);
   const [difficulty, setDifficulty] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) return;
-    onSave(rating, feedback, wouldRecommend, difficulty);
+    setSaving(true);
+    setError(null);
+    const result = await onSave(rating, feedback, wouldRecommend, difficulty);
+    setSaving(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
     setSubmitted(true);
   };
 
@@ -510,7 +519,8 @@ export function CourseFeedbackModal({ courseTitle, onSave, onClose, t }: {
         <label>Comentarios (opcional)</label>
         <textarea className="form-input feedback-textarea" value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Cuéntanos tu experiencia..." rows={4} />
       </div>
-      <button className="primary-button" onClick={handleSubmit} disabled={rating === 0}>Enviar calificación</button>
+      {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
+      <button className="primary-button" onClick={handleSubmit} disabled={rating === 0 || saving}>{saving ? 'Guardando...' : 'Enviar calificación'}</button>
     </div>
   </div>;
 }

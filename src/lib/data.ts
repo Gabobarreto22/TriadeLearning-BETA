@@ -278,15 +278,15 @@ export async function assignCourseToUser(userId: string, courseId: string, jobRo
 }
 
 // ===================== ENSURE USER COURSE REQUIREMENT =====================
-export async function ensureUserCourseRequirement(userId: string, courseId: string, jobRoleId: string): Promise<UserCourseRequirement | null> {
+export async function ensureUserCourseRequirement(userId: string, courseId: string, jobRoleId: string): Promise<{ req: UserCourseRequirement | null; error: string | null }> {
   const { data: existing, error: fetchErr } = await supabase
     .from('user_course_requirements')
     .select('*')
     .eq('user_id', userId)
     .eq('course_id', courseId)
     .maybeSingle();
-  if (fetchErr) return null;
-  if (existing) return existing as UserCourseRequirement;
+  if (fetchErr) return { req: null, error: fetchErr.message };
+  if (existing) return { req: existing as UserCourseRequirement, error: null };
   const { data, error } = await supabase.from('user_course_requirements').insert({
     user_id: userId,
     course_id: courseId,
@@ -296,8 +296,8 @@ export async function ensureUserCourseRequirement(userId: string, courseId: stri
     is_mandatory: true,
     priority: 'medium',
   }).select().single();
-  if (error || !data) return null;
-  return data as UserCourseRequirement;
+  if (error || !data) return { req: null, error: error?.message ?? 'Error creating requirement' };
+  return { req: data as UserCourseRequirement, error: null };
 }
 
 // ===================== MODULE PROGRESS =====================
@@ -314,13 +314,17 @@ export async function fetchAllModuleProgress(): Promise<ModuleProgress[]> {
   return data as ModuleProgress[];
 }
 
-export async function markModuleComplete(userId: string, moduleId: string) {
-  const { data: existing } = await supabase.from('module_progress').select('id').eq('user_id', userId).eq('module_id', moduleId).maybeSingle();
+export async function markModuleComplete(userId: string, moduleId: string): Promise<{ error: string | null }> {
+  const { data: existing, error: selectErr } = await supabase.from('module_progress').select('id').eq('user_id', userId).eq('module_id', moduleId).maybeSingle();
+  if (selectErr) return { error: selectErr.message };
   if (existing) {
-    await supabase.from('module_progress').update({ completed: true, completed_at: new Date().toISOString() }).eq('id', existing.id);
+    const { error: updateErr } = await supabase.from('module_progress').update({ completed: true, completed_at: new Date().toISOString() }).eq('id', existing.id);
+    if (updateErr) return { error: updateErr.message };
   } else {
-    await supabase.from('module_progress').insert({ user_id: userId, module_id: moduleId, completed: true, completed_at: new Date().toISOString() });
+    const { error: insertErr } = await supabase.from('module_progress').insert({ user_id: userId, module_id: moduleId, completed: true, completed_at: new Date().toISOString() });
+    if (insertErr) return { error: insertErr.message };
   }
+  return { error: null };
 }
 
 // ===================== EXAM RESULTS =====================
@@ -337,8 +341,8 @@ export async function fetchAllExamAttempts(): Promise<ExamAttempt[]> {
   return data as ExamAttempt[];
 }
 
-export async function saveExamResult(userId: string, courseId: string, examType: 'direct' | 'course', score: number, passed: boolean, directFailed: boolean, userCourseRequirementId?: string, totalQuestions = 0, correctAnswers = 0, answers: number[] = []) {
-  await supabase.from('exam_results').insert({
+export async function saveExamResult(userId: string, courseId: string, examType: 'direct' | 'course', score: number, passed: boolean, directFailed: boolean, userCourseRequirementId?: string, totalQuestions = 0, correctAnswers = 0, answers: number[] = []): Promise<{ error: string | null }> {
+  const { error: resultErr } = await supabase.from('exam_results').insert({
     user_id: userId,
     course_id: courseId,
     exam_type: examType,
@@ -346,14 +350,16 @@ export async function saveExamResult(userId: string, courseId: string, examType:
     passed,
     direct_failed: directFailed,
   });
+  if (resultErr) return { error: resultErr.message };
   if (userCourseRequirementId) {
-    const { data: attempts } = await supabase.from('exam_attempts')
+    const { data: attempts, error: attemptFetchErr } = await supabase.from('exam_attempts')
       .select('attempt_number')
       .eq('user_course_requirement_id', userCourseRequirementId)
       .order('attempt_number', { ascending: false })
       .limit(1);
+    if (attemptFetchErr) return { error: attemptFetchErr.message };
     const nextAttempt = (attempts?.[0]?.attempt_number ?? 0) + 1;
-    await supabase.from('exam_attempts').insert({
+    const { error: attemptErr } = await supabase.from('exam_attempts').insert({
       user_course_requirement_id: userCourseRequirementId,
       attempt_number: nextAttempt,
       score,
@@ -366,29 +372,34 @@ export async function saveExamResult(userId: string, courseId: string, examType:
       started_at: new Date().toISOString(),
       completed_at: new Date().toISOString(),
     });
+    if (attemptErr) return { error: attemptErr.message };
     if (passed && examType === 'course') {
-      await supabase.from('user_course_requirements')
+      const { error: ucrErr } = await supabase.from('user_course_requirements')
         .update({ status: 'completed', completed_at: new Date().toISOString(), progress_percent: 100 })
         .eq('id', userCourseRequirementId);
-      await createCertificateForRequirement(userCourseRequirementId);
+      if (ucrErr) return { error: ucrErr.message };
+      const { cert: _cert, error: certErr } = await createCertificateForRequirement(userCourseRequirementId);
+      if (certErr) return { error: certErr };
     }
   }
+  return { error: null };
 }
 
-export async function createCertificateForRequirement(userCourseRequirementId: string): Promise<Certificate | null> {
-  const { data: existing } = await supabase.from('certificates')
+export async function createCertificateForRequirement(userCourseRequirementId: string): Promise<{ cert: Certificate | null; error: string | null }> {
+  const { data: existing, error: selectErr } = await supabase.from('certificates')
     .select('id')
     .eq('user_course_requirement_id', userCourseRequirementId)
     .maybeSingle();
-  if (existing) return null;
+  if (selectErr) return { cert: null, error: selectErr.message };
+  if (existing) return { cert: null, error: null };
   const certNumber = `TRD-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-  const { data, error } = await supabase.from('certificates').insert({
+  const { data, error: insertErr } = await supabase.from('certificates').insert({
     user_course_requirement_id: userCourseRequirementId,
     certificate_number: certNumber,
     issue_date: new Date().toISOString().slice(0, 10),
   }).select().single();
-  if (error || !data) return null;
-  return data as Certificate;
+  if (insertErr || !data) return { cert: null, error: insertErr?.message ?? 'Error creating certificate' };
+  return { cert: data as Certificate, error: null };
 }
 
 // ===================== CERTIFICATES =====================
@@ -422,7 +433,16 @@ export async function fetchAllNotifications(): Promise<(Notification & { user?: 
 }
 
 export async function createNotification(notification: Partial<Notification>): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('notifications').insert(notification);
+  if (!notification.user_id || !notification.title || !notification.message) {
+    return { error: 'Faltan campos requeridos: user_id, title, message' };
+  }
+  const { error } = await supabase.rpc('create_notification', {
+    p_user_id: notification.user_id,
+    p_type: notification.type ?? 'info',
+    p_title: notification.title,
+    p_message: notification.message,
+    p_link: notification.link ?? null,
+  });
   return { error: error?.message ?? null };
 }
 
@@ -449,6 +469,9 @@ export async function fetchBadges(): Promise<Badge[]> {
 }
 
 export async function createBadge(badge: Partial<Badge>): Promise<{ error: string | null }> {
+  if (!badge.name || !badge.description || !badge.icon_url) {
+    return { error: 'Faltan campos requeridos: name, description, icon_url' };
+  }
   const { error } = await supabase.from('badges').insert(badge);
   return { error: error?.message ?? null };
 }
