@@ -141,7 +141,7 @@ export function AutoAssignModule({ t, data, onRefresh }: { t: AdminStrings; data
       }
     }
     setAssigning(false);
-    setResult(`${count} {t.assignedUsers.toLowerCase()}`);
+    setResult(`${count} ${t.assignedUsers.toLowerCase()}`);
   };
 
   return (

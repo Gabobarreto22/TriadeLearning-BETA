@@ -7,7 +7,7 @@ import { useAuth } from './lib/auth';
 import { supabase, type Profile, type CourseWithRelations, type JobRole } from './lib/supabase';
 import {
   fetchCoursesForRole, fetchAllCourses, fetchModuleProgress, fetchExamResults,
-  markModuleComplete, saveExamResult,
+  markModuleComplete, saveExamResult, ensureUserCourseRequirement,
   fetchAllProfiles, fetchJobRoles, fetchDepartments,
   fetchUserCourseRequirements, fetchAllModuleProgress, fetchAllExamAttempts,
   fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications,
@@ -152,13 +152,37 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
     setProgressMap((prev) => { const n = new Map(prev); n.set(moduleId, true); return n; });
   };
 
-  const handleExamResult = async (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean) => {
-    await saveExamResult(profile.id, courseId, type, score, passed, directFailed);
+  const [courseReqMap, setCourseReqMap] = useState<Record<string, string>>({});
+
+  const handleExamResult = async (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[]) => {
+    const reqId = courseReqMap[courseId] ?? null;
+    await saveExamResult(profile.id, courseId, type, score, passed, directFailed, reqId ?? undefined, totalQuestions, correctAnswers, answers);
     setExamResults((prev) => [...prev, { course_id: courseId, exam_type: type, passed, direct_failed: directFailed }]);
   };
 
-  const openPlayer = (course: CourseWithRelations) => { setActiveCourse(course); setView('player'); setMobileOpen(false); setSelectedCourse(null); };
-  const openExam = (course: CourseWithRelations, type: ExamType) => { setActiveCourse(course); setExamType(type); setView('exam'); setMobileOpen(false); setSelectedCourse(null); };
+  const handleFeedbackSave = async (rating: number, text: string, wouldRecommend: boolean | null, difficulty: string | null) => {
+    if (!feedbackCourse) return;
+    let reqId = courseReqMap[feedbackCourse.id];
+    if (!reqId) {
+      const req = await ensureUserCourseRequirement(profile.id, feedbackCourse.id, profile.job_role_id ?? '');
+      if (req) {
+        reqId = req.id;
+        setCourseReqMap((prev) => ({ ...prev, [feedbackCourse.id]: req.id }));
+      }
+    }
+    if (reqId) await saveCourseFeedback(reqId, rating, text, wouldRecommend, difficulty);
+  };
+
+  const openPlayer = async (course: CourseWithRelations) => {
+    const req = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
+    if (req) setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
+    setActiveCourse(course); setView('player'); setMobileOpen(false); setSelectedCourse(null);
+  };
+  const openExam = async (course: CourseWithRelations, type: ExamType) => {
+    const req = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
+    if (req) setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
+    setActiveCourse(course); setExamType(type); setView('exam'); setMobileOpen(false); setSelectedCourse(null);
+  };
   const requestExit = (onConfirm: () => void) => { setPendingBack(() => onConfirm); setShowExitWarning(true); };
   const confirmExit = () => { setShowExitWarning(false); if (pendingBack) pendingBack(); setPendingBack(null); };
 
@@ -233,7 +257,7 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
     {selectedCourse && <CourseModal course={selectedCourse} t={t} courseState={getCourseState(selectedCourse.id)} onClose={() => setSelectedCourse(null)} onOpenPlayer={openPlayer} onOpenExam={openExam} />}
     {previewCert && <CertificatePreview t={t} cert={previewCert} profileName={profile.full_name} onClose={() => setPreviewCert(null)} />}
     {showExitWarning && <ExitWarningModal t={t} onConfirm={confirmExit} onCancel={() => setShowExitWarning(false)} />}
-    {feedbackCourse && <CourseFeedbackModal courseTitle={feedbackCourse.title} t={empStrings} onSave={async (rating, text, wouldRecommend, difficulty) => { const reqs = await fetchUserCourseRequirementsForUser(profile.id); const req = reqs.find((r) => r.course_id === feedbackCourse.id); if (req) await saveCourseFeedback(req.id, rating, text, wouldRecommend, difficulty); }} onClose={() => setFeedbackCourse(null)} />}
+    {feedbackCourse && <CourseFeedbackModal courseTitle={feedbackCourse.title} t={empStrings} onSave={handleFeedbackSave} onClose={() => setFeedbackCourse(null)} />}
   </div>;
 }
 
@@ -566,7 +590,7 @@ function CoursePlayer({ t, course, courseState, onBack, onExam, onMarkComplete }
 }
 
 // ===================== EXAM =====================
-function Exam({ t, course, examType, courseState, onBack, onBackToCourse, onResult, onPass }: { t: typeof copy.ES; course: CourseWithRelations; examType: ExamType; courseState: { completedModules: boolean[]; directFailed: boolean; directPassed: boolean; courseExamPassed: boolean }; onBack: () => void; onBackToCourse: () => void; onResult: (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean) => void; onPass?: () => void }) {
+function Exam({ t, course, examType, courseState, onBack, onBackToCourse, onResult, onPass }: { t: typeof copy.ES; course: CourseWithRelations; examType: ExamType; courseState: { completedModules: boolean[]; directFailed: boolean; directPassed: boolean; courseExamPassed: boolean }; onBack: () => void; onBackToCourse: () => void; onResult: (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[]) => void; onPass?: () => void }) {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<number[]>(Array(course.exam_questions.length).fill(-1));
   const [submitted, setSubmitted] = useState(false);
@@ -588,7 +612,7 @@ function Exam({ t, course, examType, courseState, onBack, onBackToCourse, onResu
     const directFailed = examType === 'direct' && !passed;
     setResult({ score, correct, total: questions.length, passed });
     setSubmitted(true);
-    onResult(course.id, examType, score, passed, directFailed);
+    onResult(course.id, examType, score, passed, directFailed, questions.length, correct, answers);
     if (passed && examType === 'course' && onPass) onPass();
   };
 

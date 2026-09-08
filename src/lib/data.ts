@@ -277,6 +277,29 @@ export async function assignCourseToUser(userId: string, courseId: string, jobRo
   return { error: error?.message ?? null };
 }
 
+// ===================== ENSURE USER COURSE REQUIREMENT =====================
+export async function ensureUserCourseRequirement(userId: string, courseId: string, jobRoleId: string): Promise<UserCourseRequirement | null> {
+  const { data: existing, error: fetchErr } = await supabase
+    .from('user_course_requirements')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('course_id', courseId)
+    .maybeSingle();
+  if (fetchErr) return null;
+  if (existing) return existing as UserCourseRequirement;
+  const { data, error } = await supabase.from('user_course_requirements').insert({
+    user_id: userId,
+    course_id: courseId,
+    job_role_id: jobRoleId,
+    status: 'in_progress',
+    started_at: new Date().toISOString(),
+    is_mandatory: true,
+    priority: 'medium',
+  }).select().single();
+  if (error || !data) return null;
+  return data as UserCourseRequirement;
+}
+
 // ===================== MODULE PROGRESS =====================
 export async function fetchModuleProgress(userId: string, moduleIds: string[]) {
   if (moduleIds.length === 0) return new Map<string, boolean>();
@@ -314,7 +337,7 @@ export async function fetchAllExamAttempts(): Promise<ExamAttempt[]> {
   return data as ExamAttempt[];
 }
 
-export async function saveExamResult(userId: string, courseId: string, examType: 'direct' | 'course', score: number, passed: boolean, directFailed: boolean) {
+export async function saveExamResult(userId: string, courseId: string, examType: 'direct' | 'course', score: number, passed: boolean, directFailed: boolean, userCourseRequirementId?: string, totalQuestions = 0, correctAnswers = 0, answers: number[] = []) {
   await supabase.from('exam_results').insert({
     user_id: userId,
     course_id: courseId,
@@ -323,6 +346,49 @@ export async function saveExamResult(userId: string, courseId: string, examType:
     passed,
     direct_failed: directFailed,
   });
+  if (userCourseRequirementId) {
+    const { data: attempts } = await supabase.from('exam_attempts')
+      .select('attempt_number')
+      .eq('user_course_requirement_id', userCourseRequirementId)
+      .order('attempt_number', { ascending: false })
+      .limit(1);
+    const nextAttempt = (attempts?.[0]?.attempt_number ?? 0) + 1;
+    await supabase.from('exam_attempts').insert({
+      user_course_requirement_id: userCourseRequirementId,
+      attempt_number: nextAttempt,
+      score,
+      total_questions: totalQuestions,
+      correct_answers: correctAnswers,
+      wrong_answers: Math.max(0, totalQuestions - correctAnswers),
+      answers,
+      passed,
+      status: 'completed',
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    });
+    if (passed && examType === 'course') {
+      await supabase.from('user_course_requirements')
+        .update({ status: 'completed', completed_at: new Date().toISOString(), progress_percent: 100 })
+        .eq('id', userCourseRequirementId);
+      await createCertificateForRequirement(userCourseRequirementId);
+    }
+  }
+}
+
+export async function createCertificateForRequirement(userCourseRequirementId: string): Promise<Certificate | null> {
+  const { data: existing } = await supabase.from('certificates')
+    .select('id')
+    .eq('user_course_requirement_id', userCourseRequirementId)
+    .maybeSingle();
+  if (existing) return null;
+  const certNumber = `TRD-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const { data, error } = await supabase.from('certificates').insert({
+    user_course_requirement_id: userCourseRequirementId,
+    certificate_number: certNumber,
+    issue_date: new Date().toISOString().slice(0, 10),
+  }).select().single();
+  if (error || !data) return null;
+  return data as Certificate;
 }
 
 // ===================== CERTIFICATES =====================

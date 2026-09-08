@@ -82,7 +82,6 @@ Deno.serve(async (req: Request) => {
       id: newUserId,
       full_name,
       email,
-      job_role: jobRole?.name ?? "",
       job_role_id,
       role: role ?? "employee",
     });
