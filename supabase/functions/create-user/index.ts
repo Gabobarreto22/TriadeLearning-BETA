@@ -96,6 +96,26 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (userRole === "employee") {
+      const { error: historyErr } = await supabase.from("user_job_roles_history").insert({
+        user_id: newUserId,
+        job_role_id,
+        start_date: new Date().toISOString().slice(0, 10),
+        is_current: true,
+        reason: "Cargo inicial",
+        created_by: adminId,
+      });
+
+      if (historyErr) {
+        await supabase.from("profiles").delete().eq("id", newUserId);
+        await supabase.auth.admin.deleteUser(newUserId);
+        return new Response(JSON.stringify({ error: historyErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     return new Response(JSON.stringify({ id: newUserId, success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
