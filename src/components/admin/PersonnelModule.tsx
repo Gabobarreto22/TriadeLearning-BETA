@@ -364,13 +364,13 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group"><label>{t.roleName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>{t.roleDescription}</label><input className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
             <div className="field-group"><label>{t.department}</label>
               <select className="auth-input" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
                 <option value="">{t.selectDepartment}</option>
                 {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
+            <div className="field-group field-group-full"><label>{t.roleDescription}</label><textarea className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} /></div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
