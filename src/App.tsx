@@ -4,6 +4,7 @@ import {
   AlertCircle, AlertTriangle, ArrowLeft, ArrowRight, Award, BarChart3, Bell, BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Download, FileText, Image as ImageIcon, LayoutDashboard, LockKeyhole, Menu, Moon, Pause, Play, Plus, RotateCcw, Search, Settings, ShieldCheck, Star, Sun, Trash2, Users, Video, X, Zap, History, Trophy, User,
 } from 'lucide-react';
 import { useAuth } from './lib/auth';
+import { useToast } from './lib/toast';
 import { supabase, type Profile, type CourseWithRelations, type JobRole } from './lib/supabase';
 import {
   fetchCoursesForRole, fetchAllCourses, fetchModuleProgress, fetchExamResults,
@@ -114,7 +115,9 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
   const [examResults, setExamResults] = useState<{ course_id: string; exam_type: ExamType; passed: boolean; direct_failed: boolean }[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { signOut } = useAuth();
+  const { toast, withLoading } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -148,17 +151,25 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
   };
 
   const handleMarkComplete = async (moduleId: string) => {
+    if (saving) return;
+    setSaving(true);
     const { error } = await markModuleComplete(profile.id, moduleId);
-    if (error) return;
+    setSaving(false);
+    if (error) { toast(error, 'error'); return; }
+    toast('Módulo completado', 'success');
     setProgressMap((prev) => { const n = new Map(prev); n.set(moduleId, true); return n; });
   };
 
   const [courseReqMap, setCourseReqMap] = useState<Record<string, string>>({});
 
   const handleExamResult = async (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[]) => {
+    if (saving) return;
+    setSaving(true);
     const reqId = courseReqMap[courseId] ?? null;
     const { error } = await saveExamResult(profile.id, courseId, type, score, passed, directFailed, reqId ?? undefined, totalQuestions, correctAnswers, answers);
-    if (error) return;
+    setSaving(false);
+    if (error) { toast(error, 'error'); return; }
+    toast(passed ? 'Evaluación aprobada' : 'Evaluación registrada', 'success');
     setExamResults((prev) => [...prev, { course_id: courseId, exam_type: type, passed, direct_failed: directFailed }]);
   };
 
@@ -168,6 +179,7 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
     if (!reqId) {
       const { req, error: reqErr } = await ensureUserCourseRequirement(profile.id, feedbackCourse.id, profile.job_role_id ?? '');
       if (reqErr || !req) {
+        toast('No se pudo registrar el progreso del curso', 'error');
         return { error: 'No se pudo registrar el progreso del curso. Intenta abrir el curso primero.' };
       }
       reqId = req.id;
@@ -175,20 +187,22 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
     }
     const { error } = await saveCourseFeedback(reqId, rating, text, wouldRecommend, difficulty);
     if (error) {
+      toast('No se pudo guardar tu calificación', 'error');
       return { error: 'No se pudo guardar tu calificación. Intenta nuevamente.' };
     }
+    toast('Calificación guardada', 'success');
     return { error: null };
   };
 
   const openPlayer = async (course: CourseWithRelations) => {
     const { req, error } = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
-    if (error || !req) return;
+    if (error || !req) { toast('No se pudo abrir el curso', 'error'); return; }
     setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
     setActiveCourse(course); setView('player'); setMobileOpen(false); setSelectedCourse(null);
   };
   const openExam = async (course: CourseWithRelations, type: ExamType) => {
     const { req, error } = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
-    if (error || !req) return;
+    if (error || !req) { toast('No se pudo abrir la evaluación', 'error'); return; }
     setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
     setActiveCourse(course); setExamType(type); setView('exam'); setMobileOpen(false); setSelectedCourse(null);
   };

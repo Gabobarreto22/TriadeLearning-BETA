@@ -4,6 +4,7 @@ import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, Clock3, Download,
 import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
 import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications, createNotification, deleteNotification, fetchAllFeedback, fetchBadges, createBadge, deleteBadge, fetchUserBadges, fetchSystemSettings, updateSystemSetting, createSystemSetting, fetchAuditLogs } from '@/lib/data';
 import { getIcon } from '@/lib/icons';
+import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 
 // ===================== DASHBOARD =====================
@@ -126,6 +127,7 @@ export function AutoAssignModule({ t, data, onRefresh }: { t: AdminStrings; data
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const coursesForRole = courses.filter((c) => c.assignments.some((a) => a.job_role_id === selectedRoleId));
   const usersInRole = team.filter((u) => u.job_role_id === selectedRoleId);
@@ -142,6 +144,7 @@ export function AutoAssignModule({ t, data, onRefresh }: { t: AdminStrings; data
     }
     setAssigning(false);
     setResult(`${count} ${t.assignedUsers.toLowerCase()}`);
+    toast(`${count} asignaciones realizadas`, 'success');
   };
 
   return (
@@ -217,6 +220,8 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const resetForm = () => { setName(''); setDescription(''); setIconUrl(''); setPoints('0'); setCategory(''); setError(null); setShowForm(false); };
 
@@ -225,7 +230,7 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
     setSaving(true);
     const { error: err } = await createBadge({ name, description, icon_url: iconUrl, points: parseInt(points) || 0, category: category || null });
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast('Insignia creada', 'success'); onRefresh();
   };
 
   return (
@@ -256,7 +261,7 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteBadgeConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteBadge(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteBadge(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Insignia eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       <div className="admin-two-up">
@@ -299,6 +304,8 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const resetForm = () => { setUserId(''); setType('info'); setTitle(''); setMessage(''); setError(null); setShowForm(false); };
 
@@ -307,7 +314,7 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
     setSaving(true);
     const { error: err } = await createNotification({ user_id: userId, type, title, message });
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast('Notificación enviada', 'success'); onRefresh();
   };
 
   const typeIcon = (tp: string) => tp === 'warning' ? <AlertCircle size={14} /> : tp === 'success' ? <Check size={14} /> : tp === 'error' ? <AlertCircle size={14} /> : tp === 'reminder' ? <Clock3 size={14} /> : <Bell size={14} />;
@@ -349,7 +356,7 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteNotificationConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteNotification(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteNotification(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Notificación eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       <div className="section-card">
@@ -434,6 +441,7 @@ export function SettingsModule({ t, data, onRefresh }: { t: AdminStrings; data: 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const resetForm = () => { setKey(''); setValue(''); setDescription(''); setCategory('general'); setIsPublic(false); setEditingId(null); setError(null); setShowForm(false); };
 
@@ -449,7 +457,7 @@ export function SettingsModule({ t, data, onRefresh }: { t: AdminStrings; data: 
       const { error: err } = await createSystemSetting(key, parsedValue, description, category);
       if (err) { setError(err); setSaving(false); return; }
     }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast(editingId ? 'Configuración actualizada' : 'Configuración guardada', 'success'); onRefresh();
   };
 
   return (

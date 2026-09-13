@@ -9,6 +9,7 @@ import {
   fetchUserJobRoleHistory, changeUserRole,
   assignCourseToRole, removeAssignment,
 } from '@/lib/data';
+import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
 
 type PersonnelTab = 'employees' | 'departments' | 'roles' | 'history' | 'requirements';
@@ -79,9 +80,11 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [changeRoleUser, setChangeRoleUser] = useState<Profile | null>(null);
   const [changeReason, setChangeReason] = useState('');
   const [newRoleId, setNewRoleId] = useState('');
+  const { toast } = useToast();
 
   const resetForm = () => { setName(''); setEmail(''); setPassword(''); setJobRoleId(''); setRole('employee'); setError(null); setEditingUser(null); setShowForm(false); };
 
@@ -111,6 +114,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
     }
     setSaving(false);
     resetForm();
+    toast(editingUser ? 'Usuario actualizado' : 'Usuario creado', 'success');
     onRefresh();
   };
 
@@ -127,7 +131,8 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   const handleChangeRole = async () => {
     if (!changeRoleUser || !newRoleId) return;
     const { error: err } = await changeUserRole(changeRoleUser.id, newRoleId, changeReason, changeRoleUser.id);
-    if (err) { setError(err); return; }
+    if (err) { toast(err, 'error'); return; }
+    toast('Cargo cambiado correctamente', 'success');
     setChangeRoleUser(null);
     setChangeReason('');
     setNewRoleId('');
@@ -196,7 +201,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteUserConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteProfile(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteProfile(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Usuario eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {team.length === 0 ? <div className="empty-state"><Users size={30} /><h3>{t.noTeam}</h3></div> :
@@ -234,6 +239,8 @@ function DepartmentsTab({ t, departments, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const resetForm = () => { setName(''); setCode(''); setDescription(''); setEditingId(null); setError(null); setShowForm(false); };
 
@@ -247,7 +254,7 @@ function DepartmentsTab({ t, departments, onRefresh }: {
       const { error: err } = await createDepartment(name, code, description);
       if (err) { setError(err); setSaving(false); return; }
     }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast(editingId ? 'Departamento actualizado' : 'Departamento creado', 'success'); onRefresh();
   };
 
   return (
@@ -277,7 +284,7 @@ function DepartmentsTab({ t, departments, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteDeptConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteDepartment(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteDepartment(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Departamento eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {departments.length === 0 ? <div className="empty-state"><Building2 size={30} /><h3>{t.noData}</h3></div> :
@@ -312,6 +319,8 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const resetForm = () => { setName(''); setDescription(''); setDeptId(''); setEditingId(null); setError(null); setShowForm(false); };
 
@@ -325,7 +334,7 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
       const { error: err } = await createJobRole(name, description, deptId || null);
       if (err) { setError(err); setSaving(false); return; }
     }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast(editingId ? 'Cargo actualizado' : 'Cargo creado', 'success'); onRefresh();
   };
 
   const getDeptName = (id: string | null) => departments.find((d) => d.id === id)?.name ?? '';
@@ -363,7 +372,7 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteRoleConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteJobRole(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteJobRole(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Cargo eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {jobRoles.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noRoles}</h3></div> :
@@ -447,6 +456,8 @@ function RequirementsTab({ t, jobRoles, courses, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const selectedRole = jobRoles.find((r) => r.id === selectedRoleId);
   const assignedCourses = courses.filter((c) => c.assignments.some((a) => a.job_role_id === selectedRoleId));
@@ -458,7 +469,7 @@ function RequirementsTab({ t, jobRoles, courses, onRefresh }: {
     const { error: err } = await assignCourseToRole(courseId, selectedRoleId, isMandatory, priority, deadlineDays ? parseInt(deadlineDays) : null, parseInt(orderIndex) || 0);
     if (err) { setError(err); setSaving(false); return; }
     setSaving(false); setCourseId(''); setDeadlineDays(''); setOrderIndex('0'); setError(null); setShowAssign(false);
-    onRefresh();
+    toast('Curso asignado', 'success'); onRefresh();
   };
 
   return (
@@ -515,7 +526,7 @@ function RequirementsTab({ t, jobRoles, courses, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await removeAssignment(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await removeAssignment(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Asignación eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {!selectedRoleId ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.selectRole}</h3></div> :

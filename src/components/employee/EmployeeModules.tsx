@@ -10,6 +10,7 @@ import {
   fetchUserJobRoleHistory, fetchUserCourseRequirementsForUser, updateProfile,
 } from '@/lib/data';
 import { getIcon } from '@/lib/icons';
+import { useToast } from '@/lib/toast';
 
 export type EmployeeStrings = {
   notifications: string;
@@ -85,6 +86,7 @@ type BadgeWithBadge = UserBadge & { badge?: Badge };
 export function EmployeeNotifications({ userId, t }: { userId: string; t: EmployeeStrings }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -102,6 +104,7 @@ export function EmployeeNotifications({ userId, t }: { userId: string; t: Employ
   const handleMarkAllRead = async () => {
     await markAllNotificationsAsRead(userId);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    toast('Notificaciones marcadas como leídas', 'success');
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -325,6 +328,8 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [pwSaving, setPwSaving] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -346,6 +351,7 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
       setMessage({ type: 'error', text: t.errorUpdating });
     } else {
       setMessage({ type: 'success', text: t.profileUpdated });
+      toast(t.profileUpdated, 'success');
     }
     setSaving(false);
   };
@@ -360,11 +366,14 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
       setPwMessage({ type: 'error', text: t.passwordMismatch });
       return;
     }
+    setPwSaving(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPwSaving(false);
     if (error) {
       setPwMessage({ type: 'error', text: error.message });
     } else {
       setPwMessage({ type: 'success', text: t.passwordChanged });
+      toast(t.passwordChanged, 'success');
       setNewPassword('');
       setConfirmPassword('');
     }
@@ -407,7 +416,7 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
           <label className="form-label">{t.newPassword}<input className="form-input" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" /></label>
           <label className="form-label">{t.confirmPassword}<input className="form-input" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" /></label>
           {pwMessage && <div className={`form-msg ${pwMessage.type}`}>{pwMessage.text}</div>}
-          <button className="primary-button" onClick={handleChangePassword}>{t.updatePassword}</button>
+          <button className="primary-button" onClick={handleChangePassword} disabled={pwSaving}>{pwSaving ? t.loading : t.updatePassword}</button>
         </div>
       </section>
     </div>

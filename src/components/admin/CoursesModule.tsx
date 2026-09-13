@@ -4,6 +4,7 @@ import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, S
 import { supabase, type CourseWithRelations, type Profile, type JobRole, type Module, type ExamQuestion, type Resource, type ModuleType } from '@/lib/supabase';
 import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createResource, deleteResource, createExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
 import { getIcon, availableIcons, availableAccents } from '@/lib/icons';
+import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
 
 type CourseTab = 'info' | 'modules' | 'resources' | 'exams' | 'assignments' | 'prerequisites';
@@ -17,6 +18,8 @@ export function CoursesModule({ t, courses, jobRoles, profile, onRefresh }: {
 }) {
   const [editingCourse, setEditingCourse] = useState<CourseWithRelations | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   if (editingCourse) {
     return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { setEditingCourse(null); onRefresh(); }} />;
@@ -49,7 +52,7 @@ export function CoursesModule({ t, courses, jobRoles, profile, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteCourse(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteCourse(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Curso eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
     </div>
   );
@@ -78,6 +81,7 @@ function CourseEditor({ t, course, jobRoles, allCourses, profile, onBack, onSave
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courseId, setCourseId] = useState(course.id ?? '');
+  const { toast } = useToast();
 
   const tabs: { key: CourseTab; label: string; icon: typeof BookOpen }[] = [
     { key: 'info', label: t.tabs.info, icon: Settings },
@@ -100,6 +104,7 @@ function CourseEditor({ t, course, jobRoles, allCourses, profile, onBack, onSave
       setCourseId(data.id);
     }
     setSaving(false);
+    toast(courseId ? 'Curso actualizado' : 'Curso creado', 'success');
     onSaved();
   };
 
@@ -159,6 +164,8 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const resetForm = () => { setTitle(''); setType('text'); setDuration(''); setBody(''); setImageUrl(''); setVideoUrl(''); setError(null); setShowForm(false); };
 
@@ -176,7 +183,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
       order_index: modules.length,
     });
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast('Módulo creado', 'success'); onRefresh();
   };
 
   const typeIcon = (tp: string) => tp === 'video' ? <Video size={14} /> : tp === 'image' ? <ImageIcon size={14} /> : tp === 'pdf' ? <FileText size={14} /> : <BookOpen size={14} />;
@@ -215,7 +222,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteModule(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteModule(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Módulo eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {modules.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
@@ -245,6 +252,8 @@ function ResourcesTab({ t, courseId, resources, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const resetForm = () => { setTitle(''); setFileUrl(''); setFileType(''); setDescription(''); setError(null); setShowForm(false); };
 
@@ -253,7 +262,7 @@ function ResourcesTab({ t, courseId, resources, onRefresh }: {
     setSaving(true);
     const { error: err } = await createResource({ course_id: courseId, title, file_url: fileUrl, file_type: fileType, description, order_index: resources.length, is_downloadable: true });
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast('Recurso creado', 'success'); onRefresh();
   };
 
   return (
@@ -283,7 +292,7 @@ function ResourcesTab({ t, courseId, resources, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteResource(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteResource(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Recurso eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {resources.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
@@ -314,6 +323,8 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const resetForm = () => { setQuestion(''); setOptions(''); setCorrectIndex('0'); setDifficulty('medium'); setPoints('1'); setError(null); setShowForm(false); };
 
@@ -330,7 +341,7 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
       order_index: questions.length,
     });
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); onRefresh();
+    setSaving(false); resetForm(); toast('Pregunta creada', 'success'); onRefresh();
   };
 
   return (
@@ -365,7 +376,7 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await deleteExamQuestion(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteExamQuestion(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Pregunta eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {questions.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
@@ -396,6 +407,8 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const assignedRoleIds = assignments.map((a) => a.job_role_id);
   const availableRoles = jobRoles.filter((r) => !assignedRoleIds.includes(r.id));
@@ -405,7 +418,7 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, onRefresh }: {
     setSaving(true);
     const { error: err } = await assignCourseToRole(courseId, roleId, isMandatory, priority, deadlineDays ? parseInt(deadlineDays) : null, 0);
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); setRoleId(''); setDeadlineDays(''); setError(null); setShowForm(false); onRefresh();
+    setSaving(false); setRoleId(''); setDeadlineDays(''); setError(null); setShowForm(false); toast('Curso asignado al cargo', 'success'); onRefresh();
   };
 
   const getRoleName = (id: string) => jobRoles.find((r) => r.id === id)?.name ?? '';
@@ -452,7 +465,7 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await removeAssignment(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await removeAssignment(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Asignación eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {assignments.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
@@ -481,6 +494,8 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const availableCourses = allCourses.filter((c) => c.id !== courseId && !prerequisites.some((p) => p.prerequisite_course_id === c.id));
 
@@ -489,7 +504,7 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
     setSaving(true);
     const { error: err } = await addPrerequisite(courseId, prereqId, isMandatory);
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); setPrereqId(''); setError(null); setShowForm(false); onRefresh();
+    setSaving(false); setPrereqId(''); setError(null); setShowForm(false); toast('Prerequisito agregado', 'success'); onRefresh();
   };
 
   const getCourseTitle = (id: string) => allCourses.find((c) => c.id === id)?.title ?? '';
@@ -529,7 +544,7 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" onClick={async () => { await removePrerequisite(deleteConfirm); setDeleteConfirm(null); onRefresh(); }}>{t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await removePrerequisite(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Prerequisito eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {prerequisites.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noPrerequisites}</p> :
