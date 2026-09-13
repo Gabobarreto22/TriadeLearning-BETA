@@ -313,8 +313,10 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
 }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
   const [deptId, setDeptId] = useState('');
+  const [salaryGrade, setSalaryGrade] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -322,16 +324,16 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const resetForm = () => { setName(''); setDescription(''); setDeptId(''); setEditingId(null); setError(null); setShowForm(false); };
+  const resetForm = () => { setName(''); setCode(''); setDescription(''); setDeptId(''); setSalaryGrade(''); setEditingId(null); setError(null); setShowForm(false); };
 
   const handleSubmit = async () => {
-    if (!name) { setError(t.roleName); return; }
+    if (!name || !code) { setError(t.roleName + ' / ' + t.roleCode); return; }
     setSaving(true);
     if (editingId) {
-      const { error: err } = await updateJobRole(editingId, name, description);
+      const { error: err } = await updateJobRole(editingId, name, description, salaryGrade || null);
       if (err) { setError(err); setSaving(false); return; }
     } else {
-      const { error: err } = await createJobRole(name, description, deptId || null);
+      const { error: err } = await createJobRole(name, code, description, deptId || null, salaryGrade || null);
       if (err) { setError(err); setSaving(false); return; }
     }
     setSaving(false); resetForm(); toast(editingId ? 'Cargo actualizado' : 'Cargo creado', 'success'); onRefresh();
@@ -352,14 +354,16 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
           <h2>{editingId ? t.editRole : t.newRole}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group field-group-full"><label>{t.roleName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="field-group"><label>{t.roleName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="field-group"><label>{t.roleCode}</label><input className="auth-input" value={code} onChange={(e) => setCode(e.target.value)} disabled={!!editingId} placeholder="Ej: GER-01" /></div>
             <div className="field-group field-group-full"><label>{t.roleDescription}</label><input className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>{t.department}</label>
+            <div className="field-group"><label>{t.department}</label>
               <select className="auth-input" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
                 <option value="">{t.selectDepartment}</option>
                 {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
+            <div className="field-group"><label>{t.salaryGrade}</label><input className="auth-input" value={salaryGrade} onChange={(e) => setSalaryGrade(e.target.value)} placeholder="Ej: A1" /></div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
@@ -383,7 +387,7 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
           <span className="team-role-badge">{getCourseCount(r.id)} {t.assignedCourses.toLowerCase()}</span>
           <span className={`status-badge ${r.is_active ? 'active' : 'inactive'}`}>{r.is_active ? t.active : t.inactive}</span>
           <div className="admin-course-actions">
-            <button className="icon-button" onClick={() => { setEditingId(r.id); setName(r.name); setDescription(r.description); setDeptId(r.department_id ?? ''); setShowForm(true); }}><Settings size={16} /></button>
+            <button className="icon-button" onClick={() => { setEditingId(r.id); setName(r.name); setCode(r.code ?? ''); setDescription(r.description); setDeptId(r.department_id ?? ''); setSalaryGrade(r.salary_grade ?? ''); setShowForm(true); }}><Settings size={16} /></button>
             <button className="icon-button" onClick={() => setDeleteConfirm(r.id)}><Trash2 size={16} /></button>
           </div>
         </div>
