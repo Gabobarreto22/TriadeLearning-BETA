@@ -180,13 +180,13 @@ export async function fetchJobRoles(): Promise<JobRole[]> {
   return data as JobRole[];
 }
 
-export async function createJobRole(name: string, code: string, description: string, departmentId?: string | null, salaryGrade?: string | null): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('job_roles').insert({ name, code, description, department_id: departmentId ?? null, salary_grade: salaryGrade ?? null });
+export async function createJobRole(name: string, description: string, departmentId?: string | null): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('job_roles').insert({ name, description, department_id: departmentId ?? null });
   return { error: error?.message ?? null };
 }
 
-export async function updateJobRole(id: string, name: string, description: string, salaryGrade?: string | null): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('job_roles').update({ name, description, salary_grade: salaryGrade ?? null }).eq('id', id);
+export async function updateJobRole(id: string, name: string, description: string, departmentId?: string | null): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('job_roles').update({ name, description, department_id: departmentId ?? null }).eq('id', id);
   return { error: error?.message ?? null };
 }
 

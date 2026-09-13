@@ -167,9 +167,7 @@ export type AdminStrings = {
   personPassword: string;
   personRole: string;
   roleName: string;
-  roleCode: string;
   roleDescription: string;
-  salaryGrade: string;
   deptName: string;
   deptCode: string;
   deptDescription: string;

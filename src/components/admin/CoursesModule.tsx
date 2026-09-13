@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star } from 'lucide-react';
-import { supabase, type CourseWithRelations, type Profile, type JobRole, type Module, type ExamQuestion, type Resource, type ModuleType } from '@/lib/supabase';
+import { supabase, type CourseWithRelations, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type Resource, type ModuleType } from '@/lib/supabase';
 import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createResource, deleteResource, createExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
 import { getIcon, availableIcons, availableAccents } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
@@ -9,10 +9,11 @@ import type { AdminStrings } from './types';
 
 type CourseTab = 'info' | 'modules' | 'resources' | 'exams' | 'assignments' | 'prerequisites';
 
-export function CoursesModule({ t, courses, jobRoles, profile, onRefresh }: {
+export function CoursesModule({ t, courses, jobRoles, departments, profile, onRefresh }: {
   t: AdminStrings;
   courses: CourseWithRelations[];
   jobRoles: JobRole[];
+  departments: Department[];
   profile: Profile;
   onRefresh: () => void;
 }) {
@@ -22,7 +23,7 @@ export function CoursesModule({ t, courses, jobRoles, profile, onRefresh }: {
   const { toast } = useToast();
 
   if (editingCourse) {
-    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { setEditingCourse(null); onRefresh(); }} />;
+    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} departments={departments} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { setEditingCourse(null); onRefresh(); }} />;
   }
 
   return (
@@ -59,10 +60,11 @@ export function CoursesModule({ t, courses, jobRoles, profile, onRefresh }: {
 }
 
 // ===================== COURSE EDITOR =====================
-function CourseEditor({ t, course, jobRoles, allCourses, profile, onBack, onSaved }: {
+function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, onBack, onSaved }: {
   t: AdminStrings;
   course: CourseWithRelations;
   jobRoles: JobRole[];
+  departments: Department[];
   allCourses: CourseWithRelations[];
   profile: Profile;
   onBack: () => void;
@@ -140,7 +142,7 @@ function CourseEditor({ t, course, jobRoles, allCourses, profile, onBack, onSave
         {tab === 'modules' && courseId && <ModulesTab t={t} courseId={courseId} modules={course.modules ?? []} onRefresh={onSaved} />}
         {tab === 'resources' && courseId && <ResourcesTab t={t} courseId={courseId} resources={course.resources ?? []} onRefresh={onSaved} />}
         {tab === 'exams' && courseId && <ExamsTab t={t} courseId={courseId} questions={course.exam_questions ?? []} onRefresh={onSaved} />}
-        {tab === 'assignments' && courseId && <AssignmentsTab t={t} courseId={courseId} assignments={course.assignments ?? []} jobRoles={jobRoles} onRefresh={onSaved} />}
+        {tab === 'assignments' && courseId && <AssignmentsTab t={t} courseId={courseId} assignments={course.assignments ?? []} jobRoles={jobRoles} departments={departments} onRefresh={onSaved} />}
         {tab === 'prerequisites' && courseId && <PrerequisitesTab t={t} courseId={courseId} prerequisites={course.prerequisites ?? []} allCourses={allCourses} onRefresh={onSaved} />}
       </div>
     </div>
@@ -392,11 +394,12 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
 }
 
 // ===================== ASSIGNMENTS TAB =====================
-function AssignmentsTab({ t, courseId, assignments, jobRoles, onRefresh }: {
+function AssignmentsTab({ t, courseId, assignments, jobRoles, departments, onRefresh }: {
   t: AdminStrings;
   courseId: string;
   assignments: any[];
   jobRoles: JobRole[];
+  departments: Department[];
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -421,7 +424,12 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, onRefresh }: {
     setSaving(false); setRoleId(''); setDeadlineDays(''); setError(null); setShowForm(false); toast('Curso asignado al cargo', 'success'); onRefresh();
   };
 
-  const getRoleName = (id: string) => jobRoles.find((r) => r.id === id)?.name ?? '';
+  const getRoleName = (id: string) => {
+    const role = jobRoles.find((r) => r.id === id);
+    if (!role) return '';
+    const dept = departments.find((d) => d.id === role.department_id)?.name;
+    return dept ? `${role.name} · ${dept}` : role.name;
+  };
 
   return (
     <div className="editor-section">
@@ -437,7 +445,10 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, onRefresh }: {
             <div className="field-group field-group-full"><label>{t.jobRole}</label>
               <select className="auth-input" value={roleId} onChange={(e) => setRoleId(e.target.value)}>
                 <option value="">{t.selectRole}</option>
-                {availableRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {availableRoles.map((r) => {
+                  const dept = departments.find((d) => d.id === r.department_id)?.name;
+                  return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
+                })}
               </select>
             </div>
             <div className="field-group"><label>{t.mandatory}</label>

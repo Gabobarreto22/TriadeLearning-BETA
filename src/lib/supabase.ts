@@ -35,10 +35,8 @@ export type Department = {
 export type JobRole = {
   id: string;
   name: string;
-  code: string;
   description: string;
   department_id: string | null;
-  salary_grade: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

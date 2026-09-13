@@ -373,7 +373,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
       </header>
       {tab === 'dashboard' && <DashboardModule t={at} data={data} onNavigate={navigate} />}
       {tab === 'personnel' && <PersonnelModule t={at} team={data.team} jobRoles={data.jobRoles} departments={data.departments} courses={data.courses} onRefresh={refreshAll} />}
-      {tab === 'courses' && <CoursesModule t={at} courses={data.courses} jobRoles={data.jobRoles} profile={profile} onRefresh={refreshAll} />}
+      {tab === 'courses' && <CoursesModule t={at} courses={data.courses} jobRoles={data.jobRoles} departments={data.departments} profile={profile} onRefresh={refreshAll} />}
       {tab === 'certifications' && <CertificationsModule t={at} data={data} />}
       {tab === 'auto-assign' && <AutoAssignModule t={at} data={data} onRefresh={refreshAll} />}
       {tab === 'feedback' && <FeedbackModule t={at} data={data} />}

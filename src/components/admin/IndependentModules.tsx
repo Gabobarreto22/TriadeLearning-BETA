@@ -123,7 +123,7 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
 
 // ===================== AUTO-ASSIGN =====================
 export function AutoAssignModule({ t, data, onRefresh }: { t: AdminStrings; data: AdminData; onRefresh: () => void }) {
-  const { team, jobRoles, courses } = data;
+  const { team, jobRoles, courses, departments } = data;
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -156,7 +156,10 @@ export function AutoAssignModule({ t, data, onRefresh }: { t: AdminStrings; data
             <label>{t.jobRole}</label>
             <select className="auth-input" value={selectedRoleId} onChange={(e) => { setSelectedRoleId(e.target.value); setResult(null); }}>
               <option value="">{t.selectRole}</option>
-              {jobRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              {jobRoles.map((r) => {
+                const dept = departments.find((d) => d.id === r.department_id)?.name;
+                return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
+              })}
             </select>
           </div>
         </div>

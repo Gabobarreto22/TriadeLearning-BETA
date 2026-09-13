@@ -55,8 +55,8 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
         {tab === 'employees' && <EmployeesTab t={t} team={team} jobRoles={jobRoles} departments={departments} onRefresh={onRefresh} />}
         {tab === 'departments' && <DepartmentsTab t={t} departments={departments} onRefresh={onRefresh} />}
         {tab === 'roles' && <RolesTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
-        {tab === 'history' && <HistoryTab t={t} team={team} jobRoles={jobRoles} />}
-        {tab === 'requirements' && <RequirementsTab t={t} jobRoles={jobRoles} courses={courses} onRefresh={onRefresh} />}
+        {tab === 'history' && <HistoryTab t={t} team={team} jobRoles={jobRoles} departments={departments} />}
+        {tab === 'requirements' && <RequirementsTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
       </div>
     </div>
   );
@@ -88,7 +88,12 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
 
   const resetForm = () => { setName(''); setEmail(''); setPassword(''); setJobRoleId(''); setRole('employee'); setError(null); setEditingUser(null); setShowForm(false); };
 
-  const getJobRoleName = (id: string | null) => jobRoles.find((r) => r.id === id)?.name ?? '';
+  const getJobRoleName = (id: string | null) => {
+    const role = jobRoles.find((r) => r.id === id);
+    if (!role) return '';
+    const dept = departments.find((d) => d.id === role.department_id)?.name;
+    return dept ? `${role.name} · ${dept}` : role.name;
+  };
   const getDeptName = (roleId: string | null) => {
     const role = jobRoles.find((r) => r.id === roleId);
     if (!role?.department_id) return '';
@@ -157,7 +162,10 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
             <div className="field-group"><label>{t.jobRole}</label>
               <select className="auth-input" value={jobRoleId} onChange={(e) => setJobRoleId(e.target.value)}>
                 <option value="">{t.selectRole}</option>
-                {jobRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {jobRoles.map((r) => {
+                  const dept = departments.find((d) => d.id === r.department_id)?.name;
+                  return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
+                })}
               </select>
             </div>
             <div className="field-group field-group-full"><label>{t.role}</label>
@@ -183,7 +191,10 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
             <div className="field-group field-group-full"><label>{t.jobRole}</label>
               <select className="auth-input" value={newRoleId} onChange={(e) => setNewRoleId(e.target.value)}>
                 <option value="">{t.selectRole}</option>
-                {jobRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {jobRoles.map((r) => {
+                  const dept = departments.find((d) => d.id === r.department_id)?.name;
+                  return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
+                })}
               </select>
             </div>
             <div className="field-group field-group-full"><label>{t.changeRoleReason}</label>
@@ -313,10 +324,8 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
 }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
-  const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
   const [deptId, setDeptId] = useState('');
-  const [salaryGrade, setSalaryGrade] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -324,16 +333,16 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const resetForm = () => { setName(''); setCode(''); setDescription(''); setDeptId(''); setSalaryGrade(''); setEditingId(null); setError(null); setShowForm(false); };
+  const resetForm = () => { setName(''); setDescription(''); setDeptId(''); setEditingId(null); setError(null); setShowForm(false); };
 
   const handleSubmit = async () => {
-    if (!name || !code) { setError(t.roleName + ' / ' + t.roleCode); return; }
+    if (!name) { setError(t.roleName); return; }
     setSaving(true);
     if (editingId) {
-      const { error: err } = await updateJobRole(editingId, name, description, salaryGrade || null);
+      const { error: err } = await updateJobRole(editingId, name, description, deptId || null);
       if (err) { setError(err); setSaving(false); return; }
     } else {
-      const { error: err } = await createJobRole(name, code, description, deptId || null, salaryGrade || null);
+      const { error: err } = await createJobRole(name, description, deptId || null);
       if (err) { setError(err); setSaving(false); return; }
     }
     setSaving(false); resetForm(); toast(editingId ? 'Cargo actualizado' : 'Cargo creado', 'success'); onRefresh();
@@ -355,7 +364,6 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group"><label>{t.roleName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="field-group"><label>{t.roleCode}</label><input className="auth-input" value={code} onChange={(e) => setCode(e.target.value)} disabled={!!editingId} placeholder="Ej: GER-01" /></div>
             <div className="field-group field-group-full"><label>{t.roleDescription}</label><input className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
             <div className="field-group"><label>{t.department}</label>
               <select className="auth-input" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
@@ -363,7 +371,6 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
                 {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
-            <div className="field-group"><label>{t.salaryGrade}</label><input className="auth-input" value={salaryGrade} onChange={(e) => setSalaryGrade(e.target.value)} placeholder="Ej: A1" /></div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
@@ -383,11 +390,11 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
       <div className="team-table">{jobRoles.map((r) => (
         <div key={r.id} className="admin-team-row">
           <div className="avatar avatar-small"><ShieldCheck size={16} /></div>
-          <div><strong>{r.name}</strong><small>{r.description || '—'}{getDeptName(r.department_id) ? ` · ${getDeptName(r.department_id)}` : ''}</small></div>
+          <div><strong>{r.name}{getDeptName(r.department_id) ? ` · ${getDeptName(r.department_id)}` : ''}</strong><small>{r.description || '—'}</small></div>
           <span className="team-role-badge">{getCourseCount(r.id)} {t.assignedCourses.toLowerCase()}</span>
           <span className={`status-badge ${r.is_active ? 'active' : 'inactive'}`}>{r.is_active ? t.active : t.inactive}</span>
           <div className="admin-course-actions">
-            <button className="icon-button" onClick={() => { setEditingId(r.id); setName(r.name); setCode(r.code ?? ''); setDescription(r.description); setDeptId(r.department_id ?? ''); setSalaryGrade(r.salary_grade ?? ''); setShowForm(true); }}><Settings size={16} /></button>
+            <button className="icon-button" onClick={() => { setEditingId(r.id); setName(r.name); setDescription(r.description); setDeptId(r.department_id ?? ''); setShowForm(true); }}><Settings size={16} /></button>
             <button className="icon-button" onClick={() => setDeleteConfirm(r.id)}><Trash2 size={16} /></button>
           </div>
         </div>
@@ -397,10 +404,11 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
 }
 
 // ===================== HISTORY TAB =====================
-function HistoryTab({ t, team, jobRoles }: {
+function HistoryTab({ t, team, jobRoles, departments }: {
   t: AdminStrings;
   team: Profile[];
   jobRoles: JobRole[];
+  departments: Department[];
 }) {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [history, setHistory] = useState<(UserJobRoleHistory & { job_role?: JobRole })[]>([]);
@@ -412,7 +420,12 @@ function HistoryTab({ t, team, jobRoles }: {
     fetchUserJobRoleHistory(selectedUserId).then((data) => { setHistory(data); setLoading(false); });
   }, [selectedUserId]);
 
-  const getRoleName = (id: string) => jobRoles.find((r) => r.id === id)?.name ?? '';
+  const getRoleName = (id: string) => {
+    const role = jobRoles.find((r) => r.id === id);
+    if (!role) return '';
+    const dept = departments.find((d) => d.id === role.department_id)?.name;
+    return dept ? `${role.name} · ${dept}` : role.name;
+  };
 
   return (
     <div className="section-card">
@@ -444,9 +457,10 @@ function HistoryTab({ t, team, jobRoles }: {
 }
 
 // ===================== REQUIREMENTS TAB =====================
-function RequirementsTab({ t, jobRoles, courses, onRefresh }: {
+function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
   t: AdminStrings;
   jobRoles: JobRole[];
+  departments: Department[];
   courses: CourseWithRelations[];
   onRefresh: () => void;
 }) {
@@ -487,7 +501,10 @@ function RequirementsTab({ t, jobRoles, courses, onRefresh }: {
           <label>{t.jobRole}</label>
           <select className="auth-input" value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)}>
             <option value="">{t.selectRole}</option>
-            {jobRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            {jobRoles.map((r) => {
+              const dept = departments.find((d) => d.id === r.department_id)?.name;
+              return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
+            })}
           </select>
         </div>
       </div>
