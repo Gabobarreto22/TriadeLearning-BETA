@@ -47,6 +47,7 @@ export type AdminStrings = {
   newCourse: string;
   newRole: string;
   newUser: string;
+  newAdmin: string;
   newDepartment: string;
   newBadge: string;
   newNotification: string;
@@ -78,6 +79,7 @@ export type AdminStrings = {
   completion: string;
   noData: string;
   noTeam: string;
+  noAdmins: string;
   noRoles: string;
   noCourses: string;
   noCertificates: string;
@@ -154,12 +156,14 @@ export type AdminStrings = {
   courseAccent: string;
   saveCourse: string;
   saveUser: string;
+  saveAdmin: string;
   saveRole: string;
   saveDepartment: string;
   saveBadge: string;
   saveNotification: string;
   saveSetting: string;
   editUser: string;
+  editAdmin: string;
   editRole: string;
   editDepartment: string;
   personName: string;
@@ -255,6 +259,7 @@ export type AdminStrings = {
   personnelManagement: string;
   deleteConfirm: string;
   deleteUserConfirm: string;
+  deleteAdminConfirm: string;
   deleteRoleConfirm: string;
   deleteDeptConfirm: string;
   deleteBadgeConfirm: string;
@@ -301,6 +306,7 @@ export type AdminStrings = {
   assignedRole: string;
   deadlineCol: string;
   teamMembers: string;
+  adminsLower: string;
   totalRolesLower: string;
   courseEditorLabel: string;
   selectCourseToEdit: string;
@@ -314,6 +320,7 @@ export type AdminStrings = {
   };
   personnelTabs: {
     employees: string;
+    admins: string;
     departments: string;
     roles: string;
     history: string;

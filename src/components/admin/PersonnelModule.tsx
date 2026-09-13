@@ -12,7 +12,7 @@ import {
 import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
 
-type PersonnelTab = 'employees' | 'departments' | 'roles' | 'history' | 'requirements';
+type PersonnelTab = 'employees' | 'admins' | 'departments' | 'roles' | 'history' | 'requirements';
 
 export function PersonnelModule({ t, team, jobRoles, departments, courses, onRefresh }: {
   t: AdminStrings;
@@ -26,6 +26,7 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
 
   const tabs: { key: PersonnelTab; label: string; icon: typeof Users }[] = [
     { key: 'employees', label: t.personnelTabs.employees, icon: Users },
+    { key: 'admins', label: t.personnelTabs.admins, icon: Settings },
     { key: 'departments', label: t.personnelTabs.departments, icon: Building2 },
     { key: 'roles', label: t.personnelTabs.roles, icon: ShieldCheck },
     { key: 'history', label: t.personnelTabs.history, icon: History },
@@ -52,7 +53,8 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
         })}
       </div>
       <div className="admin-tab-content">
-        {tab === 'employees' && <EmployeesTab t={t} team={team} jobRoles={jobRoles} departments={departments} onRefresh={onRefresh} />}
+        {tab === 'employees' && <EmployeesTab t={t} team={team.filter((m) => m.role === 'employee')} jobRoles={jobRoles} departments={departments} onRefresh={onRefresh} />}
+        {tab === 'admins' && <AdminsTab t={t} team={team.filter((m) => m.role === 'admin')} onRefresh={onRefresh} />}
         {tab === 'departments' && <DepartmentsTab t={t} departments={departments} onRefresh={onRefresh} />}
         {tab === 'roles' && <RolesTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
         {tab === 'history' && <HistoryTab t={t} team={team} jobRoles={jobRoles} departments={departments} />}
@@ -76,7 +78,6 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [jobRoleId, setJobRoleId] = useState('');
-  const [role, setRole] = useState<'employee' | 'admin'>('employee');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -86,7 +87,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   const [newRoleId, setNewRoleId] = useState('');
   const { toast } = useToast();
 
-  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setJobRoleId(''); setRole('employee'); setError(null); setEditingUser(null); setShowForm(false); };
+  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setJobRoleId(''); setError(null); setEditingUser(null); setShowForm(false); };
 
   const getJobRoleName = (id: string | null) => {
     const role = jobRoles.find((r) => r.id === id);
@@ -105,14 +106,14 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
     if (!name || !email || !jobRoleId) { setError(t.name + ' / ' + t.email + ' / ' + t.jobRole); return; }
     setSaving(true);
     if (editingUser) {
-      const { error: err } = await updateProfile(editingUser.id, { full_name: name, job_role_id: jobRoleId, role });
+      const { error: err } = await updateProfile(editingUser.id, { full_name: name, job_role_id: jobRoleId });
       if (err) { setError(err); setSaving(false); return; }
     } else {
       if (!password) { setError(t.personPassword); setSaving(false); return; }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
-        body: JSON.stringify({ email, password, full_name: name, job_role_id: jobRoleId, role }),
+        body: JSON.stringify({ email, password, full_name: name, job_role_id: jobRoleId, role: 'employee' }),
       });
       const result = await response.json();
       if (!response.ok || result.error) { setError(result.error ?? 'Error'); setSaving(false); return; }
@@ -129,7 +130,6 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
     setEmail(p.email ?? '');
     setPassword('');
     setJobRoleId(p.job_role_id ?? '');
-    setRole(p.role);
     setShowForm(true);
   };
 
@@ -167,12 +167,6 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
                   return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
                 })}
               </select>
-            </div>
-            <div className="field-group field-group-full"><label>{t.role}</label>
-              <div className="auth-role-select">
-                <button className={role === 'employee' ? 'active' : ''} onClick={() => setRole('employee')}><Users size={16} />{t.employee}</button>
-                <button className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}><Settings size={16} />{t.admin}</button>
-              </div>
             </div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
@@ -223,11 +217,110 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
             <strong>{m.full_name}</strong>
             <small>{getJobRoleName(m.job_role_id)}{getDeptName(m.job_role_id) ? ` · ${getDeptName(m.job_role_id)}` : ''}</small>
           </div>
-          <span className={`team-role-badge ${m.role}`}>{m.role === 'admin' ? t.admin : t.employee}</span>
           <span className={`status-badge ${m.is_active ? 'active' : 'inactive'}`}>{m.is_active ? t.active : t.inactive}</span>
           <div className="admin-course-actions">
             <button className="icon-button" onClick={() => startEdit(m)} title={t.editUser}><Settings size={16} /></button>
             <button className="icon-button" onClick={() => setChangeRoleUser(m)} title={t.changeRole}><Briefcase size={16} /></button>
+            <button className="icon-button" onClick={() => setDeleteConfirm(m.id)} title={t.delete}><Trash2 size={16} /></button>
+          </div>
+        </div>
+      ))}</div>}
+    </div>
+  );
+}
+
+// ===================== ADMINS TAB =====================
+function AdminsTab({ t, team, onRefresh }: {
+  t: AdminStrings;
+  team: Profile[];
+  onRefresh: () => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
+
+  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setError(null); setEditingUser(null); setShowForm(false); };
+
+  const handleSubmit = async () => {
+    setError(null);
+    if (!name || !email) { setError(t.name + ' / ' + t.email); return; }
+    setSaving(true);
+    if (editingUser) {
+      const { error: err } = await updateProfile(editingUser.id, { full_name: name });
+      if (err) { setError(err); setSaving(false); return; }
+    } else {
+      if (!password) { setError(t.personPassword); setSaving(false); return; }
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        body: JSON.stringify({ email, password, full_name: name, role: 'admin' }),
+      });
+      const result = await response.json();
+      if (!response.ok || result.error) { setError(result.error ?? 'Error'); setSaving(false); return; }
+    }
+    setSaving(false);
+    resetForm();
+    toast(editingUser ? 'Administrador actualizado' : 'Administrador creado', 'success');
+    onRefresh();
+  };
+
+  const startEdit = (p: Profile) => {
+    setEditingUser(p);
+    setName(p.full_name);
+    setEmail(p.email ?? '');
+    setPassword('');
+    setShowForm(true);
+  };
+
+  return (
+    <div className="section-card">
+      <div className="section-title">
+        <div><h2>{t.personnelTabs.admins}</h2><p className="muted">{team.length} {t.adminsLower}</p></div>
+        <button className="primary-button" style={{ minHeight: 40, padding: '10px 14px', fontSize: 11 }} onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.newAdmin}</button>
+      </div>
+      {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={resetForm}><X size={19} /></button>
+        <div className="modal-body">
+          <h2>{editingUser ? t.editAdmin : t.newAdmin}</h2>
+          {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
+          <div className="modal-form-grid" style={{ marginTop: 10 }}>
+            <div className="field-group"><label>{t.personName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="field-group"><label>{t.personEmail}</label><input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editingUser} /></div>
+            {!editingUser && <div className="field-group field-group-full"><label>{t.personPassword}</label><input className="auth-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>}
+          </div>
+          <div className="form-actions-row" style={{ marginTop: 4 }}>
+            <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
+            <button className="primary-button" onClick={handleSubmit} disabled={saving}>{saving ? t.loading : t.saveAdmin}</button>
+          </div>
+        </div>
+      </div></div>, document.body)}
+
+      {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="exit-warning-icon"><Trash2 size={40} /></div>
+        <h2>{t.deleteAdminConfirm}</h2>
+        <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteProfile(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Administrador eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
+      </div></div>, document.body)}
+
+      {team.length === 0 ? <div className="empty-state"><Settings size={30} /><h3>{t.noAdmins}</h3></div> :
+      <div className="team-table">{team.map((m) => (
+        <div key={m.id} className="admin-team-row">
+          <div className="avatar avatar-small">{m.full_name.slice(0, 2).toUpperCase()}</div>
+          <div>
+            <strong>{m.full_name}</strong>
+            <small>{m.email}</small>
+          </div>
+          <span className="team-role-badge admin">{t.admin}</span>
+          <span className={`status-badge ${m.is_active ? 'active' : 'inactive'}`}>{m.is_active ? t.active : t.inactive}</span>
+          <div className="admin-course-actions">
+            <button className="icon-button" onClick={() => startEdit(m)} title={t.editAdmin}><Settings size={16} /></button>
             <button className="icon-button" onClick={() => setDeleteConfirm(m.id)} title={t.delete}><Trash2 size={16} /></button>
           </div>
         </div>

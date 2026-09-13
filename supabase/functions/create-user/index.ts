@@ -50,19 +50,21 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json();
     const { email, password, full_name, job_role_id, role } = body;
+    const userRole = role ?? "employee";
 
-    if (!email || !password || !full_name || !job_role_id) {
+    if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: jobRole } = await supabase
-      .from("job_roles")
-      .select("name")
-      .eq("id", job_role_id)
-      .single();
+    if (userRole === "employee" && !job_role_id) {
+      return new Response(JSON.stringify({ error: "Job role is required for employees" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: newUserData, error: createErr } = await supabase.auth.admin.createUser({
       email,
@@ -82,8 +84,8 @@ Deno.serve(async (req: Request) => {
       id: newUserId,
       full_name,
       email,
-      job_role_id,
-      role: role ?? "employee",
+      job_role_id: userRole === "admin" ? null : job_role_id,
+      role: userRole,
     });
 
     if (profileErr) {
