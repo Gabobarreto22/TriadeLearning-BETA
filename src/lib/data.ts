@@ -508,14 +508,22 @@ export async function createSystemSetting(key: string, value: Record<string, unk
 }
 
 // ===================== AUDIT LOGS =====================
-export async function fetchAuditLogs(limit = 100): Promise<(AuditLog & { user?: Profile })[]> {
-  const { data, error } = await supabase
-    .from('audit_logs')
-    .select('*, user:profiles(*)')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error || !data) return [];
-  return data as (AuditLog & { user?: Profile })[];
+export async function fetchAuditLogs(pageSize = 1000): Promise<(AuditLog & { user?: Profile })[]> {
+  const logs: (AuditLog & { user?: Profile })[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*, user:profiles(*)')
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error || !data) return logs;
+
+    logs.push(...(data as (AuditLog & { user?: Profile })[]));
+    if (data.length < pageSize) return logs;
+    from += pageSize;
+  }
 }
 
 // ===================== COURSE PREREQUISITES =====================

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, Clock3, Download, FileText, History, Plus, Settings, ShieldCheck, Star, Trash2, Users, X, Zap, User } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
@@ -513,7 +513,16 @@ export function SettingsModule({ t, data, onRefresh }: { t: AdminStrings; data: 
 
 // ===================== AUDIT =====================
 export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
-  const { auditLogs } = data;
+  const [auditLogs, setAuditLogs] = useState(data.auditLogs);
+
+  useEffect(() => {
+    let active = true;
+    fetchAuditLogs().then((logs) => {
+      if (active) setAuditLogs(logs);
+    });
+    return () => { active = false; };
+  }, []);
+
   return (
     <div className="page animate-in">
       <div className="page-heading"><div><p className="eyebrow">AUDITORÍA</p><h1>{t.audit}</h1><p className="muted">{t.auditDesc}</p></div></div>
