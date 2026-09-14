@@ -727,6 +727,7 @@ textarea.form-input{resize:vertical;line-height:1.5;min-height:80px;font-family:
 .toast-info{background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1e40af;border:1px solid #93c5fd}
 .toast-loading{background:linear-gradient(135deg,#f9fafb,#f3f4f6);color:#374151;border:1px solid #d1d5db}
 .toast-spinner{animation:toast-spin .8s linear infinite}
+.spin{animation:toast-spin .8s linear infinite}
 .toast-close{margin-left:auto;background:none;border:0;color:currentColor;opacity:.5;cursor:pointer;padding:2px;display:grid;place-items:center}
 .toast-close:hover{opacity:1}
 @keyframes toast-in{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}

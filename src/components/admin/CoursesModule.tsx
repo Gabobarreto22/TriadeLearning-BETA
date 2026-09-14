@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star } from 'lucide-react';
+import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star, Upload, Loader2 } from 'lucide-react';
 import { supabase, type CourseWithRelations, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type Resource, type ModuleType } from '@/lib/supabase';
 import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createResource, deleteResource, createExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
 import { getIcon, availableIcons, availableAccents } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
+import { uploadToImageKit, deleteFromImageKit, detectResourceType, type ResourceType } from '@/lib/imagekit';
 import type { AdminStrings } from './types';
 
 type CourseTab = 'info' | 'modules' | 'resources' | 'exams' | 'assignments' | 'prerequisites';
@@ -163,13 +164,45 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const [body, setBody] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [resourceUrl, setResourceUrl] = useState('');
+  const [resourceType, setResourceType] = useState<ResourceType | null>(null);
+  const [resourceFileId, setResourceFileId] = useState('');
+  const [resourceName, setResourceName] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const resetForm = () => { setTitle(''); setType('text'); setDuration(''); setBody(''); setImageUrl(''); setVideoUrl(''); setError(null); setShowForm(false); };
+  const resetForm = () => { setTitle(''); setType('text'); setDuration(''); setBody(''); setImageUrl(''); setVideoUrl(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setError(null); setShowForm(false); };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setError(null);
+    try {
+      const result = await uploadToImageKit(file, `courses/${courseId}/modules`);
+      setResourceUrl(result.url);
+      setResourceFileId(result.fileId);
+      setResourceName(result.name);
+      setResourceType(detectResourceType(result.mimeType));
+      toast('Archivo subido correctamente', 'success');
+    } catch (err: any) {
+      setError(err.message ?? 'Error al subir archivo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveResource = async () => {
+    if (resourceFileId) {
+      try { await deleteFromImageKit(resourceFileId); } catch { /* ignore */ }
+    }
+    setResourceUrl(''); setResourceFileId(''); setResourceName(''); setResourceType(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleCreate = async () => {
     if (!title) { setError(t.moduleTitle); return; }
@@ -182,6 +215,9 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
       body,
       image_url: type === 'image' ? imageUrl : null,
       video_url: type === 'video' ? videoUrl : null,
+      resource_url: resourceUrl || null,
+      resource_type: resourceType,
+      resource_file_id: resourceFileId || null,
       order_index: modules.length,
     });
     if (err) { setError(err); setSaving(false); return; }
@@ -189,6 +225,14 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   };
 
   const typeIcon = (tp: string) => tp === 'video' ? <Video size={14} /> : tp === 'image' ? <ImageIcon size={14} /> : tp === 'pdf' ? <FileText size={14} /> : <BookOpen size={14} />;
+
+  const resourceIcon = (rt: string | null) => {
+    if (rt === 'video') return <Video size={14} />;
+    if (rt === 'image') return <ImageIcon size={14} />;
+    if (rt === 'pdf') return <FileText size={14} />;
+    if (rt === 'powerpoint') return <FileText size={14} />;
+    return <Download size={14} />;
+  };
 
   return (
     <div className="editor-section">
@@ -212,6 +256,23 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
             <div className="field-group field-group-full"><label>{t.moduleBody}</label><textarea className="auth-input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} /></div>
             {type === 'image' && <div className="field-group field-group-full"><label>{t.moduleImage}</label><input className="auth-input" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>}
             {type === 'video' && <div className="field-group field-group-full"><label>{t.moduleVideo}</label><input className="auth-input" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} /></div>}
+            <div className="field-group field-group-full">
+              <label>Recurso del módulo (Imagen, Video, PDF o PowerPoint)</label>
+              {resourceUrl ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)' }}>
+                  {resourceIcon(resourceType)}
+                  <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resourceName}</span>
+                  <button type="button" className="icon-button" onClick={handleRemoveResource} title="Quitar"><X size={16} /></button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button type="button" className="outline-button" onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ flex: 1 }}>
+                    {uploading ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Subir archivo</>}
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileUpload} style={{ display: 'none' }} />
+                </div>
+              )}
+            </div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
@@ -231,7 +292,10 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
        <div className="admin-list-stack">{modules.map((m, i) => (
          <div key={m.id} className="admin-course-row">
            <div className="course-icon gray-2"><GripVertical size={16} /></div>
-           <div className="course-row-info"><strong>{i + 1}. {m.title}</strong><small>{typeIcon(m.type)} {m.type} · {m.duration}</small></div>
+           <div className="course-row-info">
+             <strong>{i + 1}. {m.title}</strong>
+             <small>{typeIcon(m.type)} {m.type} · {m.duration}{m.resource_url ? ` · ${resourceIcon(m.resource_type)} Recurso` : ''}</small>
+           </div>
            <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(m.id)}><Trash2 size={16} /></button></div>
          </div>
        ))}</div>}

@@ -89,6 +89,9 @@ export type Module = {
   order_index: number;
   is_required: boolean;
   is_free_preview: boolean;
+  resource_type: string | null;
+  resource_url: string | null;
+  resource_file_id: string | null;
   created_at: string;
   updated_at: string;
 };
