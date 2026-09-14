@@ -123,6 +123,11 @@ export async function createExamQuestion(question: Partial<ExamQuestion>) {
   return { error: error?.message ?? null };
 }
 
+export async function updateExamQuestion(questionId: string, updates: Partial<ExamQuestion>) {
+  const { error } = await supabase.from('exam_questions').update(updates).eq('id', questionId);
+  return { error: error?.message ?? null };
+}
+
 export async function deleteExamQuestion(questionId: string) {
   const { error } = await supabase.from('exam_questions').delete().eq('id', questionId);
   return { error: error?.message ?? null };

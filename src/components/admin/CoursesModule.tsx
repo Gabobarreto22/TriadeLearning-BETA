@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star, Upload, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star, Upload, Loader2, Pencil } from 'lucide-react';
 import { supabase, type CourseWithRelations, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type ModuleType } from '@/lib/supabase';
-import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
+import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createExamQuestion, updateExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
 import { getIcon, availableIcons, availableAccents } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 import { uploadToImageKit, deleteFromImageKit, detectResourceType, type ResourceType } from '@/lib/imagekit';
@@ -156,6 +156,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<ModuleType>('text');
   const [duration, setDuration] = useState('');
@@ -174,7 +175,23 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const resetForm = () => { setTitle(''); setType('text'); setDuration(''); setBody(''); setImageUrl(''); setVideoUrl(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setError(null); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setImageUrl(''); setVideoUrl(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setError(null); setShowForm(false); };
+
+  const openEdit = (m: Module) => {
+    setEditingId(m.id);
+    setTitle(m.title);
+    setType(m.type);
+    setDuration(m.duration ?? '');
+    setBody(m.body ?? '');
+    setImageUrl(m.image_url ?? '');
+    setVideoUrl(m.video_url ?? '');
+    setResourceUrl(m.resource_url ?? '');
+    setResourceType(m.resource_type as ResourceType | null);
+    setResourceFileId(m.resource_file_id ?? '');
+    setResourceName(m.resource_url ? m.resource_url.split('/').pop() ?? '' : '');
+    setError(null);
+    setShowForm(true);
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -202,11 +219,10 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!title) { setError(t.moduleTitle); return; }
     setSaving(true);
-    const { error: err } = await createModule({
-      course_id: courseId,
+    const payload = {
       title,
       type,
       duration,
@@ -216,10 +232,16 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
       resource_url: resourceUrl || null,
       resource_type: resourceType,
       resource_file_id: resourceFileId || null,
-      order_index: modules.length,
-    });
-    if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); toast('Módulo creado', 'success'); onRefresh();
+    };
+    if (editingId) {
+      const { error: err } = await updateModule(editingId, payload);
+      if (err) { setError(err); setSaving(false); return; }
+      setSaving(false); resetForm(); toast('Módulo actualizado', 'success'); onRefresh();
+    } else {
+      const { error: err } = await createModule({ ...payload, course_id: courseId, order_index: modules.length });
+      if (err) { setError(err); setSaving(false); return; }
+      setSaving(false); resetForm(); toast('Módulo creado', 'success'); onRefresh();
+    }
   };
 
   const typeIcon = (tp: string) => tp === 'video' ? <Video size={14} /> : tp === 'image' ? <ImageIcon size={14} /> : tp === 'pdf' ? <FileText size={14} /> : <BookOpen size={14} />;
@@ -235,12 +257,12 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   return (
     <div className="editor-section">
       <div className="section-title"><div><h2>{t.modules}</h2><p className="muted">{modules.length} {t.modulesLabel}</p></div>
-        <button className="outline-button" onClick={() => setShowForm(true)}><Plus size={16} />{t.addModule}</button>
+        <button className="outline-button" onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.addModule}</button>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={resetForm}><X size={19} /></button>
         <div className="modal-body">
-          <h2>{t.addModule}</h2>
+          <h2>{editingId ? 'Editar módulo' : t.addModule}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group field-group-full"><label>{t.moduleTitle}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
@@ -274,7 +296,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleCreate} disabled={saving}>{saving ? t.loading : t.save}</button>
+            <button className="primary-button" onClick={handleSave} disabled={saving}>{saving ? t.loading : t.save}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -294,7 +316,10 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
              <strong>{i + 1}. {m.title}</strong>
              <small>{typeIcon(m.type)} {m.type} · {m.duration}{m.resource_url ? ` · ${resourceIcon(m.resource_type)} Recurso` : ''}</small>
            </div>
-           <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(m.id)}><Trash2 size={16} /></button></div>
+           <div className="admin-course-actions">
+             <button className="icon-button" onClick={() => openEdit(m)} title="Editar"><Pencil size={16} /></button>
+             <button className="icon-button" onClick={() => setDeleteConfirm(m.id)}><Trash2 size={16} /></button>
+           </div>
          </div>
        ))}</div>}
     </div>
@@ -309,9 +334,10 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
-  const [options, setOptions] = useState('');
-  const [correctIndex, setCorrectIndex] = useState('0');
+  const [options, setOptions] = useState<string[]>(['', '']);
+  const [correctIndex, setCorrectIndex] = useState(0);
   const [difficulty, setDifficulty] = useState('medium');
   const [points, setPoints] = useState('1');
   const [saving, setSaving] = useState(false);
@@ -320,38 +346,84 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const resetForm = () => { setQuestion(''); setOptions(''); setCorrectIndex('0'); setDifficulty('medium'); setPoints('1'); setError(null); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setQuestion(''); setOptions(['', '']); setCorrectIndex(0); setDifficulty('medium'); setPoints('1'); setError(null); setShowForm(false); };
 
-  const handleCreate = async () => {
-    if (!question || !options) { setError(t.questionText + ' / ' + t.options); return; }
+  const openEdit = (q: ExamQuestion) => {
+    setEditingId(q.id);
+    setQuestion(q.question);
+    setOptions(q.options.length > 0 ? [...q.options] : ['', '']);
+    setCorrectIndex(q.correct_index);
+    setDifficulty(q.difficulty);
+    setPoints(String(q.points));
+    setError(null);
+    setShowForm(true);
+  };
+
+  const updateOption = (idx: number, value: string) => {
+    setOptions(prev => prev.map((o, i) => i === idx ? value : o));
+  };
+
+  const addOption = () => {
+    setOptions(prev => [...prev, '']);
+  };
+
+  const removeOption = (idx: number) => {
+    setOptions(prev => {
+      const next = prev.filter((_, i) => i !== idx);
+      if (next.length < 2) return prev;
+      if (correctIndex >= next.length) setCorrectIndex(next.length - 1);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    const filledOptions = options.filter(o => o.trim());
+    if (!question || filledOptions.length < 2) { setError(t.questionText + ' / ' + t.options); return; }
+    if (correctIndex >= filledOptions.length) { setError('La respuesta correcta no coincide con las opciones'); return; }
     setSaving(true);
-    const { error: err } = await createExamQuestion({
-      course_id: courseId,
+    const payload = {
       question,
-      options: options.split('\n').filter(Boolean),
-      correct_index: parseInt(correctIndex) || 0,
+      options: filledOptions,
+      correct_index: correctIndex,
       difficulty: difficulty as 'easy' | 'medium' | 'hard',
       points: parseInt(points) || 1,
-      order_index: questions.length,
-    });
-    if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); toast('Pregunta creada', 'success'); onRefresh();
+    };
+    if (editingId) {
+      const { error: err } = await updateExamQuestion(editingId, payload);
+      if (err) { setError(err); setSaving(false); return; }
+      setSaving(false); resetForm(); toast('Pregunta actualizada', 'success'); onRefresh();
+    } else {
+      const { error: err } = await createExamQuestion({ ...payload, course_id: courseId, order_index: questions.length } as any);
+      if (err) { setError(err); setSaving(false); return; }
+      setSaving(false); resetForm(); toast('Pregunta creada', 'success'); onRefresh();
+    }
   };
 
   return (
     <div className="editor-section">
       <div className="section-title"><div><h2>{t.exams}</h2><p className="muted">{questions.length} {t.exams.toLowerCase()}</p></div>
-        <button className="outline-button" onClick={() => setShowForm(true)}><Plus size={16} />{t.addQuestion}</button>
+        <button className="outline-button" onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.addQuestion}</button>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={resetForm}><X size={19} /></button>
         <div className="modal-body">
-          <h2>{t.addQuestion}</h2>
+          <h2>{editingId ? 'Editar pregunta' : t.addQuestion}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group field-group-full"><label>{t.questionText}</label><input className="auth-input" value={question} onChange={(e) => setQuestion(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>{t.options}</label><textarea className="auth-input" rows={4} value={options} onChange={(e) => setOptions(e.target.value)} /></div>
-            <div className="field-group"><label>{t.correctOption}</label><input className="auth-input" type="number" min={0} value={correctIndex} onChange={(e) => setCorrectIndex(e.target.value)} /></div>
+            <div className="field-group field-group-full">
+              <label>{t.options}</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {options.map((opt, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button type="button" onClick={() => setCorrectIndex(idx)} title="Marcar como correcta" style={{ flex: '0 0 auto', width: 28, height: 28, borderRadius: '50%', border: correctIndex === idx ? '2px solid var(--success)' : '2px solid var(--line-2)', background: correctIndex === idx ? 'var(--success)' : 'transparent', color: correctIndex === idx ? '#fff' : 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{correctIndex === idx ? <Check size={14} /> : String.fromCharCode(65 + idx)}</button>
+                    <input className="auth-input" value={opt} onChange={(e) => updateOption(idx, e.target.value)} placeholder={`Opción ${String.fromCharCode(65 + idx)}`} style={{ flex: 1 }} />
+                    {options.length > 2 && <button type="button" className="icon-button" onClick={() => removeOption(idx)} title="Quitar"><X size={16} /></button>}
+                  </div>
+                ))}
+                <button type="button" className="outline-button" onClick={addOption} style={{ width: 'fit-content', minHeight: 36, padding: '6px 12px' }}><Plus size={14} /> Agregar opción</button>
+              </div>
+            </div>
             <div className="field-group"><label>{t.difficultyLevel}</label>
               <select className="auth-input" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
                 <option value="easy">{t.easy}</option><option value="medium">{t.medium}</option><option value="hard">{t.hard}</option>
@@ -361,7 +433,7 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleCreate} disabled={saving}>{saving ? t.loading : t.save}</button>
+            <button className="primary-button" onClick={handleSave} disabled={saving}>{saving ? t.loading : t.save}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -378,7 +450,10 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
          <div key={q.id} className="admin-course-row">
            <div className="course-icon gray-2"><Star size={16} /></div>
            <div className="course-row-info"><strong>{i + 1}. {q.question}</strong><small>{q.options.length} {t.options.toLowerCase()} · {q.difficulty} · {q.points} {t.pointsLabel.toLowerCase()}</small></div>
-           <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(q.id)}><Trash2 size={16} /></button></div>
+           <div className="admin-course-actions">
+             <button className="icon-button" onClick={() => openEdit(q)} title="Editar"><Pencil size={16} /></button>
+             <button className="icon-button" onClick={() => setDeleteConfirm(q.id)}><Trash2 size={16} /></button>
+           </div>
          </div>
        ))}</div>}
     </div>
