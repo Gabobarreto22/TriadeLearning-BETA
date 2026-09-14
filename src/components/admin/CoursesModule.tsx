@@ -1,14 +1,14 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star, Upload, Loader2 } from 'lucide-react';
-import { supabase, type CourseWithRelations, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type Resource, type ModuleType } from '@/lib/supabase';
-import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createResource, deleteResource, createExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
+import { supabase, type CourseWithRelations, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type ModuleType } from '@/lib/supabase';
+import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
 import { getIcon, availableIcons, availableAccents } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 import { uploadToImageKit, deleteFromImageKit, detectResourceType, type ResourceType } from '@/lib/imagekit';
 import type { AdminStrings } from './types';
 
-type CourseTab = 'info' | 'modules' | 'resources' | 'exams' | 'assignments' | 'prerequisites';
+type CourseTab = 'info' | 'modules' | 'exams' | 'assignments' | 'prerequisites';
 
 export function CoursesModule({ t, courses, jobRoles, departments, profile, onRefresh }: {
   t: AdminStrings;
@@ -41,7 +41,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
             return (
               <div key={c.id} className="admin-course-row">
                 <div className={`course-icon ${c.accent}`}><Icon size={20} /></div>
-                <div className="course-row-info"><strong>{c.title}</strong><small>{c.category} · {c.modules.length} {t.modulesLabel} · {c.resources?.length ?? 0} {t.resources.toLowerCase()} · {c.assignments.length} {t.assignedRole}s</small></div>
+                <div className="course-row-info"><strong>{c.title}</strong><small>{c.category} · {c.modules.length} {t.modulesLabel} · {c.assignments.length} {t.assignedRole}s</small></div>
                 <div className="admin-course-actions">
                   <button className="icon-button" onClick={() => setEditingCourse(c)}><Settings size={16} /></button>
                   <button className="icon-button" onClick={() => setDeleteConfirm(c.id)}><Trash2 size={16} /></button>
@@ -89,7 +89,6 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const tabs: { key: CourseTab; label: string; icon: typeof BookOpen }[] = [
     { key: 'info', label: t.tabs.info, icon: Settings },
     { key: 'modules', label: t.tabs.modules, icon: BookOpen },
-    { key: 'resources', label: t.tabs.resources, icon: Download },
     { key: 'exams', label: t.tabs.exams, icon: FileText },
     { key: 'assignments', label: t.tabs.assignments, icon: Users },
     { key: 'prerequisites', label: t.tabs.prerequisites, icon: Check },
@@ -141,7 +140,6 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
           </div>
         )}
         {tab === 'modules' && courseId && <ModulesTab t={t} courseId={courseId} modules={course.modules ?? []} onRefresh={onSaved} />}
-        {tab === 'resources' && courseId && <ResourcesTab t={t} courseId={courseId} resources={course.resources ?? []} onRefresh={onSaved} />}
         {tab === 'exams' && courseId && <ExamsTab t={t} courseId={courseId} questions={course.exam_questions ?? []} onRefresh={onSaved} />}
         {tab === 'assignments' && courseId && <AssignmentsTab t={t} courseId={courseId} assignments={course.assignments ?? []} jobRoles={jobRoles} departments={departments} onRefresh={onSaved} />}
         {tab === 'prerequisites' && courseId && <PrerequisitesTab t={t} courseId={courseId} prerequisites={course.prerequisites ?? []} allCourses={allCourses} onRefresh={onSaved} />}
@@ -297,76 +295,6 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
              <small>{typeIcon(m.type)} {m.type} · {m.duration}{m.resource_url ? ` · ${resourceIcon(m.resource_type)} Recurso` : ''}</small>
            </div>
            <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(m.id)}><Trash2 size={16} /></button></div>
-         </div>
-       ))}</div>}
-    </div>
-  );
-}
-
-// ===================== RESOURCES TAB =====================
-function ResourcesTab({ t, courseId, resources, onRefresh }: {
-  t: AdminStrings;
-  courseId: string;
-  resources: Resource[];
-  onRefresh: () => void;
-}) {
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState('');
-  const [fileUrl, setFileUrl] = useState('');
-  const [fileType, setFileType] = useState('');
-  const [description, setDescription] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const { toast } = useToast();
-
-  const resetForm = () => { setTitle(''); setFileUrl(''); setFileType(''); setDescription(''); setError(null); setShowForm(false); };
-
-  const handleCreate = async () => {
-    if (!title || !fileUrl) { setError(t.resourceTitle + ' / ' + t.resourceUrl); return; }
-    setSaving(true);
-    const { error: err } = await createResource({ course_id: courseId, title, file_url: fileUrl, file_type: fileType, description, order_index: resources.length, is_downloadable: true });
-    if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); toast('Recurso creado', 'success'); onRefresh();
-  };
-
-  return (
-    <div className="editor-section">
-      <div className="section-title"><div><h2>{t.resources}</h2><p className="muted">{resources.length} {t.resources.toLowerCase()}</p></div>
-        <button className="outline-button" onClick={() => setShowForm(true)}><Plus size={16} />{t.addResource}</button>
-      </div>
-      {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={resetForm}><X size={19} /></button>
-        <div className="modal-body">
-          <h2>{t.addResource}</h2>
-          {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
-          <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group field-group-full"><label>{t.resourceTitle}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>{t.resourceUrl}</label><input className="auth-input" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} /></div>
-            <div className="field-group"><label>{t.resourceType}</label><input className="auth-input" value={fileType} onChange={(e) => setFileType(e.target.value)} placeholder="PDF, DOC, XLS..." /></div>
-            <div className="field-group"><label>{t.description}</label><input className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-          </div>
-          <div className="form-actions-row" style={{ marginTop: 4 }}>
-            <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleCreate} disabled={saving}>{saving ? t.loading : t.save}</button>
-          </div>
-        </div>
-      </div></div>, document.body)}
-
-      {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="exit-warning-icon"><Trash2 size={40} /></div>
-        <h2>{t.deleteConfirm}</h2>
-        <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteResource(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Recurso eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
-      </div></div>, document.body)}
-
-      {resources.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
-       <div className="admin-list-stack">{resources.map((r) => (
-         <div key={r.id} className="admin-course-row">
-           <div className="course-icon gray-1"><Download size={18} /></div>
-           <div className="course-row-info"><strong>{r.title}</strong><small>{r.file_type ?? 'Archivo'}{r.is_downloadable ? ' · Descargable' : ''}</small></div>
-           <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(r.id)}><Trash2 size={16} /></button></div>
          </div>
        ))}</div>}
     </div>
