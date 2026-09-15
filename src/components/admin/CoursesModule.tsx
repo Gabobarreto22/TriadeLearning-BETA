@@ -82,9 +82,31 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const [accent, setAccent] = useState(course.accent ?? 'gray-1');
   const [estimatedHours, setEstimatedHours] = useState(String(course.estimated_hours ?? 0));
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courseId, setCourseId] = useState(course.id ?? '');
+  const courseImageRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true); setError(null);
+    try {
+      const result = await uploadToImageKit(file, `courses/${courseId || 'temp'}/cover`);
+      setImageUrl(result.url);
+      toast('Imagen subida correctamente', 'success');
+    } catch (err: any) {
+      setError(err.message ?? 'Error al subir imagen');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl('');
+    if (courseImageRef.current) courseImageRef.current.value = '';
+  };
 
   const tabs: { key: CourseTab; label: string; icon: typeof BookOpen }[] = [
     { key: 'info', label: t.tabs.info, icon: Settings },
@@ -131,7 +153,22 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
               <div className="editor-input-block"><label>{t.courseDescription}</label><input className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseCategory}</label><input className="auth-input" value={category} onChange={(e) => setCategory(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
-              <div className="editor-input-block"><label>{t.courseImage}</label><input className="auth-input" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>
+              <div className="editor-input-block"><label>{t.courseImage}</label>
+                {imageUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <img src={imageUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{imageUrl.split('/').pop()}</span>
+                    <button type="button" className="icon-button" onClick={handleRemoveImage} title="Quitar"><X size={16} /></button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button type="button" className="outline-button" onClick={() => courseImageRef.current?.click()} disabled={uploadingImage} style={{ flex: 1 }}>
+                      {uploadingImage ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Subir imagen</>}
+                    </button>
+                    <input ref={courseImageRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                  </div>
+                )}
+              </div>
               <div className="editor-input-block"><label>Horas estimadas</label><input className="auth-input" type="number" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseIcon}</label><select className="auth-input" value={iconName} onChange={(e) => setIconName(e.target.value)}>{availableIcons.map((i) => <option key={i} value={i}>{i}</option>)}</select></div>
               <div className="editor-input-block"><label>{t.courseAccent}</label><select className="auth-input" value={accent} onChange={(e) => setAccent(e.target.value)}>{availableAccents.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
