@@ -213,6 +213,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const [resourceType, setResourceType] = useState<ResourceType | null>(null);
   const [resourceFileId, setResourceFileId] = useState('');
   const [resourceName, setResourceName] = useState('');
+  const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -221,7 +222,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setError(null); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setResourceFile(null); setError(null); setShowForm(false); };
 
   const openEdit = (m: Module) => {
     setEditingId(m.id);
@@ -237,43 +238,51 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setShowForm(true);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true); setError(null);
-    try {
-      const result = await uploadToImageKit(file, `courses/${courseId}/modules`);
-      setResourceUrl(result.url);
-      setResourceFileId(result.fileId);
-      setResourceName(result.name);
-      setResourceType(detectResourceType(result.mimeType));
-      toast('Archivo subido correctamente', 'success');
-    } catch (err: any) {
-      setError(err.message ?? 'Error al subir archivo');
-    } finally {
-      setUploading(false);
-    }
+    setResourceFile(file);
+    setResourceName(file.name);
+    setResourceType(detectResourceType(file.type));
   };
 
   const handleRemoveResource = async () => {
     if (resourceFileId) {
       try { await deleteFromImageKit(resourceFileId); } catch { /* ignore */ }
     }
-    setResourceUrl(''); setResourceFileId(''); setResourceName(''); setResourceType(null);
+    setResourceUrl(''); setResourceFileId(''); setResourceName(''); setResourceType(null); setResourceFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSave = async () => {
     if (!title) { setError(t.moduleTitle); return; }
-    setSaving(true);
+    setSaving(true); setUploading(true);
+    let finalResourceUrl = resourceUrl;
+    let finalResourceFileId = resourceFileId;
+    let finalResourceType = resourceType;
+    let finalResourceName = resourceName;
+    if (resourceFile) {
+      try {
+        const result = await uploadToImageKit(resourceFile, `courses/${courseId}/modules`);
+        finalResourceUrl = result.url;
+        finalResourceFileId = result.fileId;
+        finalResourceType = detectResourceType(result.mimeType);
+        finalResourceName = result.name;
+      } catch (err: any) {
+        setError(err.message ?? 'Error al subir archivo');
+        setUploading(false); setSaving(false);
+        return;
+      }
+    }
+    setUploading(false);
     const payload = {
       title,
       type,
       duration,
-      body,
-      resource_url: resourceUrl || null,
-      resource_type: resourceType,
-      resource_file_id: resourceFileId || null,
+      body: body || undefined,
+      resource_url: finalResourceUrl || null,
+      resource_type: finalResourceType,
+      resource_file_id: finalResourceFileId || null,
     };
     if (editingId) {
       const { error: err } = await updateModule(editingId, payload);
@@ -315,28 +324,28 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
               </select>
             </div>
             <div className="field-group"><label>{t.moduleDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>{t.moduleBody}</label><textarea className="auth-input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} /></div>
+            <div className="field-group field-group-full"><label>{t.moduleBody} <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}>(opcional)</span></label><textarea className="auth-input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Descripción o contenido del módulo..." /></div>
             <div className="field-group field-group-full">
               <label>Recurso del módulo (Imagen, Video, PDF o PowerPoint)</label>
-              {resourceUrl ? (
+              {(resourceUrl || resourceFile) ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)' }}>
                   {resourceIcon(resourceType)}
-                  <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resourceName}</span>
+                  <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resourceFile?.name ?? resourceName}</span>
                   <button type="button" className="icon-button" onClick={handleRemoveResource} title="Quitar"><X size={16} /></button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button type="button" className="outline-button" onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ flex: 1 }}>
-                    {uploading ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Subir archivo</>}
+                  <button type="button" className="outline-button" onClick={() => fileInputRef.current?.click()} disabled={saving} style={{ flex: 1 }}>
+                    {saving && uploading ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Seleccionar archivo</>}
                   </button>
-                  <input ref={fileInputRef} type="file" accept="image/*,video/*,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileUpload} style={{ display: 'none' }} />
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileSelect} style={{ display: 'none' }} />
                 </div>
               )}
             </div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleSave} disabled={saving}>{saving ? t.loading : t.save}</button>
+            <button className="primary-button" onClick={handleSave} disabled={saving || uploading}>{saving ? t.loading : t.save}</button>
           </div>
         </div>
       </div></div>, document.body)}

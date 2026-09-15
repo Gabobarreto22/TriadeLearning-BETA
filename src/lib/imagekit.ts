@@ -11,7 +11,8 @@ export type UploadedFile = {
   fileType: string;
 };
 
-export function detectResourceType(mimeType: string): ResourceType {
+export function detectResourceType(mimeType: string | undefined | null): ResourceType {
+  if (!mimeType) return 'pdf';
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('video/')) return 'video';
   if (mimeType === 'application/pdf') return 'pdf';
