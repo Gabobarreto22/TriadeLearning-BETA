@@ -209,8 +209,6 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const [type, setType] = useState<ModuleType>('text');
   const [duration, setDuration] = useState('');
   const [body, setBody] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
   const [resourceUrl, setResourceUrl] = useState('');
   const [resourceType, setResourceType] = useState<ResourceType | null>(null);
   const [resourceFileId, setResourceFileId] = useState('');
@@ -223,7 +221,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setImageUrl(''); setVideoUrl(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setError(null); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setError(null); setShowForm(false); };
 
   const openEdit = (m: Module) => {
     setEditingId(m.id);
@@ -231,8 +229,6 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setType(m.type);
     setDuration(m.duration ?? '');
     setBody(m.body ?? '');
-    setImageUrl(m.image_url ?? '');
-    setVideoUrl(m.video_url ?? '');
     setResourceUrl(m.resource_url ?? '');
     setResourceType(m.resource_type as ResourceType | null);
     setResourceFileId(m.resource_file_id ?? '');
@@ -275,8 +271,6 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
       type,
       duration,
       body,
-      image_url: type === 'image' ? imageUrl : null,
-      video_url: type === 'video' ? videoUrl : null,
       resource_url: resourceUrl || null,
       resource_type: resourceType,
       resource_file_id: resourceFileId || null,
@@ -292,7 +286,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     }
   };
 
-  const typeIcon = (tp: string) => tp === 'video' ? <Video size={14} /> : tp === 'image' ? <ImageIcon size={14} /> : tp === 'pdf' ? <FileText size={14} /> : <BookOpen size={14} />;
+  const typeIcon = (tp: string) => tp === 'video' ? <Video size={14} /> : tp === 'image' ? <ImageIcon size={14} /> : tp === 'pdf' ? <FileText size={14} /> : tp === 'presentation' ? <FileText size={14} /> : <BookOpen size={14} />;
 
   const resourceIcon = (rt: string | null) => {
     if (rt === 'video') return <Video size={14} />;
@@ -316,14 +310,12 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
             <div className="field-group field-group-full"><label>{t.moduleTitle}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div className="field-group"><label>{t.moduleType}</label>
               <select className="auth-input" value={type} onChange={(e) => setType(e.target.value as ModuleType)}>
-                <option value="text">Texto</option><option value="image">Imagen</option><option value="infographic">Infografía</option>
-                <option value="video">Video</option><option value="pdf">PDF</option><option value="quiz">Quiz</option>
+                <option value="text">Texto</option><option value="image">Imagen</option>
+                <option value="video">Video</option><option value="pdf">PDF</option><option value="presentation">Presentación</option>
               </select>
             </div>
             <div className="field-group"><label>{t.moduleDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
             <div className="field-group field-group-full"><label>{t.moduleBody}</label><textarea className="auth-input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} /></div>
-            {type === 'image' && <div className="field-group field-group-full"><label>{t.moduleImage}</label><input className="auth-input" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>}
-            {type === 'video' && <div className="field-group field-group-full"><label>{t.moduleVideo}</label><input className="auth-input" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} /></div>}
             <div className="field-group field-group-full">
               <label>Recurso del módulo (Imagen, Video, PDF o PowerPoint)</label>
               {resourceUrl ? (
