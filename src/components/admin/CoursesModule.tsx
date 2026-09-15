@@ -78,6 +78,8 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const [category, setCategory] = useState(course.category ?? '');
   const [duration, setDuration] = useState(course.duration ?? '');
   const [imageUrl, setImageUrl] = useState(course.image_url ?? '');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [iconName, setIconName] = useState(course.icon_name ?? 'BookOpen');
   const [accent, setAccent] = useState(course.accent ?? 'gray-1');
   const [estimatedHours, setEstimatedHours] = useState(String(course.estimated_hours ?? 0));
@@ -88,22 +90,17 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const courseImageRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadingImage(true); setError(null);
-    try {
-      const result = await uploadToImageKit(file, `courses/${courseId || 'temp'}/cover`);
-      setImageUrl(result.url);
-      toast('Imagen subida correctamente', 'success');
-    } catch (err: any) {
-      setError(err.message ?? 'Error al subir imagen');
-    } finally {
-      setUploadingImage(false);
-    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setImageUrl('');
   };
 
   const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
     setImageUrl('');
     if (courseImageRef.current) courseImageRef.current.value = '';
   };
@@ -118,7 +115,21 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
 
   const handleSaveInfo = async () => {
     setSaving(true); setError(null);
-    const courseData = { title, description, category, duration, image_url: imageUrl, accent, icon_name: iconName, estimated_hours: parseInt(estimatedHours) || 0 };
+    let finalImageUrl = imageUrl;
+    if (imageFile) {
+      setUploadingImage(true);
+      try {
+        const result = await uploadToImageKit(imageFile, `courses/${courseId || 'temp'}/cover`);
+        finalImageUrl = result.url;
+      } catch (err: any) {
+        setError(err.message ?? 'Error al subir imagen');
+        setUploadingImage(false);
+        setSaving(false);
+        return;
+      }
+      setUploadingImage(false);
+    }
+    const courseData = { title, description, category, duration, image_url: finalImageUrl, accent, icon_name: iconName, estimated_hours: parseInt(estimatedHours) || 0 };
     if (courseId) {
       const { error: uErr } = await supabase.from('courses').update(courseData).eq('id', courseId);
       if (uErr) { setError(uErr.message); setSaving(false); return; }
@@ -154,16 +165,16 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
               <div className="editor-input-block"><label>{t.courseCategory}</label><input className="auth-input" value={category} onChange={(e) => setCategory(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseImage}</label>
-                {imageUrl ? (
+                {(imagePreview || imageUrl) ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img src={imageUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />
-                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{imageUrl.split('/').pop()}</span>
+                    <img src={imagePreview ?? imageUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{imageFile?.name ?? imageUrl.split('/').pop()}</span>
                     <button type="button" className="icon-button" onClick={handleRemoveImage} title="Quitar"><X size={16} /></button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button type="button" className="outline-button" onClick={() => courseImageRef.current?.click()} disabled={uploadingImage} style={{ flex: 1 }}>
-                      {uploadingImage ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Subir imagen</>}
+                    <button type="button" className="outline-button" onClick={() => courseImageRef.current?.click()} disabled={saving} style={{ flex: 1 }}>
+                      {saving && uploadingImage ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Subir imagen</>}
                     </button>
                     <input ref={courseImageRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                   </div>

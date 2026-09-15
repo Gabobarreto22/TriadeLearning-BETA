@@ -92,7 +92,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const fileArrayBuffer = await file.arrayBuffer();
-    const fileBase64 = btoa(String.fromCharCode(...new Uint8Array(fileArrayBuffer)));
+    const fileBytes = new Uint8Array(fileArrayBuffer);
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < fileBytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...fileBytes.subarray(i, i + chunkSize));
+    }
+    const fileBase64 = btoa(binary);
     const mimeType = file.type || "application/octet-stream";
     const dataUri = `data:${mimeType};base64,${fileBase64}`;
 
