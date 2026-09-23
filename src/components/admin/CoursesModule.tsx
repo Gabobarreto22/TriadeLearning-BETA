@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star, Upload, Loader2, Pencil } from 'lucide-react';
 import { supabase, type CourseWithRelations, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type ModuleType } from '@/lib/supabase';
@@ -23,8 +23,14 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (!editingCourse?.id) return;
+    const latest = courses.find((course) => course.id === editingCourse.id);
+    if (latest) setEditingCourse(latest);
+  }, [courses, editingCourse?.id]);
+
   if (editingCourse) {
-    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} departments={departments} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { setEditingCourse(null); onRefresh(); }} />;
+    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} departments={departments} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { onRefresh(); }} />;
   }
 
   return (
@@ -223,6 +229,20 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const { toast } = useToast();
 
   const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setResourceFile(null); setError(null); setShowForm(false); };
+  const resetFormKeepOpen = () => {
+    setEditingId(null);
+    setTitle('');
+    setType('text');
+    setDuration('');
+    setBody('');
+    setResourceUrl('');
+    setResourceType(null);
+    setResourceFileId('');
+    setResourceName('');
+    setResourceFile(null);
+    setError(null);
+    setShowForm(true);
+  };
 
   const openEdit = (m: Module) => {
     setEditingId(m.id);
@@ -308,7 +328,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     } else {
       const { error: err } = await createModule({ ...payload, course_id: courseId, order_index: modules.length });
       if (err) { setError(err); setSaving(false); return; }
-      setSaving(false); resetForm(); toast('Módulo creado', 'success'); onRefresh();
+      setSaving(false); resetFormKeepOpen(); toast('Módulo creado', 'success'); onRefresh();
     }
   };
 
@@ -430,6 +450,16 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
   ];
 
   const resetForm = () => { setEditingId(null); setQuestion(''); setOptions(['', '']); setCorrectIndex(0); setDifficulty('medium'); setPoints('1'); setError(null); setShowForm(false); };
+  const resetFormKeepOpen = () => {
+    setEditingId(null);
+    setQuestion('');
+    setOptions(['', '']);
+    setCorrectIndex(0);
+    setDifficulty('medium');
+    setPoints('1');
+    setError(null);
+    setShowForm(true);
+  };
 
   const openEdit = (q: ExamQuestion) => {
     setEditingId(q.id);
@@ -493,7 +523,7 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
     } else {
       const { error: err } = await createExamQuestion({ ...payload, course_id: courseId, order_index: (targetExam?.questions.length ?? 0) } as any);
       if (err) { setError(err); setSaving(false); return; }
-      setSaving(false); resetForm(); toast('Pregunta creada', 'success'); onRefresh();
+      setSaving(false); resetFormKeepOpen(); toast('Pregunta creada', 'success'); onRefresh();
     }
   };
 

@@ -346,11 +346,12 @@ export async function fetchAllExamAttempts(): Promise<ExamAttempt[]> {
   return data as ExamAttempt[];
 }
 
-export async function saveExamResult(userId: string, courseId: string, examType: 'direct' | 'course', score: number, passed: boolean, directFailed: boolean, userCourseRequirementId?: string, totalQuestions = 0, correctAnswers = 0, answers: number[] = []): Promise<{ error: string | null }> {
+export async function saveExamResult(userId: string, courseId: string, examType: 'direct' | 'course' | 'module', score: number, passed: boolean, directFailed: boolean, userCourseRequirementId?: string, totalQuestions = 0, correctAnswers = 0, answers: number[] = [], moduleId?: string): Promise<{ error: string | null }> {
   const { error: resultErr } = await supabase.from('exam_results').insert({
     user_id: userId,
     course_id: courseId,
     exam_type: examType,
+    module_id: moduleId ?? null,
     score,
     passed,
     direct_failed: directFailed,

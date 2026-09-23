@@ -26,7 +26,7 @@ import { EmployeeNotifications, EmployeeGamification, EmployeeCertifications, Em
 type Language = 'ES' | 'EN';
 type View = 'dashboard' | 'catalog' | 'certificates' | 'calendar' | 'player' | 'exam' | 'notifications' | 'gamification' | 'profile';
 type AdminTab = 'dashboard' | 'personnel' | 'courses' | 'certifications' | 'auto-assign' | 'feedback' | 'gamification' | 'notifications' | 'reports' | 'settings' | 'audit';
-type ExamType = 'direct' | 'course';
+type ExamType = 'direct' | 'course' | 'module';
 
 const copy = {
   ES: {
@@ -113,6 +113,7 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
   const [pendingBack, setPendingBack] = useState<(() => void) | null>(null);
   const [courses, setCourses] = useState<CourseWithRelations[]>([]);
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
+  const [passedModuleExams, setPassedModuleExams] = useState<Record<string, Record<string, boolean>>>({});
   const [examResults, setExamResults] = useState<{ course_id: string; exam_type: ExamType; passed: boolean; direct_failed: boolean }[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -139,7 +140,11 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
   const getCourseState = (courseId: string) => {
     const course = courses.find((c) => c.id === courseId);
     if (!course) return { completedModules: [] as boolean[], directFailed: false, directPassed: false, courseExamPassed: false };
-    const completedModules = course.modules.map((m) => progressMap.get(m.id) ?? false);
+    const completedModules = course.modules.map((m) => {
+      const moduleQuestions = course.exam_questions.filter((q) => q.module_id === m.id);
+      const moduleExamPassed = passedModuleExams[courseId]?.[m.id] ?? false;
+      return (progressMap.get(m.id) ?? false) || (moduleQuestions.length > 0 ? moduleExamPassed : false);
+    });
     const directResults = examResults.filter((r) => r.course_id === courseId && r.exam_type === 'direct');
     const courseResults = examResults.filter((r) => r.course_id === courseId && r.exam_type === 'course');
     return {
@@ -162,8 +167,46 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
 
   const [courseReqMap, setCourseReqMap] = useState<Record<string, string>>({});
 
-  const handleExamResult = async (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[]) => {
+  const handleExamResult = async (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[], moduleId?: string) => {
     if (saving) return;
+    if (type === 'module' && moduleId) {
+      setSaving(true);
+      const reqId = courseReqMap[courseId] ?? null;
+      const { error: resultError } = await saveExamResult(profile.id, courseId, type, score, passed, false, reqId ?? undefined, totalQuestions, correctAnswers, answers, moduleId);
+      if (resultError) {
+        setSaving(false);
+        toast(resultError, 'error');
+        return;
+      }
+      if (passed) {
+        const { error: progressError } = await markModuleComplete(profile.id, moduleId);
+        setSaving(false);
+        if (progressError) {
+          toast(progressError, 'error');
+          return;
+        }
+        setProgressMap((prev) => {
+          const next = new Map(prev);
+          next.set(moduleId, true);
+          return next;
+        });
+      } else {
+        setSaving(false);
+      }
+      setPassedModuleExams((prev) => ({
+        ...prev,
+        [courseId]: {
+          ...(prev[courseId] ?? {}),
+          [moduleId]: passed,
+        },
+      }));
+      if (passed) {
+        toast('Examen del módulo aprobado', 'success');
+      } else {
+        toast('Debes aprobar el examen del módulo para continuar', 'error');
+      }
+      return;
+    }
     setSaving(true);
     const reqId = courseReqMap[courseId] ?? null;
     const { error } = await saveExamResult(profile.id, courseId, type, score, passed, directFailed, reqId ?? undefined, totalQuestions, correctAnswers, answers);
@@ -194,17 +237,29 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
     return { error: null };
   };
 
-  const openPlayer = async (course: CourseWithRelations) => {
+  const openPlayer = async (course: CourseWithRelations, moduleId?: string) => {
     const { req, error } = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
     if (error || !req) { toast('No se pudo abrir el curso', 'error'); return; }
     setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
-    setActiveCourse(course); setView('player'); setMobileOpen(false); setSelectedCourse(null);
+    setActiveCourse(course); setActiveModuleId(moduleId ?? null); setView('player'); setMobileOpen(false); setSelectedCourse(null);
   };
-  const openExam = async (course: CourseWithRelations, type: ExamType) => {
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+
+  const goToNextModule = (course: CourseWithRelations, currentModuleId?: string) => {
+    const moduleIndex = currentModuleId ? course.modules.findIndex((m) => m.id === currentModuleId) : -1;
+    const nextModule = moduleIndex >= 0 ? course.modules[moduleIndex + 1] : null;
+    if (nextModule) {
+      openPlayer(course, nextModule.id);
+      return;
+    }
+    setActiveCourse(course); setActiveModuleId(null); setView('player');
+  };
+
+  const openExam = async (course: CourseWithRelations, type: ExamType, moduleId?: string) => {
     const { req, error } = await ensureUserCourseRequirement(profile.id, course.id, profile.job_role_id ?? '');
     if (error || !req) { toast('No se pudo abrir la evaluación', 'error'); return; }
     setCourseReqMap((prev) => ({ ...prev, [course.id]: req.id }));
-    setActiveCourse(course); setExamType(type); setView('exam'); setMobileOpen(false); setSelectedCourse(null);
+    setActiveCourse(course); setExamType(type); setActiveModuleId(moduleId ?? null); setView('exam'); setMobileOpen(false); setSelectedCourse(null);
   };
   const requestExit = (onConfirm: () => void) => { setPendingBack(() => onConfirm); setShowExitWarning(true); };
   const confirmExit = () => { setShowExitWarning(false); if (pendingBack) pendingBack(); setPendingBack(null); };
@@ -271,8 +326,8 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
       {view === 'catalog' && <Catalog t={t} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} courses={courses} getCourseState={getCourseState} onSelect={setSelectedCourse} jobRole={profile.job_role} />}
       {view === 'calendar' && <CalendarView t={t} language={language} courses={courses} onSelect={setSelectedCourse} />}
       {view === 'certificates' && <Certificates t={t} completedCourses={completedCourses} onPreview={setPreviewCert} />}
-      {view === 'player' && activeCourse && <CoursePlayer t={t} course={activeCourse} courseState={getCourseState(activeCourse.id)} onBack={() => requestExit(() => navigate('catalog'))} onExam={openExam} onMarkComplete={handleMarkComplete} />}
-      {view === 'exam' && activeCourse && <Exam t={t} course={activeCourse} examType={examType} courseState={getCourseState(activeCourse.id)} onBack={() => requestExit(() => navigate('catalog'))} onBackToCourse={() => openPlayer(activeCourse)} onResult={handleExamResult} onPass={() => setFeedbackCourse(activeCourse)} />}
+      {view === 'player' && activeCourse && <CoursePlayer t={t} course={activeCourse} initialModuleId={activeModuleId ?? undefined} courseState={getCourseState(activeCourse.id)} onBack={() => requestExit(() => navigate('catalog'))} onExam={openExam} onMarkComplete={handleMarkComplete} />}
+      {view === 'exam' && activeCourse && <Exam t={t} course={activeCourse} examType={examType} moduleId={activeModuleId ?? undefined} courseState={getCourseState(activeCourse.id)} onBack={() => requestExit(() => navigate('catalog'))} onBackToCourse={() => openPlayer(activeCourse, activeModuleId ?? undefined)} onResult={handleExamResult} onPass={() => setFeedbackCourse(activeCourse)} onNextModule={goToNextModule} />}
       {view === 'notifications' && <EmployeeNotifications userId={profile.id} t={empStrings} />}
       {view === 'gamification' && <EmployeeGamification userId={profile.id} t={empStrings} completedCount={completedCourses.length} inProgressCount={inProgressCourses.length} />}
       {view === 'profile' && <EmployeeProfile profile={profile} t={empStrings} />}
@@ -578,13 +633,30 @@ function CourseModal({ course, t, courseState, onClose, onOpenPlayer, onOpenExam
 }
 
 // ===================== COURSE PLAYER =====================
-function CoursePlayer({ t, course, courseState, onBack, onExam, onMarkComplete }: { t: typeof copy.ES; course: CourseWithRelations; courseState: { completedModules: boolean[] }; onBack: () => void; onExam: (c: CourseWithRelations, type: ExamType) => void; onMarkComplete: (moduleId: string) => void }) {
-  const [moduleIdx, setModuleIdx] = useState(0);
+function CoursePlayer({ t, course, initialModuleId, courseState, onBack, onExam, onMarkComplete }: { t: typeof copy.ES; course: CourseWithRelations; initialModuleId?: string; courseState: { completedModules: boolean[] }; onBack: () => void; onExam: (c: CourseWithRelations, type: ExamType, moduleId?: string) => void; onMarkComplete: (moduleId: string) => void }) {
+  const [moduleIdx, setModuleIdx] = useState(() => {
+    if (!initialModuleId) return 0;
+    const idx = course.modules.findIndex((m) => m.id === initialModuleId);
+    return idx >= 0 ? idx : 0;
+  });
   const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (!initialModuleId) return;
+    const idx = course.modules.findIndex((m) => m.id === initialModuleId);
+    if (idx >= 0) setModuleIdx(idx);
+  }, [course.id, initialModuleId]);
   const current = course.modules[moduleIdx];
   if (!current) return <div className="page animate-in player-page"><div className="player-header"><button className="back-button" onClick={onBack}><ArrowLeft size={18} />{t.exitCourse}</button></div><p className="muted" style={{ padding: 40 }}>{t.noCourses}</p></div>;
-  const moduleTypeIcon = current.type === 'video' ? <Video size={15} /> : current.type === 'image' ? <ImageIcon size={15} /> : <FileText size={15} />;
-  const moduleTypeLabel = current.type === 'video' ? t.videoModule : current.type === 'image' ? t.imageModule : t.textModule;
+  const moduleQuestions = course.exam_questions.filter((q) => q.module_id === current.id);
+  const moduleExamRequired = moduleQuestions.length > 0;
+  const moduleExamPassed = moduleExamRequired && courseState.completedModules[moduleIdx];
+  const isPdfModule = current.type === 'pdf' || current.resource_type === 'pdf' || current.resource_type === 'powerpoint';
+  const resourceUrl = current.resource_url ?? '';
+  const documentViewerUrl = resourceUrl && (current.resource_type === 'powerpoint' || /\.pptx?$/i.test(resourceUrl))
+    ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(resourceUrl)}`
+    : resourceUrl;
+  const moduleTypeIcon = current.type === 'video' ? <Video size={15} /> : current.type === 'image' ? <ImageIcon size={15} /> : current.type === 'pdf' ? <FileText size={15} /> : <FileText size={15} />;
+  const moduleTypeLabel = current.type === 'video' ? t.videoModule : current.type === 'image' ? t.imageModule : current.type === 'pdf' ? 'PDF / Presentación' : t.textModule;
   const allModulesComplete = courseState.completedModules.length > 0 && courseState.completedModules.every(Boolean);
   const currentModuleComplete = courseState.completedModules[moduleIdx] ?? false;
   const Icon = getIcon(course.icon_name);
@@ -595,11 +667,27 @@ function CoursePlayer({ t, course, courseState, onBack, onExam, onMarkComplete }
       <div className="player-main"><div className="player-content">
         {current.type === 'video' && (current.video_url ? <div className="player-video"><video src={current.video_url} controls className="player-video-el" />{current.body && <div className="player-text"><div className="player-module-tag">{moduleTypeIcon}{moduleTypeLabel} · {current.duration}</div><h2>{current.title}</h2><p>{current.body}</p></div>}</div> : <div className="player-video"><div className="video-poster" style={{ backgroundImage: `url(${course.image_url})` }}><button className="video-play-btn" onClick={() => setPlaying(!playing)}>{playing ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" />}</button></div><div className="video-controls"><span className="video-time">0:00 / {current.duration}</span><div className="video-bar"><span style={{ width: playing ? '35%' : '0%' }} /></div></div></div>)}
         {current.type === 'image' && current.image_url && <div className="player-image"><img src={current.image_url} alt={current.title} /></div>}
+        {isPdfModule && resourceUrl && <div className="player-document"><iframe src={documentViewerUrl} title={current.title} className="player-document-embed" allow="fullscreen" /></div>}
         {current.type === 'text' && <div className="player-text-icon"><FileText size={48} /></div>}
         <div className="player-text"><div className="player-module-tag">{moduleTypeIcon}{moduleTypeLabel} · {current.duration}</div><h2>{current.title}</h2><p>{current.body}</p></div>
+        {moduleExamRequired && <div className="module-complete-banner" style={{ marginBottom: 16 }}><Award size={16} />{moduleExamPassed ? 'Examen del módulo aprobado' : 'Debes aprobar el examen del módulo para avanzar'}</div>}
         <div className="player-nav-buttons">
           {moduleIdx > 0 && <button className="outline-button player-prev" onClick={() => setModuleIdx(moduleIdx - 1)}><ChevronLeft size={16} />{t.prevQ}</button>}
-          {moduleIdx < course.modules.length - 1 ? <button className="primary-button player-next" onClick={() => { if (!currentModuleComplete) onMarkComplete(current.id); setModuleIdx(moduleIdx + 1); }}>{t.nextQ}<ChevronRight size={16} /></button> : <button className="primary-button player-next" onClick={() => { if (!currentModuleComplete) onMarkComplete(current.id); onExam(course, 'course'); }}><Award size={16} />{t.takeExam}</button>}
+          {moduleIdx < course.modules.length - 1 ? <button className="primary-button player-next" onClick={() => {
+            if (moduleExamRequired && !moduleExamPassed) {
+              onExam(course, 'module', current.id);
+              return;
+            }
+            if (!currentModuleComplete) onMarkComplete(current.id);
+            setModuleIdx(moduleIdx + 1);
+          }}>{moduleExamRequired && !moduleExamPassed ? 'Examen del módulo' : t.nextQ}<ChevronRight size={16} /></button> : <button className="primary-button player-next" onClick={() => {
+            if (moduleExamRequired && !moduleExamPassed) {
+              onExam(course, 'module', current.id);
+              return;
+            }
+            if (!currentModuleComplete) onMarkComplete(current.id);
+            onExam(course, 'course');
+          }}><Award size={16} />{t.takeExam}</button>}
         </div>
         {currentModuleComplete && <div className="module-complete-banner"><Check size={16} />{t.moduleComplete}</div>}
       </div></div>
@@ -613,19 +701,20 @@ function CoursePlayer({ t, course, courseState, onBack, onExam, onMarkComplete }
 }
 
 // ===================== EXAM =====================
-function Exam({ t, course, examType, courseState, onBack, onBackToCourse, onResult, onPass }: { t: typeof copy.ES; course: CourseWithRelations; examType: ExamType; courseState: { completedModules: boolean[]; directFailed: boolean; directPassed: boolean; courseExamPassed: boolean }; onBack: () => void; onBackToCourse: () => void; onResult: (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[]) => void; onPass?: () => void }) {
+function Exam({ t, course, examType, moduleId, courseState, onBack, onBackToCourse, onResult, onPass, onNextModule }: { t: typeof copy.ES; course: CourseWithRelations; examType: ExamType; moduleId?: string; courseState: { completedModules: boolean[]; directFailed: boolean; directPassed: boolean; courseExamPassed: boolean }; onBack: () => void; onBackToCourse: () => void; onResult: (courseId: string, type: ExamType, score: number, passed: boolean, directFailed: boolean, totalQuestions: number, correctAnswers: number, answers: number[], moduleId?: string) => void; onPass?: () => void; onNextModule?: (course: CourseWithRelations, moduleId?: string) => void }) {
+  const moduleQuestions = moduleId ? course.exam_questions.filter((q) => q.module_id === moduleId) : [];
+  const questions = examType === 'module' ? moduleQuestions : course.exam_questions.filter((q) => !q.module_id);
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<number[]>(Array(course.exam_questions.length).fill(-1));
+  const [answers, setAnswers] = useState<number[]>(Array(questions.length).fill(-1));
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<{ score: number; correct: number; total: number; passed: boolean } | null>(null);
-  const questions = course.exam_questions;
   if (questions.length === 0) return <div className="page animate-in"><p className="muted" style={{ padding: 40 }}>{t.noCourses}</p></div>;
   const q = questions[currentQ];
   const answered = answers[currentQ] !== -1;
   const allAnswered = answers.every((a) => a !== -1);
   const progress = ((currentQ + 1) / questions.length) * 100;
-  const examTitle = examType === 'direct' ? t.directExam : t.courseExam;
-  const examDesc = examType === 'direct' ? t.directExamDesc : t.courseExamDesc;
+  const examTitle = examType === 'direct' ? t.directExam : examType === 'module' ? `Examen del módulo` : t.courseExam;
+  const examDesc = examType === 'direct' ? t.directExamDesc : examType === 'module' ? 'Aprobación requerida para continuar con este módulo.' : t.courseExamDesc;
   const Icon = getIcon(course.icon_name);
 
   const handleSubmit = () => {
@@ -635,7 +724,7 @@ function Exam({ t, course, examType, courseState, onBack, onBackToCourse, onResu
     const directFailed = examType === 'direct' && !passed;
     setResult({ score, correct, total: questions.length, passed });
     setSubmitted(true);
-    onResult(course.id, examType, score, passed, directFailed, questions.length, correct, answers);
+    onResult(course.id, examType, score, passed, directFailed, questions.length, correct, answers, moduleId);
     if (passed && examType === 'course' && onPass) onPass();
   };
 
@@ -647,8 +736,19 @@ function Exam({ t, course, examType, courseState, onBack, onBackToCourse, onResu
       <p className="muted">{result.passed ? t.certificate : isDirectFailed ? t.directFailedDesc : t.retry}</p>
       <div className="exam-score-display"><div className="score-circle"><strong>{result.score}%</strong></div><div className="score-details"><div><span>{t.correctAnswers}</span><strong>{result.correct} / {result.total}</strong></div><div><span>{t.passThreshold}</span><strong>90%</strong></div></div></div>
       <div className="exam-result-actions">
-        {result.passed ? <button className="primary-button" onClick={onBack}><Award size={17} />{t.backToCatalog}</button> : isDirectFailed ? <button className="primary-button" onClick={onBackToCourse}><BookOpen size={17} />{t.goToCourse}</button> : <button className="primary-button" onClick={() => { setAnswers(Array(questions.length).fill(-1)); setCurrentQ(0); setSubmitted(false); setResult(null); }}><RotateCcw size={17} />{t.retry}</button>}
-        <button className="outline-button" onClick={onBack}>{t.backToCatalog}</button>
+        {result.passed && examType === 'module' && moduleId && onNextModule ? (
+          <>
+            <button className="primary-button" onClick={() => onNextModule(course, moduleId)}><ArrowRight size={17} />Siguiente módulo</button>
+            <button className="outline-button" onClick={onBackToCourse}><BookOpen size={17} />Volver al curso</button>
+          </>
+        ) : result.passed ? (
+          <button className="primary-button" onClick={onBack}><Award size={17} />{t.backToCatalog}</button>
+        ) : isDirectFailed ? (
+          <button className="primary-button" onClick={onBackToCourse}><BookOpen size={17} />{t.goToCourse}</button>
+        ) : (
+          <button className="primary-button" onClick={() => { setAnswers(Array(questions.length).fill(-1)); setCurrentQ(0); setSubmitted(false); setResult(null); }}><RotateCcw size={17} />{t.retry}</button>
+        )}
+        {!(result.passed && examType === 'module' && moduleId && onNextModule) && <button className="outline-button" onClick={onBack}>{t.backToCatalog}</button>}
       </div>
     </div></div>;
   }
