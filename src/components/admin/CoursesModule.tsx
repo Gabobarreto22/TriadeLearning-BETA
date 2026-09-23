@@ -188,7 +188,7 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
           </div>
         )}
         {tab === 'modules' && courseId && <ModulesTab t={t} courseId={courseId} modules={course.modules ?? []} onRefresh={onSaved} />}
-        {tab === 'exams' && courseId && <ExamsTab t={t} courseId={courseId} questions={course.exam_questions ?? []} onRefresh={onSaved} />}
+        {tab === 'exams' && courseId && <ExamsTab t={t} courseId={courseId} modules={course.modules ?? []} questions={course.exam_questions ?? []} onRefresh={onSaved} />}
         {tab === 'assignments' && courseId && <AssignmentsTab t={t} courseId={courseId} assignments={course.assignments ?? []} jobRoles={jobRoles} departments={departments} onRefresh={onSaved} />}
         {tab === 'prerequisites' && courseId && <PrerequisitesTab t={t} courseId={courseId} prerequisites={course.prerequisites ?? []} allCourses={allCourses} onRefresh={onSaved} />}
       </div>
@@ -238,12 +238,29 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setShowForm(true);
   };
 
+  const mapResourceTypeToModuleType = (resourceType: ResourceType | null): ModuleType => {
+    if (resourceType === 'image') return 'image';
+    if (resourceType === 'video') return 'video';
+    if (resourceType === 'pdf' || resourceType === 'powerpoint') return 'pdf';
+    return 'text';
+  };
+
+  const getModuleTypeLabel = (moduleType: ModuleType) => {
+    if (moduleType === 'image') return 'Imagen';
+    if (moduleType === 'video') return 'Video';
+    if (moduleType === 'pdf') return 'Presentación PDF/PowerPoint';
+    return 'Texto';
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const detectedType = detectResourceType(file.type, file.name);
     setResourceFile(file);
     setResourceName(file.name);
-    setResourceType(detectResourceType(file.type));
+    setResourceType(detectedType);
+    setType(mapResourceTypeToModuleType(detectedType));
   };
 
   const handleRemoveResource = async () => {
@@ -295,7 +312,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     }
   };
 
-  const typeIcon = (tp: string) => tp === 'video' ? <Video size={14} /> : tp === 'image' ? <ImageIcon size={14} /> : tp === 'pdf' ? <FileText size={14} /> : tp === 'presentation' ? <FileText size={14} /> : <BookOpen size={14} />;
+  const typeIcon = (tp: string) => tp === 'video' ? <Video size={14} /> : tp === 'image' ? <ImageIcon size={14} /> : tp === 'pdf' ? <FileText size={14} /> : <BookOpen size={14} />;
 
   const resourceIcon = (rt: string | null) => {
     if (rt === 'video') return <Video size={14} />;
@@ -303,6 +320,14 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     if (rt === 'pdf') return <FileText size={14} />;
     if (rt === 'powerpoint') return <FileText size={14} />;
     return <Download size={14} />;
+  };
+
+  const resourceLabel = (rt: string | null) => {
+    if (rt === 'image') return 'Imagen';
+    if (rt === 'video') return 'Video';
+    if (rt === 'pdf') return 'PDF';
+    if (rt === 'powerpoint') return 'PowerPoint';
+    return 'Archivo';
   };
 
   return (
@@ -319,8 +344,10 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
             <div className="field-group field-group-full"><label>{t.moduleTitle}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div className="field-group"><label>{t.moduleType}</label>
               <select className="auth-input" value={type} onChange={(e) => setType(e.target.value as ModuleType)}>
-                <option value="text">Texto</option><option value="image">Imagen</option>
-                <option value="video">Video</option><option value="pdf">PDF</option><option value="presentation">Presentación</option>
+                <option value="text">Texto</option>
+                <option value="image">Imagen</option>
+                <option value="video">Video</option>
+                <option value="pdf">Presentación PDF/PowerPoint</option>
               </select>
             </div>
             <div className="field-group"><label>{t.moduleDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
@@ -338,7 +365,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
                   <button type="button" className="outline-button" onClick={() => fileInputRef.current?.click()} disabled={saving} style={{ flex: 1 }}>
                     {saving && uploading ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Seleccionar archivo</>}
                   </button>
-                  <input ref={fileInputRef} type="file" accept="image/*,video/*,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileSelect} style={{ display: 'none' }} />
+                  <input ref={fileInputRef} type="file" accept=".pdf,.ppt,.pptx,image/*,video/*,.png,.jpg,.jpeg,.mp4,.mov,.webm" onChange={handleFileSelect} style={{ display: 'none' }} />
                 </div>
               )}
             </div>
@@ -363,7 +390,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
            <div className="course-icon gray-2"><GripVertical size={16} /></div>
            <div className="course-row-info">
              <strong>{i + 1}. {m.title}</strong>
-             <small>{typeIcon(m.type)} {m.type} · {m.duration}{m.resource_url ? ` · ${resourceIcon(m.resource_type)} Recurso` : ''}</small>
+             <small>{typeIcon(m.type)} {m.type} · {m.duration}{m.resource_url ? ` · ${resourceIcon(m.resource_type)} ${resourceLabel(m.resource_type)}` : ''}</small>
            </div>
            <div className="admin-course-actions">
              <button className="icon-button" onClick={() => openEdit(m)} title="Editar"><Pencil size={16} /></button>
@@ -376,14 +403,16 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
 }
 
 // ===================== EXAMS TAB =====================
-function ExamsTab({ t, courseId, questions, onRefresh }: {
+function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
   t: AdminStrings;
   courseId: string;
+  modules: Module[];
   questions: ExamQuestion[];
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [correctIndex, setCorrectIndex] = useState(0);
@@ -395,15 +424,33 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
+  const examGroups = [
+    { id: '__final__', label: 'Examen final del curso', moduleId: null, questions: questions.filter((q) => !q.module_id) },
+    ...modules.map((m) => ({ id: m.id, label: `Examen de ${m.title}`, moduleId: m.id, questions: questions.filter((q) => q.module_id === m.id) })),
+  ];
+
   const resetForm = () => { setEditingId(null); setQuestion(''); setOptions(['', '']); setCorrectIndex(0); setDifficulty('medium'); setPoints('1'); setError(null); setShowForm(false); };
 
   const openEdit = (q: ExamQuestion) => {
     setEditingId(q.id);
+    setSelectedExamId(q.module_id ?? '__final__');
     setQuestion(q.question);
     setOptions(q.options.length > 0 ? [...q.options] : ['', '']);
     setCorrectIndex(q.correct_index);
     setDifficulty(q.difficulty);
     setPoints(String(q.points));
+    setError(null);
+    setShowForm(true);
+  };
+
+  const openNewQuestion = (examId: string | null) => {
+    setEditingId(null);
+    setSelectedExamId(examId ?? '__final__');
+    setQuestion('');
+    setOptions(['', '']);
+    setCorrectIndex(0);
+    setDifficulty('medium');
+    setPoints('1');
     setError(null);
     setShowForm(true);
   };
@@ -430,19 +477,21 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
     if (!question || filledOptions.length < 2) { setError(t.questionText + ' / ' + t.options); return; }
     if (correctIndex >= filledOptions.length) { setError('La respuesta correcta no coincide con las opciones'); return; }
     setSaving(true);
+    const targetExam = examGroups.find((g) => g.id === selectedExamId) ?? examGroups[0];
     const payload = {
       question,
       options: filledOptions,
       correct_index: correctIndex,
       difficulty: difficulty as 'easy' | 'medium' | 'hard',
       points: parseInt(points) || 1,
+      module_id: targetExam?.moduleId ?? null,
     };
     if (editingId) {
       const { error: err } = await updateExamQuestion(editingId, payload);
       if (err) { setError(err); setSaving(false); return; }
       setSaving(false); resetForm(); toast('Pregunta actualizada', 'success'); onRefresh();
     } else {
-      const { error: err } = await createExamQuestion({ ...payload, course_id: courseId, order_index: questions.length } as any);
+      const { error: err } = await createExamQuestion({ ...payload, course_id: courseId, order_index: (targetExam?.questions.length ?? 0) } as any);
       if (err) { setError(err); setSaving(false); return; }
       setSaving(false); resetForm(); toast('Pregunta creada', 'success'); onRefresh();
     }
@@ -450,13 +499,33 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
 
   return (
     <div className="editor-section">
-      <div className="section-title"><div><h2>{t.exams}</h2><p className="muted">{questions.length} {t.exams.toLowerCase()}</p></div>
-        <button className="outline-button" onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.addQuestion}</button>
-      </div>
+      <div className="section-title"><div><h2>{t.exams}</h2><p className="muted">{questions.length} preguntas</p></div></div>
+
+      {examGroups.map((exam) => (
+        <div key={exam.id} style={{ marginBottom: 24 }}>
+          <div className="section-title" style={{ marginBottom: 12 }}>
+            <div><h3 style={{ margin: 0 }}>{exam.label}</h3><p className="muted">{exam.questions.length} preguntas</p></div>
+            <button className="outline-button" onClick={() => openNewQuestion(exam.moduleId)}><Plus size={16} />{t.addQuestion}</button>
+          </div>
+
+          {exam.questions.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
+            <div className="admin-list-stack">{exam.questions.map((q, i) => (
+              <div key={q.id} className="admin-course-row">
+                <div className="course-icon gray-2"><Star size={16} /></div>
+                <div className="course-row-info"><strong>{i + 1}. {q.question}</strong><small>{q.options.length} {t.options.toLowerCase()} · {q.difficulty} · {q.points} {t.pointsLabel.toLowerCase()}</small></div>
+                <div className="admin-course-actions">
+                  <button className="icon-button" onClick={() => openEdit(q)} title="Editar"><Pencil size={16} /></button>
+                  <button className="icon-button" onClick={() => setDeleteConfirm(q.id)}><Trash2 size={16} /></button>
+                </div>
+              </div>
+            ))}</div>}
+        </div>
+      ))}
+
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={resetForm}><X size={19} /></button>
         <div className="modal-body">
-          <h2>{editingId ? 'Editar pregunta' : t.addQuestion}</h2>
+          <h2>{editingId ? 'Editar pregunta' : `${examGroups.find((g) => g.id === selectedExamId)?.label ?? 'Examen'} · ${t.addQuestion}`}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group field-group-full"><label>{t.questionText}</label><input className="auth-input" value={question} onChange={(e) => setQuestion(e.target.value)} /></div>
@@ -493,18 +562,6 @@ function ExamsTab({ t, courseId, questions, onRefresh }: {
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
         <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteExamQuestion(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Pregunta eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
-
-      {questions.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
-       <div className="admin-list-stack">{questions.map((q, i) => (
-         <div key={q.id} className="admin-course-row">
-           <div className="course-icon gray-2"><Star size={16} /></div>
-           <div className="course-row-info"><strong>{i + 1}. {q.question}</strong><small>{q.options.length} {t.options.toLowerCase()} · {q.difficulty} · {q.points} {t.pointsLabel.toLowerCase()}</small></div>
-           <div className="admin-course-actions">
-             <button className="icon-button" onClick={() => openEdit(q)} title="Editar"><Pencil size={16} /></button>
-             <button className="icon-button" onClick={() => setDeleteConfirm(q.id)}><Trash2 size={16} /></button>
-           </div>
-         </div>
-       ))}</div>}
     </div>
   );
 }

@@ -11,12 +11,15 @@ export type UploadedFile = {
   fileType: string;
 };
 
-export function detectResourceType(mimeType: string | undefined | null): ResourceType {
-  if (!mimeType) return 'pdf';
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType === 'application/pdf') return 'pdf';
-  if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'powerpoint';
+export function detectResourceType(mimeType: string | undefined | null, fileName?: string): ResourceType {
+  const normalizedMime = (mimeType ?? '').toLowerCase();
+  const normalizedName = (fileName ?? '').toLowerCase();
+
+  if (normalizedMime.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif)$/i.test(normalizedName)) return 'image';
+  if (normalizedMime.startsWith('video/') || /\.(mp4|mov|webm|avi|mkv|wmv|m4v|flv)$/i.test(normalizedName)) return 'video';
+  if (normalizedMime === 'application/pdf' || normalizedName.endsWith('.pdf')) return 'pdf';
+  if (normalizedMime.includes('presentation') || normalizedMime.includes('powerpoint') || /\.(ppt|pptx)$/i.test(normalizedName)) return 'powerpoint';
+
   return 'pdf';
 }
 

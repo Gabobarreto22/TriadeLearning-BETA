@@ -91,20 +91,11 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const fileArrayBuffer = await file.arrayBuffer();
-    const fileBytes = new Uint8Array(fileArrayBuffer);
-    let binary = "";
-    const chunkSize = 0x8000;
-    for (let i = 0; i < fileBytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...fileBytes.subarray(i, i + chunkSize));
-    }
-    const fileBase64 = btoa(binary);
-    const mimeType = file.type || "application/octet-stream";
-    const dataUri = `data:${mimeType};base64,${fileBase64}`;
+    const fileNameToUpload = fileName || `upload_${Date.now()}`;
 
     const uploadFormData = new FormData();
-    uploadFormData.append("file", dataUri);
-    uploadFormData.append("fileName", fileName || `upload_${Date.now()}`);
+    uploadFormData.append("file", file, fileNameToUpload);
+    uploadFormData.append("fileName", fileNameToUpload);
     uploadFormData.append("folder", folder);
 
     const uploadResponse = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
@@ -117,7 +108,14 @@ Deno.serve(async (req: Request) => {
 
     if (!uploadResponse.ok) {
       const errText = await uploadResponse.text();
-      return new Response(JSON.stringify({ error: `ImageKit upload failed: ${errText}` }), {
+      let parsedError = "ImageKit upload failed";
+      try {
+        const parsed = JSON.parse(errText);
+        parsedError = parsed.message || parsed.error || errText || parsedError;
+      } catch {
+        parsedError = errText || parsedError;
+      }
+      return new Response(JSON.stringify({ error: parsedError }), {
         status: uploadResponse.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -72,7 +72,7 @@ export type Course = {
   updated_at: string;
 };
 
-export type ModuleType = 'text' | 'image' | 'video' | 'pdf' | 'presentation';
+export type ModuleType = 'text' | 'image' | 'infographic' | 'video' | 'pdf' | 'quiz';
 
 export type Module = {
   id: string;
