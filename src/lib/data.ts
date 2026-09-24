@@ -1,4 +1,5 @@
 import { supabase, type Course, type Module, type ExamQuestion, type CourseAssignment, type CourseWithRelations, type Profile, type JobRole, type Department, type UserJobRoleHistory, type Resource, type CoursePrerequisite, type UserCourseRequirement, type ModuleProgress, type ExamAttempt, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog } from './supabase';
+import { detectResourceType } from './imagekit';
 
 // ===================== COURSES =====================
 export async function fetchCoursesForRole(jobRoleId: string): Promise<CourseWithRelations[]> {
@@ -24,6 +25,46 @@ export async function fetchCoursesByIds(courseIds: string[]): Promise<CourseWith
   return enrichCourses(courses as Course[]);
 }
 
+const mapResourceTypeToModuleType = (resourceType: string | null): Module['type'] => {
+  if (resourceType === 'image') return 'image';
+  if (resourceType === 'video') return 'video';
+  if (resourceType === 'pdf' || resourceType === 'powerpoint') return 'pdf';
+  return 'text';
+};
+
+export function normalizeModuleResourceData(module: Module): Module {
+  const candidateUrl = module.resource_url ?? module.video_url ?? module.image_url ?? null;
+  const detectedType = candidateUrl ? detectResourceType(undefined, candidateUrl) : (module.resource_type as string | null) ?? 'pdf';
+  const normalizedType = mapResourceTypeToModuleType(detectedType);
+
+  if (!candidateUrl) return module;
+
+  return {
+    ...module,
+    resource_type: detectedType,
+    type: normalizedType,
+  };
+}
+
+export async function normalizeCourseModulesForResourceTypes(courseId: string) {
+  const { data, error } = await supabase.from('modules').select('*').eq('course_id', courseId);
+  if (error || !data) return { error: error?.message ?? null };
+
+  for (const module of data as Module[]) {
+    const normalized = normalizeModuleResourceData(module);
+    const hasMismatch = module.type !== normalized.type || module.resource_type !== normalized.resource_type;
+    if (hasMismatch) {
+      const { error: updateErr } = await supabase.from('modules').update({
+        type: normalized.type,
+        resource_type: normalized.resource_type,
+      }).eq('id', module.id);
+      if (updateErr) return { error: updateErr.message };
+    }
+  }
+
+  return { error: null };
+}
+
 async function enrichCourses(courses: Course[]): Promise<CourseWithRelations[]> {
   if (courses.length === 0) return [];
   const courseIds = courses.map((c) => c.id);
@@ -34,9 +75,19 @@ async function enrichCourses(courses: Course[]): Promise<CourseWithRelations[]> 
     supabase.from('resources').select('*').in('course_id', courseIds).order('order_index'),
     supabase.from('course_prerequisites').select('*').in('course_id', courseIds),
   ]);
+
+  const normalizedModules = ((modulesRes.data ?? []) as Module[]).map((module) => normalizeModuleResourceData(module));
+
+  for (const courseId of courseIds) {
+    const mismatchedModules = normalizedModules.filter((module) => module.course_id === courseId && module.resource_url);
+    if (mismatchedModules.length > 0) {
+      await normalizeCourseModulesForResourceTypes(courseId);
+    }
+  }
+
   return courses.map((c) => ({
     ...c,
-    modules: ((modulesRes.data ?? []) as Module[]).filter((m) => m.course_id === c.id),
+    modules: normalizedModules.filter((m) => m.course_id === c.id),
     exam_questions: ((questionsRes.data ?? []) as ExamQuestion[]).filter((q) => q.course_id === c.id),
     assignments: ((assignmentsRes.data ?? []) as CourseAssignment[]).filter((a) => a.course_id === c.id),
     resources: ((resourcesRes.data ?? []) as Resource[]).filter((r) => r.course_id === c.id),

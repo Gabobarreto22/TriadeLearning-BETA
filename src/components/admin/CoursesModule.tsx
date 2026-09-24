@@ -86,6 +86,7 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const [imageUrl, setImageUrl] = useState(course.image_url ?? '');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>(course.image_url ? 'url' : 'upload');
   const [iconName, setIconName] = useState(course.icon_name ?? 'BookOpen');
   const [accent, setAccent] = useState(course.accent ?? 'gray-1');
   const [estimatedHours, setEstimatedHours] = useState(String(course.estimated_hours ?? 0));
@@ -102,12 +103,14 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setImageUrl('');
+    setImageInputMode('upload');
   };
 
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
     setImageUrl('');
+    setImageInputMode('upload');
     if (courseImageRef.current) courseImageRef.current.value = '';
   };
 
@@ -121,8 +124,8 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
 
   const handleSaveInfo = async () => {
     setSaving(true); setError(null);
-    let finalImageUrl = imageUrl;
-    if (imageFile) {
+    let finalImageUrl = imageInputMode === 'url' ? imageUrl.trim() : imageUrl;
+    if (imageInputMode === 'upload' && imageFile) {
       setUploadingImage(true);
       try {
         const result = await uploadToImageKit(imageFile, `courses/${courseId || 'temp'}/cover`);
@@ -167,26 +170,45 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
           <div className="editor-section">
             <div className="editor-grid">
               <div className="editor-input-block"><label>{t.courseTitle}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-              <div className="editor-input-block"><label>{t.courseDescription}</label><input className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseCategory}</label><input className="auth-input" value={category} onChange={(e) => setCategory(e.target.value)} /></div>
+              <div className="editor-input-block editor-input-block-full"><label>{t.courseDescription}</label><textarea className="auth-input" rows={6} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
-              <div className="editor-input-block"><label>{t.courseImage}</label>
-                {(imagePreview || imageUrl) ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img src={imagePreview ?? imageUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />
-                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{imageFile?.name ?? imageUrl.split('/').pop()}</span>
-                    <button type="button" className="icon-button" onClick={handleRemoveImage} title="Quitar"><X size={16} /></button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button type="button" className="outline-button" onClick={() => courseImageRef.current?.click()} disabled={saving} style={{ flex: 1 }}>
-                      {saving && uploadingImage ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Subir imagen</>}
+              <div className="editor-input-block"><label>Horas estimadas</label><input className="auth-input" type="number" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} /></div>
+              <div className="editor-input-block editor-input-block-full">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                  <label style={{ marginBottom: 0 }}>{t.courseImage}</label>
+                  <div style={{ display: 'inline-flex', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 999, padding: 3 }}>
+                    <button type="button" className={imageInputMode === 'upload' ? 'primary-button' : 'outline-button'} style={{ padding: '6px 10px', fontSize: 12, borderRadius: 999, minWidth: 110 }} onClick={() => setImageInputMode('upload')}>
+                      Archivo
                     </button>
-                    <input ref={courseImageRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                    <button type="button" className={imageInputMode === 'url' ? 'primary-button' : 'outline-button'} style={{ padding: '6px 10px', fontSize: 12, borderRadius: 999, minWidth: 110 }} onClick={() => { setImageInputMode('url'); setImageFile(null); setImagePreview(null); if (courseImageRef.current) courseImageRef.current.value = ''; }}>
+                      Enlace
+                    </button>
+                  </div>
+                </div>
+
+                {imageInputMode === 'upload' ? (
+                  (imagePreview || imageUrl) ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <img src={imagePreview ?? imageUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                      <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{imageFile?.name ?? imageUrl.split('/').pop()}</span>
+                      <button type="button" className="icon-button" onClick={handleRemoveImage} title="Quitar"><X size={16} /></button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button type="button" className="outline-button" onClick={() => courseImageRef.current?.click()} disabled={saving} style={{ flex: 1 }}>
+                        {saving && uploadingImage ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Subir imagen</>}
+                      </button>
+                      <input ref={courseImageRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                    </div>
+                  )
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input className="auth-input" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://ejemplo.com/imagen.jpg" />
+                    {imageUrl && <img src={imageUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />}
                   </div>
                 )}
               </div>
-              <div className="editor-input-block"><label>Horas estimadas</label><input className="auth-input" type="number" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseIcon}</label><select className="auth-input" value={iconName} onChange={(e) => setIconName(e.target.value)}>{availableIcons.map((i) => <option key={i} value={i}>{i}</option>)}</select></div>
               <div className="editor-input-block"><label>{t.courseAccent}</label><select className="auth-input" value={accent} onChange={(e) => setAccent(e.target.value)}>{availableAccents.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
             </div>
@@ -220,6 +242,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const [resourceFileId, setResourceFileId] = useState('');
   const [resourceName, setResourceName] = useState('');
   const [resourceFile, setResourceFile] = useState<File | null>(null);
+  const [resourceInputMode, setResourceInputMode] = useState<'upload' | 'url'>('upload');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -228,7 +251,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setResourceFile(null); setError(null); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setResourceFile(null); setResourceInputMode('upload'); setError(null); setShowForm(false); };
   const resetFormKeepOpen = () => {
     setEditingId(null);
     setTitle('');
@@ -240,6 +263,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setResourceFileId('');
     setResourceName('');
     setResourceFile(null);
+    setResourceInputMode('upload');
     setError(null);
     setShowForm(true);
   };
@@ -254,6 +278,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setResourceType(m.resource_type as ResourceType | null);
     setResourceFileId(m.resource_file_id ?? '');
     setResourceName(m.resource_url ? m.resource_url.split('/').pop() ?? '' : '');
+    setResourceInputMode(m.resource_url ? 'url' : 'upload');
     setError(null);
     setShowForm(true);
   };
@@ -280,6 +305,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setResourceFile(file);
     setResourceName(file.name);
     setResourceType(detectedType);
+    setResourceInputMode('upload');
     setType(mapResourceTypeToModuleType(detectedType));
   };
 
@@ -287,23 +313,23 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     if (resourceFileId) {
       try { await deleteFromImageKit(resourceFileId); } catch { /* ignore */ }
     }
-    setResourceUrl(''); setResourceFileId(''); setResourceName(''); setResourceType(null); setResourceFile(null);
+    setResourceUrl(''); setResourceFileId(''); setResourceName(''); setResourceType(null); setResourceFile(null); setResourceInputMode('upload');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSave = async () => {
     if (!title) { setError(t.moduleTitle); return; }
     setSaving(true); setUploading(true);
-    let finalResourceUrl = resourceUrl;
+    let finalResourceUrl = resourceInputMode === 'url' ? resourceUrl.trim() : resourceUrl;
     let finalResourceFileId = resourceFileId;
     let finalResourceType = resourceType;
     let finalResourceName = resourceName;
-    if (resourceFile) {
+    if (resourceInputMode === 'upload' && resourceFile) {
       try {
         const result = await uploadToImageKit(resourceFile, `courses/${courseId}/modules`);
         finalResourceUrl = result.url;
         finalResourceFileId = result.fileId;
-        finalResourceType = detectResourceType(result.mimeType);
+        finalResourceType = detectResourceType(result.mimeType || resourceFile.type, result.name || resourceFile.name);
         finalResourceName = result.name;
       } catch (err: any) {
         setError(err.message ?? 'Error al subir archivo');
@@ -311,10 +337,16 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
         return;
       }
     }
+    if (resourceInputMode === 'url' && finalResourceUrl) {
+      finalResourceType = detectResourceType(undefined, finalResourceUrl) ?? resourceType ?? 'pdf';
+      finalResourceName = finalResourceUrl.split('/').pop() ?? 'enlace';
+    }
+    const resolvedModuleType = finalResourceType ? mapResourceTypeToModuleType(finalResourceType) : type;
+    setType(resolvedModuleType);
     setUploading(false);
     const payload = {
       title,
-      type,
+      type: resolvedModuleType,
       duration,
       body: body || undefined,
       resource_url: finalResourceUrl || null,
@@ -373,19 +405,37 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
             <div className="field-group"><label>{t.moduleDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
             <div className="field-group field-group-full"><label>{t.moduleBody} <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}>(opcional)</span></label><textarea className="auth-input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Descripción o contenido del módulo..." /></div>
             <div className="field-group field-group-full">
-              <label>Recurso del módulo (Imagen, Video, PDF o PowerPoint)</label>
-              {(resourceUrl || resourceFile) ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)' }}>
-                  {resourceIcon(resourceType)}
-                  <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resourceFile?.name ?? resourceName}</span>
-                  <button type="button" className="icon-button" onClick={handleRemoveResource} title="Quitar"><X size={16} /></button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button type="button" className="outline-button" onClick={() => fileInputRef.current?.click()} disabled={saving} style={{ flex: 1 }}>
-                    {saving && uploading ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Seleccionar archivo</>}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                <label style={{ marginBottom: 0 }}>Recurso del módulo (Imagen, Video, PDF o PowerPoint)</label>
+                <div style={{ display: 'inline-flex', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 999, padding: 3 }}>
+                  <button type="button" className={resourceInputMode === 'upload' ? 'primary-button' : 'outline-button'} style={{ padding: '6px 10px', fontSize: 12, borderRadius: 999, minWidth: 110 }} onClick={() => setResourceInputMode('upload')}>
+                    Archivo
                   </button>
-                  <input ref={fileInputRef} type="file" accept=".pdf,.ppt,.pptx,image/*,video/*,.png,.jpg,.jpeg,.mp4,.mov,.webm" onChange={handleFileSelect} style={{ display: 'none' }} />
+                  <button type="button" className={resourceInputMode === 'url' ? 'primary-button' : 'outline-button'} style={{ padding: '6px 10px', fontSize: 12, borderRadius: 999, minWidth: 110 }} onClick={() => { setResourceInputMode('url'); setResourceFile(null); setResourceFileId(''); setResourceName(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}>
+                    Enlace
+                  </button>
+                </div>
+              </div>
+
+              {resourceInputMode === 'upload' ? (
+                (resourceUrl || resourceFile) ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)' }}>
+                    {resourceIcon(resourceType)}
+                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resourceFile?.name ?? resourceName}</span>
+                    <button type="button" className="icon-button" onClick={handleRemoveResource} title="Quitar"><X size={16} /></button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button type="button" className="outline-button" onClick={() => fileInputRef.current?.click()} disabled={saving} style={{ flex: 1 }}>
+                      {saving && uploading ? <><Loader2 size={16} className="spin" /> Subiendo...</> : <><Upload size={16} /> Seleccionar archivo</>}
+                    </button>
+                    <input ref={fileInputRef} type="file" accept=".pdf,.ppt,.pptx,image/*,video/*,.png,.jpg,.jpeg,.mp4,.mov,.webm" onChange={handleFileSelect} style={{ display: 'none' }} />
+                  </div>
+                )
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input className="auth-input" type="url" value={resourceUrl} onChange={(e) => { setResourceUrl(e.target.value); setResourceType(detectResourceType(undefined, e.target.value)); }} placeholder="https://ejemplo.com/recurso.pdf" />
+                  {resourceUrl && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{resourceType ? resourceLabel(resourceType) : 'Enlace externo'}</span>}
                 </div>
               )}
             </div>

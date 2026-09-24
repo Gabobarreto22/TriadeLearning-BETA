@@ -11,6 +11,26 @@ export type UploadedFile = {
   fileType: string;
 };
 
+const MAX_IMAGEKIT_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+
+function validateUploadFile(file: File): void {
+  const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v|avi|mkv|wmv)$/i.test(file.name);
+  const maxSize = isVideo ? MAX_IMAGEKIT_FILE_SIZE_BYTES : 15 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+    const maxSizeMb = (maxSize / (1024 * 1024)).toFixed(0);
+    throw new Error(`El archivo excede el límite permitido (${maxSizeMb} MB). Comprime el video o usa un enlace externo.`);
+  }
+
+  if (isVideo && !file.type.startsWith('video/')) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const validVideoExt = ['mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv', 'wmv'];
+    if (!ext || !validVideoExt.includes(ext)) {
+      throw new Error('Formato de video no compatible. Usa MP4, MOV, WEBM o AVI.');
+    }
+  }
+}
+
 export function detectResourceType(mimeType: string | undefined | null, fileName?: string): ResourceType {
   const normalizedMime = (mimeType ?? '').toLowerCase();
   const normalizedName = (fileName ?? '').toLowerCase();
@@ -20,10 +40,15 @@ export function detectResourceType(mimeType: string | undefined | null, fileName
   if (normalizedMime === 'application/pdf' || normalizedName.endsWith('.pdf')) return 'pdf';
   if (normalizedMime.includes('presentation') || normalizedMime.includes('powerpoint') || /\.(ppt|pptx)$/i.test(normalizedName)) return 'powerpoint';
 
+  if (normalizedName.includes('youtube.com') || normalizedName.includes('youtu.be') || normalizedName.includes('vimeo.com')) return 'video';
+  if (/\.(mp4|mov|webm|m4v|avi|mkv|wmv|flv)(\?.*)?$/i.test(normalizedName)) return 'video';
+
   return 'pdf';
 }
 
 export async function uploadToImageKit(file: File, folder: string = 'general'): Promise<UploadedFile> {
+  validateUploadFile(file);
+
   const { data: session } = await supabase.auth.getSession();
   const token = session?.session?.access_token;
   if (!token) throw new Error('No autenticado');

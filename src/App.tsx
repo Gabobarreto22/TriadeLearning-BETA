@@ -650,26 +650,75 @@ function CoursePlayer({ t, course, initialModuleId, courseState, onBack, onExam,
   const moduleQuestions = course.exam_questions.filter((q) => q.module_id === current.id);
   const moduleExamRequired = moduleQuestions.length > 0;
   const moduleExamPassed = moduleExamRequired && courseState.completedModules[moduleIdx];
-  const isPdfModule = current.type === 'pdf' || current.resource_type === 'pdf' || current.resource_type === 'powerpoint';
+  const isVideoModule = current.type === 'video' || current.resource_type === 'video' || /\.(mp4|mov|webm|m4v|avi|mkv|wmv|flv)(\?.*)?$/i.test(current.resource_url ?? '') || /youtube|youtu\.be|vimeo/i.test(current.resource_url ?? '');
+  const isPdfModule = (current.type === 'pdf' || current.resource_type === 'pdf' || current.resource_type === 'powerpoint') && !isVideoModule;
   const resourceUrl = current.resource_url ?? '';
   const documentViewerUrl = resourceUrl && (current.resource_type === 'powerpoint' || /\.pptx?$/i.test(resourceUrl))
     ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(resourceUrl)}`
     : resourceUrl;
-  const moduleTypeIcon = current.type === 'video' ? <Video size={15} /> : current.type === 'image' ? <ImageIcon size={15} /> : current.type === 'pdf' ? <FileText size={15} /> : <FileText size={15} />;
-  const moduleTypeLabel = current.type === 'video' ? t.videoModule : current.type === 'image' ? t.imageModule : current.type === 'pdf' ? 'PDF / Presentación' : t.textModule;
+  const moduleTypeIcon = isVideoModule ? <Video size={15} /> : current.type === 'image' || current.resource_type === 'image' ? <ImageIcon size={15} /> : current.type === 'pdf' || current.resource_type === 'pdf' || current.resource_type === 'powerpoint' ? <FileText size={15} /> : <FileText size={15} />;
+  const moduleTypeLabel = isVideoModule ? t.videoModule : current.type === 'image' || current.resource_type === 'image' ? t.imageModule : current.type === 'pdf' || current.resource_type === 'pdf' || current.resource_type === 'powerpoint' ? 'PDF / Presentación' : t.textModule;
   const allModulesComplete = courseState.completedModules.length > 0 && courseState.completedModules.every(Boolean);
   const currentModuleComplete = courseState.completedModules[moduleIdx] ?? false;
   const Icon = getIcon(course.icon_name);
+  const videoSource = current.video_url || current.resource_url || '';
+  const getYoutubeEmbedUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+      const path = parsed.pathname.replace(/^\//, '');
+      const id = parsed.searchParams.get('v') || (host === 'youtu.be' ? path : '');
+      if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'www.youtube.com') {
+        if (id) return `https://www.youtube.com/embed/${id}`;
+        if (/^(embed|shorts|live)/.test(path)) {
+          const parts = path.split('/').filter(Boolean);
+          const embedId = parts[1] || parts[0];
+          if (embedId) return `https://www.youtube.com/embed/${embedId}`;
+        }
+      }
+      if (host === 'youtu.be') {
+        const shortId = path.split('/').filter(Boolean)[0];
+        if (shortId) return `https://www.youtube.com/embed/${shortId}`;
+      }
+    } catch {
+      // ignorar URLs inválidas
+    }
+    return '';
+  };
+
+  const getVimeoEmbedUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+      const path = parsed.pathname.replace(/^\//, '');
+      const id = host.includes('vimeo.com') ? path.split('/').filter(Boolean)[0] : '';
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    } catch {
+      // ignorar URLs inválidas
+    }
+    return '';
+  };
+
+  const youtubeEmbedUrl = getYoutubeEmbedUrl(videoSource);
+  const vimeoEmbedUrl = getVimeoEmbedUrl(videoSource);
+  const externalVideoEmbedUrl = youtubeEmbedUrl || vimeoEmbedUrl;
 
   return <div className="page animate-in player-page">
     <div className="player-header"><button className="back-button" onClick={onBack}><ArrowLeft size={18} />{t.exitCourse}</button><div className="player-course-info"><span className={`course-icon-sm ${course.accent}`}><Icon size={18} /></span><div><strong>{course.title}</strong><small>{course.category} · {course.duration}</small></div></div></div>
     <div className="player-layout">
       <div className="player-main"><div className="player-content">
-        {current.type === 'video' && (current.video_url ? <div className="player-video"><video src={current.video_url} controls className="player-video-el" />{current.body && <div className="player-text"><div className="player-module-tag">{moduleTypeIcon}{moduleTypeLabel} · {current.duration}</div><h2>{current.title}</h2><p>{current.body}</p></div>}</div> : <div className="player-video"><div className="video-poster" style={{ backgroundImage: `url(${course.image_url})` }}><button className="video-play-btn" onClick={() => setPlaying(!playing)}>{playing ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" />}</button></div><div className="video-controls"><span className="video-time">0:00 / {current.duration}</span><div className="video-bar"><span style={{ width: playing ? '35%' : '0%' }} /></div></div></div>)}
-        {current.type === 'image' && current.image_url && <div className="player-image"><img src={current.image_url} alt={current.title} /></div>}
-        {isPdfModule && resourceUrl && <div className="player-document"><iframe src={documentViewerUrl} title={current.title} className="player-document-embed" allow="fullscreen" /></div>}
-        {current.type === 'text' && <div className="player-text-icon"><FileText size={48} /></div>}
-        <div className="player-text"><div className="player-module-tag">{moduleTypeIcon}{moduleTypeLabel} · {current.duration}</div><h2>{current.title}</h2><p>{current.body}</p></div>
+        {isVideoModule && (externalVideoEmbedUrl ? (
+          <div className="player-video player-video-external"><iframe className="player-video-el" src={externalVideoEmbedUrl} title={current.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
+        ) : videoSource ? (
+          <div className="player-video"><video src={videoSource} controls className="player-video-el" /></div>
+        ) : (
+          <div className="player-video player-video-poster"><div className="video-poster" style={{ backgroundImage: `url(${course.image_url})` }}><button className="video-play-btn" onClick={() => setPlaying(!playing)}>{playing ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" />}</button></div><div className="video-controls"><span className="video-time">0:00 / {current.duration}</span><div className="video-bar"><span style={{ width: playing ? '35%' : '0%' }} /></div></div></div>
+        ))}
+        {isVideoModule && (current.title || current.body) && <div className="player-text player-video-meta"><div className="player-module-tag">{moduleTypeIcon}{moduleTypeLabel} · {current.duration}</div><h2>{current.title}</h2>{current.body && <p>{current.body}</p>}</div>}
+        {!isVideoModule && current.type === 'image' && current.image_url && <div className="player-image"><img src={current.image_url} alt={current.title} /></div>}
+        {!isVideoModule && isPdfModule && resourceUrl && <div className="player-document"><iframe src={documentViewerUrl} title={current.title} className="player-document-embed" allow="fullscreen" /></div>}
+        {!isVideoModule && current.type === 'text' && <div className="player-text-icon"><FileText size={48} /></div>}
+        {!isVideoModule && <div className="player-text"><div className="player-module-tag">{moduleTypeIcon}{moduleTypeLabel} · {current.duration}</div><h2>{current.title}</h2><p>{current.body}</p></div>}
         {moduleExamRequired && <div className="module-complete-banner" style={{ marginBottom: 16 }}><Award size={16} />{moduleExamPassed ? 'Examen del módulo aprobado' : 'Debes aprobar el examen del módulo para avanzar'}</div>}
         <div className="player-nav-buttons">
           {moduleIdx > 0 && <button className="outline-button player-prev" onClick={() => setModuleIdx(moduleIdx - 1)}><ChevronLeft size={16} />{t.prevQ}</button>}
