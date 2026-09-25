@@ -219,7 +219,6 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('/badges/achievement.svg');
   const [points, setPoints] = useState('0');
-  const [category, setCategory] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -314,12 +313,12 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
     return <Icon size={24} />;
   };
 
-  const resetForm = () => { setName(''); setDescription(''); setIconUrl('/badges/achievement.svg'); setPoints('0'); setCategory(''); setError(null); setIconPage(0); setShowForm(false); };
+  const resetForm = () => { setName(''); setDescription(''); setIconUrl('/badges/achievement.svg'); setPoints('0'); setError(null); setIconPage(0); setShowForm(false); };
 
   const handleCreate = async () => {
     if (!name || !description || !iconUrl) { setError(t.badgeName + ' / ' + t.badgeDesc + ' / ' + t.iconUrl); return; }
     setSaving(true);
-    const { error: err } = await createBadge({ name, description, icon_url: iconUrl, points: parseInt(points) || 0, category: category || null });
+    const { error: err } = await createBadge({ name, description, icon_url: iconUrl, points: parseInt(points) || 0 });
     if (err) { setError(err); setSaving(false); return; }
     setSaving(false); resetForm(); toast('Insignia creada', 'success'); onRefresh();
   };
@@ -391,7 +390,7 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
                 </div>
               )}
             </div>
-            <div className="field-group"><label>{t.category}</label><input className="auth-input" value={category} onChange={(e) => setCategory(e.target.value)} /></div>
+
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
