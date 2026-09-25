@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS public.badges
+  DROP COLUMN IF EXISTS category;

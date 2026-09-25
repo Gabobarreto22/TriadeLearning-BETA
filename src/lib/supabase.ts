@@ -254,7 +254,6 @@ export type Badge = {
   description: string;
   icon_url: string;
   points: number;
-  category: string | null;
   criteria: Record<string, unknown> | null;
   created_at: string;
 };
