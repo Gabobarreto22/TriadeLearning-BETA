@@ -82,6 +82,48 @@ type CertWithCourse = Certificate & { user_course_requirement?: UserCourseRequir
 type RoleCertWithRole = RoleCertification & { job_role?: JobRole };
 type BadgeWithBadge = UserBadge & { badge?: Badge };
 
+const badgeAssetMap: Record<string, string> = {
+  'Primer Curso': '/badges/first_course.svg',
+  'Aprendiz Constante': '/badges/constant_learner.svg',
+  'Experto': '/badges/expert.svg',
+  'Especialista en BES': '/badges/specialist_bes.svg',
+  'Especialista en PCP': '/badges/specialist_pcp.svg',
+  'Especialista en Gas Lift': '/badges/gas_lift.svg',
+  'Guardián de Seguridad': '/badges/guardian_safety.svg',
+  'Maestro del Levantamiento': '/badges/mastery_levantamiento.svg',
+  'Diagnosticador Experto': '/badges/diagnostic_expert.svg',
+  'Inspector Certificado': '/badges/inspector_certified.svg',
+  'Optimizador de Producción': '/badges/production_optimizer.svg',
+  'Logro': '/badges/achievement.svg',
+  'Certificación': '/badges/certification.svg',
+  'Seguridad': '/badges/safety.svg',
+  'Analítica': '/badges/analytics.svg',
+  'Liderazgo': '/badges/leadership.svg',
+  'Enfoque': '/badges/focus.svg',
+  'Trabajo en equipo': '/badges/teamwork.svg',
+  'Productividad': '/badges/productivity.svg',
+  'Rendimiento': '/badges/achievement.svg',
+};
+
+function renderBadgeIcon(iconName?: string | null, label?: string) {
+  const rawValue = (iconName ?? label ?? '').trim();
+  const assetMatch = Object.entries(badgeAssetMap).find(([name]) => name.toLowerCase() === rawValue.toLowerCase());
+  const asset = assetMatch?.[1] ?? (rawValue.startsWith('/') ? rawValue : null);
+
+  if (asset) {
+    return <img src={asset} alt={label || 'Badge icon'} style={{ width: 24, height: 24, objectFit: 'contain' }} />;
+  }
+
+  if (!rawValue) return <Award size={24} />;
+
+  if (/^https?:\/\//i.test(rawValue)) {
+    return <img src={rawValue} alt={label || 'Badge icon'} style={{ width: 24, height: 24, objectFit: 'contain' }} />;
+  }
+
+  const Icon = getIcon(rawValue);
+  return <Icon size={24} />;
+}
+
 // ===================== NOTIFICATIONS MODULE =====================
 export function EmployeeNotifications({ userId, t }: { userId: string; t: EmployeeStrings }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -201,15 +243,14 @@ export function EmployeeGamification({ userId, t, completedCount, inProgressCoun
           <div className="empty-state"><Trophy size={28} /><h3>{t.noBadges}</h3></div>
         ) : (
           <div className="badges-grid">
-            {userBadges.map((ub) => {
-              const Icon = getIcon(ub.badge?.icon_url ?? 'award');
-              return <div key={ub.id} className="badge-card earned">
-                <div className="badge-icon"><Icon size={24} /></div>
+            {userBadges.map((ub) => (
+              <div key={ub.id} className="badge-card earned">
+                <div className="badge-icon">{renderBadgeIcon(ub.badge?.icon_url, ub.badge?.name)}</div>
                 <strong>{ub.badge?.name}</strong>
                 <span className="badge-points">{ub.badge?.points} pts</span>
                 <small className="muted">{t.earnedOn}: {new Date(ub.earned_at).toLocaleDateString()}</small>
-              </div>;
-            })}
+              </div>
+            ))}
           </div>
         )}
       </section>
@@ -220,15 +261,14 @@ export function EmployeeGamification({ userId, t, completedCount, inProgressCoun
           <div className="empty-state"><Trophy size={28} /><h3>¡Has desbloqueado todas las insignias!</h3></div>
         ) : (
           <div className="badges-grid">
-            {lockedBadges.slice(0, 6).map((b) => {
-              const Icon = getIcon(b.icon_url || 'award');
-              return <div key={b.id} className="badge-card locked">
-                <div className="badge-icon"><Icon size={24} /></div>
+            {lockedBadges.slice(0, 6).map((b) => (
+              <div key={b.id} className="badge-card locked">
+                <div className="badge-icon">{renderBadgeIcon(b.icon_url, b.name)}</div>
                 <strong>{b.name}</strong>
                 <span className="badge-points">{b.points} pts</span>
                 <div className="badge-locked-overlay"><Lock size={20} /></div>
-              </div>;
-            })}
+              </div>
+            ))}
           </div>
         )}
       </section>
