@@ -194,8 +194,13 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
          <div className="admin-list-stack">{feedback.map((f) => (
            <div key={f.id} className="feedback-card">
              <div className="feedback-header">
-               <div className="avatar avatar-small">{f.user_course_requirement?.user?.full_name?.slice(0, 2).toUpperCase() ?? '??'}</div>
-               <div><strong>{f.user_course_requirement?.user?.full_name ?? '—'}</strong><small>{f.user_course_requirement?.course?.title ?? '—'}</small></div>
+               <div className="feedback-user-info">
+                 <div className="avatar avatar-small">{f.user_course_requirement?.user?.full_name?.slice(0, 2).toUpperCase() ?? '??'}</div>
+                 <div className="feedback-user-copy">
+                   <strong>{f.user_course_requirement?.user?.full_name ?? '—'}</strong>
+                   <small>{f.user_course_requirement?.course?.title ?? '—'}</small>
+                 </div>
+               </div>
                <span className="rating-badge">{'★'.repeat(f.rating)}</span>
              </div>
              <div className="feedback-meta">

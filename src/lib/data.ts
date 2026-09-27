@@ -312,12 +312,25 @@ export async function updateAssignment(assignmentId: string, updates: Partial<Co
 
 // ===================== USER COURSE REQUIREMENTS =====================
 export async function fetchUserCourseRequirements(): Promise<(UserCourseRequirement & { user?: Profile; course?: Course; job_role?: JobRole })[]> {
-  const { data, error } = await supabase
-    .from('user_course_requirements')
-    .select('*, user:profiles(*), course:courses(*), job_role:job_roles(*)')
-    .order('assigned_at', { ascending: false });
-  if (error || !data) return [];
-  return data as (UserCourseRequirement & { user?: Profile; course?: Course; job_role?: JobRole })[];
+  const [reqsRes, profiles, courses, jobRoles] = await Promise.all([
+    supabase.from('user_course_requirements').select('*').order('assigned_at', { ascending: false }),
+    fetchAllProfiles(),
+    fetchAllCourses(),
+    fetchJobRoles(),
+  ]);
+
+  if (reqsRes.error || !reqsRes.data) return [];
+
+  const usersMap = new Map(profiles.map((user) => [user.id, user]));
+  const coursesMap = new Map(courses.map((course) => [course.id, course]));
+  const jobRolesMap = new Map(jobRoles.map((role) => [role.id, role]));
+
+  return reqsRes.data.map((req) => ({
+    ...req,
+    user: usersMap.get(req.user_id),
+    course: coursesMap.get(req.course_id),
+    job_role: jobRolesMap.get(req.job_role_id),
+  })) as (UserCourseRequirement & { user?: Profile; course?: Course; job_role?: JobRole })[];
 }
 
 export async function assignCourseToUser(userId: string, courseId: string, jobRoleId: string, deadline: string | null, priority: string, isMandatory: boolean, assignedBy: string): Promise<{ error: string | null }> {
@@ -461,22 +474,47 @@ export async function createCertificateForRequirement(userCourseRequirementId: s
 
 // ===================== CERTIFICATES =====================
 export async function fetchAllCertificates(): Promise<(Certificate & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } })[]> {
-  const { data, error } = await supabase
-    .from('certificates')
-    .select('*, user_course_requirement:user_course_requirements(*, user:profiles(*), course:courses(*))')
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
-  return data as (Certificate & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } })[];
+  const [certsRes, reqs, profiles, courses] = await Promise.all([
+    supabase.from('certificates').select('*').order('created_at', { ascending: false }),
+    fetchUserCourseRequirements(),
+    fetchAllProfiles(),
+    fetchAllCourses(),
+  ]);
+
+  const reqMap = new Map(reqs.map((req) => [req.id, req]));
+  const usersMap = new Map(profiles.map((user) => [user.id, user]));
+  const coursesMap = new Map(courses.map((course) => [course.id, course]));
+
+  const data = certsRes.data ?? [];
+  return data.map((cert) => {
+    const req = reqMap.get(cert.user_course_requirement_id);
+    const user = req ? usersMap.get(req.user_id) : undefined;
+    const course = req ? coursesMap.get(req.course_id) : undefined;
+
+    return {
+      ...cert,
+      user_course_requirement: req ? { ...req, user, course } : undefined,
+    } as Certificate & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } };
+  });
 }
 
 // ===================== ROLE CERTIFICATIONS =====================
 export async function fetchRoleCertifications(): Promise<(RoleCertification & { user?: Profile; job_role?: JobRole })[]> {
-  const { data, error } = await supabase
-    .from('role_certifications')
-    .select('*, user:profiles(*), job_role:job_roles(*)')
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
-  return data as (RoleCertification & { user?: Profile; job_role?: JobRole })[];
+  const [certsRes, profiles, jobRoles] = await Promise.all([
+    supabase.from('role_certifications').select('*').order('created_at', { ascending: false }),
+    fetchAllProfiles(),
+    fetchJobRoles(),
+  ]);
+
+  const usersMap = new Map(profiles.map((user) => [user.id, user]));
+  const rolesMap = new Map(jobRoles.map((role) => [role.id, role]));
+
+  const data = certsRes.data ?? [];
+  return data.map((cert) => ({
+    ...cert,
+    user: usersMap.get(cert.user_id),
+    job_role: rolesMap.get(cert.job_role_id),
+  })) as (RoleCertification & { user?: Profile; job_role?: JobRole })[];
 }
 
 // ===================== NOTIFICATIONS =====================
@@ -510,12 +548,29 @@ export async function deleteNotification(id: string): Promise<{ error: string | 
 
 // ===================== COURSE FEEDBACK =====================
 export async function fetchAllFeedback(): Promise<(CourseFeedback & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } })[]> {
-  const { data, error } = await supabase
-    .from('course_feedback')
-    .select('*, user_course_requirement:user_course_requirements(*, user:profiles(*), course:courses(*))')
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
-  return data as (CourseFeedback & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } })[];
+  const [feedbackRes, requirements, profiles, courses] = await Promise.all([
+    supabase.from('course_feedback').select('*').order('created_at', { ascending: false }),
+    fetchUserCourseRequirements(),
+    fetchAllProfiles(),
+    fetchAllCourses(),
+  ]);
+
+  if (feedbackRes.error || !feedbackRes.data) return [];
+
+  const reqMap = new Map(requirements.map((req) => [req.id, req]));
+  const usersMap = new Map(profiles.map((user) => [user.id, user]));
+  const coursesMap = new Map(courses.map((course) => [course.id, course]));
+
+  return feedbackRes.data.map((feedback) => {
+    const req = reqMap.get(feedback.user_course_requirement_id);
+    const user = req ? usersMap.get(req.user_id) : undefined;
+    const course = req ? coursesMap.get(req.course_id) : undefined;
+
+    return {
+      ...feedback,
+      user_course_requirement: req ? { ...req, user, course } : undefined,
+    } as CourseFeedback & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } };
+  });
 }
 
 // ===================== BADGES =====================
