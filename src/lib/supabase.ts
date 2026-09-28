@@ -12,6 +12,9 @@ export type Profile = {
   job_role: string;
   job_role_id: string | null;
   email: string | null;
+  cedula: string | null;
+  telefono: string | null;
+  direccion: string | null;
   avatar_url: string | null;
   hire_date: string | null;
   current_role_since: string | null;

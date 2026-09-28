@@ -49,11 +49,35 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { email, password, full_name, job_role_id, role } = body;
+    const {
+      email,
+      password,
+      password_confirmation,
+      full_name,
+      job_role_id,
+      role,
+      cedula,
+      telefono,
+      direccion,
+      avatar_url,
+    } = body;
     const userRole = role ?? "employee";
+    const normalizedEmail = String(email ?? "").trim();
+    const normalizedName = String(full_name ?? "").trim();
+    const normalizedCedula = String(cedula ?? "").trim();
+    const normalizedTelefono = String(telefono ?? "").trim();
+    const normalizedDireccion = String(direccion ?? "").trim();
+    const normalizedAvatarUrl = typeof avatar_url === "string" ? avatar_url.trim() : null;
 
-    if (!email || !password || !full_name) {
+    if (!normalizedEmail || !password || !normalizedName || !password_confirmation || !normalizedCedula || !normalizedTelefono || !normalizedDireccion) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (String(password) !== String(password_confirmation)) {
+      return new Response(JSON.stringify({ error: "Passwords do not match" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -67,7 +91,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const { data: newUserData, error: createErr } = await supabase.auth.admin.createUser({
-      email,
+      email: normalizedEmail,
       password,
       email_confirm: true,
     });
@@ -82,8 +106,12 @@ Deno.serve(async (req: Request) => {
     const newUserId = newUserData.user.id;
     const { error: profileErr } = await supabase.from("profiles").insert({
       id: newUserId,
-      full_name,
-      email,
+      full_name: normalizedName,
+      email: normalizedEmail,
+      cedula: normalizedCedula,
+      telefono: normalizedTelefono,
+      direccion: normalizedDireccion,
+      avatar_url: normalizedAvatarUrl,
       job_role_id: userRole === "admin" ? null : job_role_id,
       role: userRole,
     });

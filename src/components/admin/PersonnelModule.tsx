@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Briefcase, Building2, ChevronRight, Clock3, History, Plus, Settings, ShieldCheck, Trash2, Users, X, AlertCircle, BookOpen, Check } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type Department, type CourseWithRelations, type UserJobRoleHistory } from '@/lib/supabase';
+import { uploadToImageKit } from '@/lib/imagekit';
 import {
   fetchDepartments, createDepartment, updateDepartment, deleteDepartment,
   createJobRole, updateJobRole, deleteJobRole,
@@ -11,6 +12,38 @@ import {
 } from '@/lib/data';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
+
+function UserPhotoField({ value, uploading, onChange, onClear }: {
+  value: string | null;
+  uploading: boolean;
+  onChange: (file: File) => Promise<void>;
+  onClear: () => void;
+}) {
+  const localInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleInput = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) await onChange(file);
+  };
+
+  return (
+    <div className="field-group field-group-full">
+      <label>Foto del usuario</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        {value ? <img src={value} alt="Foto del usuario" style={{ width: 58, height: 58, borderRadius: '50%', objectFit: 'cover', border: '1px solid #d1d5db' }} /> : <div style={{ width: 58, height: 58, borderRadius: '50%', background: '#eef2ff', display: 'grid', placeItems: 'center', color: '#4338ca', fontWeight: 700 }}>U</div>}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="outline-button" onClick={() => localInputRef.current?.click()} disabled={uploading}>{uploading ? 'Subiendo...' : 'Archivo local'}</button>
+          <button type="button" className="outline-button" onClick={() => cameraInputRef.current?.click()} disabled={uploading}>Tomar foto</button>
+          {value && <button type="button" className="outline-button" onClick={onClear}>Quitar</button>}
+        </div>
+      </div>
+      <input ref={localInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleInput} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleInput} />
+    </div>
+  );
+}
 
 type PersonnelTab = 'employees' | 'admins' | 'departments' | 'roles' | 'history' | 'requirements';
 
@@ -77,8 +110,14 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [cedula, setCedula] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [jobRoleId, setJobRoleId] = useState('');
   const [saving, setSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -87,7 +126,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   const [newRoleId, setNewRoleId] = useState('');
   const { toast } = useToast();
 
-  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setJobRoleId(''); setError(null); setEditingUser(null); setShowForm(false); };
+  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setPasswordConfirmation(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setJobRoleId(''); setError(null); setEditingUser(null); setShowForm(false); };
 
   const getJobRoleName = (id: string | null) => {
     const role = jobRoles.find((r) => r.id === id);
@@ -103,17 +142,44 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name || !email || !jobRoleId) { setError(t.name + ' / ' + t.email + ' / ' + t.jobRole); return; }
+    if (!name || !email || !jobRoleId || !cedula || !telefono || !direccion) {
+      setError(`${t.name} / ${t.email} / ${t.jobRole} / Cédula / Teléfono / Dirección`);
+      return;
+    }
+
+    if (!editingUser) {
+      if (!password || !passwordConfirmation) { setError(t.personPassword + ' / Confirmación de contraseña'); return; }
+      if (password !== passwordConfirmation) { setError('Las contraseñas no coinciden'); return; }
+      if (!avatarUrl) { setError('La foto del usuario es obligatoria'); return; }
+    }
+
     setSaving(true);
     if (editingUser) {
-      const { error: err } = await updateProfile(editingUser.id, { full_name: name, job_role_id: jobRoleId });
+      const { error: err } = await updateProfile(editingUser.id, {
+        full_name: name,
+        cedula,
+        telefono,
+        direccion,
+        avatar_url: avatarUrl ?? editingUser.avatar_url ?? null,
+        job_role_id: jobRoleId,
+      });
       if (err) { setError(err); setSaving(false); return; }
     } else {
-      if (!password) { setError(t.personPassword); setSaving(false); return; }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
-        body: JSON.stringify({ email, password, full_name: name, job_role_id: jobRoleId, role: 'employee' }),
+        body: JSON.stringify({
+          email,
+          password,
+          password_confirmation: passwordConfirmation,
+          full_name: name,
+          cedula,
+          telefono,
+          direccion,
+          avatar_url: avatarUrl,
+          job_role_id: jobRoleId,
+          role: 'employee',
+        }),
       });
       const result = await response.json();
       if (!response.ok || result.error) { setError(result.error ?? 'Error'); setSaving(false); return; }
@@ -129,6 +195,11 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
     setName(p.full_name);
     setEmail(p.email ?? '');
     setPassword('');
+    setPasswordConfirmation('');
+    setCedula(p.cedula ?? '');
+    setTelefono(p.telefono ?? '');
+    setDireccion(p.direccion ?? '');
+    setAvatarUrl(p.avatar_url ?? null);
     setJobRoleId(p.job_role_id ?? '');
     setShowForm(true);
   };
@@ -159,7 +230,11 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
             <div className="field-group"><label>{t.personName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div className="field-group"><label>{t.personEmail}</label><input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editingUser} /></div>
             {!editingUser && <div className="field-group"><label>{t.personPassword}</label><input className="auth-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>}
-            <div className="field-group"><label>{t.jobRole}</label>
+            {!editingUser && <div className="field-group"><label>Confirmar contraseña</label><input className="auth-input" type="password" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} /></div>}
+            <div className="field-group"><label>Cédula</label><input className="auth-input" value={cedula} onChange={(e) => setCedula(e.target.value)} /></div>
+            <div className="field-group"><label>Teléfono</label><input className="auth-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} /></div>
+            <div className="field-group field-group-full"><label>Dirección</label><input className="auth-input" value={direccion} onChange={(e) => setDireccion(e.target.value)} /></div>
+            <div className="field-group field-group-full"><label>{t.jobRole}</label>
               <select className="auth-input" value={jobRoleId} onChange={(e) => setJobRoleId(e.target.value)}>
                 <option value="">{t.selectRole}</option>
                 {jobRoles.map((r) => {
@@ -168,6 +243,17 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
                 })}
               </select>
             </div>
+            <UserPhotoField value={avatarUrl} uploading={photoUploading} onClear={() => setAvatarUrl(null)} onChange={async (file) => {
+              try {
+                setPhotoUploading(true);
+                const result = await uploadToImageKit(file, 'profiles');
+                setAvatarUrl(result.url);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'No se pudo subir la foto');
+              } finally {
+                setPhotoUploading(false);
+              }
+            }} />
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
@@ -240,27 +326,45 @@ function AdminsTab({ t, team, onRefresh }: {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [cedula, setCedula] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setError(null); setEditingUser(null); setShowForm(false); };
+  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setPasswordConfirmation(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setError(null); setEditingUser(null); setShowForm(false); };
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name || !email) { setError(t.name + ' / ' + t.email); return; }
+    if (!name || !email || !cedula || !telefono || !direccion) { setError(`${t.name} / ${t.email} / Cédula / Teléfono / Dirección`); return; }
     setSaving(true);
     if (editingUser) {
-      const { error: err } = await updateProfile(editingUser.id, { full_name: name });
+      const { error: err } = await updateProfile(editingUser.id, { full_name: name, cedula, telefono, direccion, avatar_url: avatarUrl ?? editingUser.avatar_url ?? null });
       if (err) { setError(err); setSaving(false); return; }
     } else {
-      if (!password) { setError(t.personPassword); setSaving(false); return; }
+      if (!password || !passwordConfirmation) { setError(t.personPassword + ' / Confirmación de contraseña'); setSaving(false); return; }
+      if (password !== passwordConfirmation) { setError('Las contraseñas no coinciden'); setSaving(false); return; }
+      if (!avatarUrl) { setError('La foto del usuario es obligatoria'); setSaving(false); return; }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
-        body: JSON.stringify({ email, password, full_name: name, role: 'admin' }),
+        body: JSON.stringify({
+          email,
+          password,
+          password_confirmation: passwordConfirmation,
+          full_name: name,
+          cedula,
+          telefono,
+          direccion,
+          avatar_url: avatarUrl,
+          role: 'admin',
+        }),
       });
       const result = await response.json();
       if (!response.ok || result.error) { setError(result.error ?? 'Error'); setSaving(false); return; }
@@ -276,6 +380,11 @@ function AdminsTab({ t, team, onRefresh }: {
     setName(p.full_name);
     setEmail(p.email ?? '');
     setPassword('');
+    setPasswordConfirmation('');
+    setCedula(p.cedula ?? '');
+    setTelefono(p.telefono ?? '');
+    setDireccion(p.direccion ?? '');
+    setAvatarUrl(p.avatar_url ?? null);
     setShowForm(true);
   };
 
@@ -293,7 +402,22 @@ function AdminsTab({ t, team, onRefresh }: {
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group"><label>{t.personName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div className="field-group"><label>{t.personEmail}</label><input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editingUser} /></div>
-            {!editingUser && <div className="field-group field-group-full"><label>{t.personPassword}</label><input className="auth-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>}
+            {!editingUser && <div className="field-group"><label>{t.personPassword}</label><input className="auth-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>}
+            {!editingUser && <div className="field-group"><label>Confirmar contraseña</label><input className="auth-input" type="password" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} /></div>}
+            <div className="field-group"><label>Cédula</label><input className="auth-input" value={cedula} onChange={(e) => setCedula(e.target.value)} /></div>
+            <div className="field-group"><label>Teléfono</label><input className="auth-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} /></div>
+            <div className="field-group field-group-full"><label>Dirección</label><input className="auth-input" value={direccion} onChange={(e) => setDireccion(e.target.value)} /></div>
+            <UserPhotoField value={avatarUrl} uploading={photoUploading} onClear={() => setAvatarUrl(null)} onChange={async (file) => {
+              try {
+                setPhotoUploading(true);
+                const result = await uploadToImageKit(file, 'profiles');
+                setAvatarUrl(result.url);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'No se pudo subir la foto');
+              } finally {
+                setPhotoUploading(false);
+              }
+            }} />
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
