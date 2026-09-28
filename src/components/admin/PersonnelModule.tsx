@@ -8,6 +8,7 @@ import {
   createJobRole, updateJobRole, deleteJobRole,
   updateProfile, deleteProfile,
   fetchUserJobRoleHistory, changeUserRole,
+  fetchUserCourseRequirementsForUser, fetchCertificatesForUser, fetchRoleCertificationsForUser, fetchUserBadgesForUser,
   assignCourseToRole, removeAssignment,
 } from '@/lib/data';
 import { useToast } from '@/lib/toast';
@@ -124,7 +125,39 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   const [changeRoleUser, setChangeRoleUser] = useState<Profile | null>(null);
   const [changeReason, setChangeReason] = useState('');
   const [newRoleId, setNewRoleId] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState<Profile | null>(null);
+  const [employeeSummary, setEmployeeSummary] = useState<{
+    courseReqs: Awaited<ReturnType<typeof fetchUserCourseRequirementsForUser>>;
+    certificates: Awaited<ReturnType<typeof fetchCertificatesForUser>>;
+    roleCerts: Awaited<ReturnType<typeof fetchRoleCertificationsForUser>>;
+    badges: Awaited<ReturnType<typeof fetchUserBadgesForUser>>;
+    history: Awaited<ReturnType<typeof fetchUserJobRoleHistory>>;
+  } | null>(null);
+  const [loadingEmployeeSummary, setLoadingEmployeeSummary] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!selectedEmployee) {
+      setEmployeeSummary(null);
+      return;
+    }
+    let active = true;
+    setLoadingEmployeeSummary(true);
+    Promise.all([
+      fetchUserCourseRequirementsForUser(selectedEmployee.id),
+      fetchCertificatesForUser(selectedEmployee.id),
+      fetchRoleCertificationsForUser(selectedEmployee.id),
+      fetchUserBadgesForUser(selectedEmployee.id),
+      fetchUserJobRoleHistory(selectedEmployee.id),
+    ]).then(([courseReqs, certificates, roleCerts, badges, history]) => {
+      if (!active) return;
+      setEmployeeSummary({ courseReqs, certificates, roleCerts, badges, history });
+    }).finally(() => {
+      if (active) setLoadingEmployeeSummary(false);
+    });
+
+    return () => { active = false; };
+  }, [selectedEmployee?.id]);
 
   const resetForm = () => { setName(''); setEmail(''); setPassword(''); setPasswordConfirmation(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setJobRoleId(''); setError(null); setEditingUser(null); setShowForm(false); };
 
@@ -295,16 +328,114 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
         <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteProfile(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Usuario eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
+      {selectedEmployee && createPortal(<div className="modal-backdrop" onClick={() => setSelectedEmployee(null)}><div className="course-modal" style={{ maxWidth: 980, width: '90vw', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={() => setSelectedEmployee(null)}><X size={19} /></button>
+        <div className="modal-body">
+          <h2>{selectedEmployee.full_name}</h2>
+          {loadingEmployeeSummary ? <p className="muted">Cargando resumen...</p> : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
+                {selectedEmployee.avatar_url ? <img src={selectedEmployee.avatar_url} alt={selectedEmployee.full_name} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '1px solid #d1d5db' }} /> : <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#eef2ff', display: 'grid', placeItems: 'center', color: '#4338ca', fontWeight: 700 }}>{selectedEmployee.full_name.slice(0, 2).toUpperCase()}</div>}
+                <div>
+                  <strong style={{ display: 'block', fontSize: 20 }}>{selectedEmployee.full_name}</strong>
+                  <small className="muted">{getJobRoleName(selectedEmployee.job_role_id) || 'Sin cargo'} · {selectedEmployee.role === 'admin' ? 'Administrador' : 'Empleado'}</small>
+                </div>
+              </div>
+
+              <div className="modal-form-grid" style={{ marginTop: 10 }}>
+                <div className="field-group"><label>Correo</label><input className="auth-input" value={selectedEmployee.email ?? ''} readOnly /></div>
+                <div className="field-group"><label>Cédula</label><input className="auth-input" value={selectedEmployee.cedula ?? ''} readOnly /></div>
+                <div className="field-group"><label>Teléfono</label><input className="auth-input" value={selectedEmployee.telefono ?? ''} readOnly /></div>
+                <div className="field-group"><label>Dirección</label><input className="auth-input" value={selectedEmployee.direccion ?? ''} readOnly /></div>
+                <div className="field-group"><label>Estado</label><input className="auth-input" value={selectedEmployee.is_active ? 'Activo' : 'Inactivo'} readOnly /></div>
+                <div className="field-group"><label>Cargo actual</label><input className="auth-input" value={getJobRoleName(selectedEmployee.job_role_id)} readOnly /></div>
+              </div>
+
+              <div style={{ display: 'grid', gap: 18, marginTop: 20 }}>
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+                  <h3 style={{ margin: '0 0 10px' }}>Cursos</h3>
+                  {employeeSummary?.courseReqs && employeeSummary.courseReqs.length > 0 ? (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {employeeSummary.courseReqs.map((req) => (
+                        <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
+                          <div>
+                            <strong>{req.course?.title ?? 'Curso'}</strong>
+                            <div className="muted" style={{ fontSize: 12 }}>{req.job_role?.name ?? 'Cargo'}</div>
+                          </div>
+                          <span className={`status-badge ${req.status === 'completed' ? 'active' : 'inactive'}`}>{req.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="muted">Sin cursos asignados.</p>}
+                </div>
+
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+                  <h3 style={{ margin: '0 0 10px' }}>Certificaciones</h3>
+                  {employeeSummary?.certificates && employeeSummary.certificates.length > 0 ? (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {employeeSummary.certificates.map((cert) => (
+                        <div key={cert.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
+                          <div>
+                            <strong>{cert.user_course_requirement?.course?.title ?? 'Certificado'}</strong>
+                            <div className="muted" style={{ fontSize: 12 }}>{cert.certificate_number || 'Sin número'}</div>
+                          </div>
+                          <small>{cert.issue_date ? new Date(cert.issue_date).toLocaleDateString() : '—'}</small>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="muted">Sin certificaciones.</p>}
+                </div>
+
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+                  <h3 style={{ margin: '0 0 10px' }}>Certificaciones de cargo</h3>
+                  {employeeSummary?.roleCerts && employeeSummary.roleCerts.length > 0 ? (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {employeeSummary.roleCerts.map((rc) => (
+                        <div key={rc.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
+                          <div>
+                            <strong>{rc.job_role?.name ?? 'Cargo'}</strong>
+                            <div className="muted" style={{ fontSize: 12 }}>{rc.is_valid ? 'Vigente' : 'Expirada'}</div>
+                          </div>
+                          <small>{rc.certified_at ? new Date(rc.certified_at).toLocaleDateString() : '—'}</small>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="muted">Sin certificaciones de cargo.</p>}
+                </div>
+
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+                  <h3 style={{ margin: '0 0 10px' }}>Historial de cargos</h3>
+                  {employeeSummary?.history && employeeSummary.history.length > 0 ? (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {employeeSummary.history.map((h) => (
+                        <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
+                          <div>
+                            <strong>{h.job_role?.name ?? 'Cargo'}</strong>
+                            <div className="muted" style={{ fontSize: 12 }}>{h.reason || 'Sin razón'}</div>
+                          </div>
+                          <small>{h.start_date ? new Date(h.start_date).toLocaleDateString() : '—'}</small>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="muted">Sin historial de cargos.</p>}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div></div>, document.body)}
+
       {team.length === 0 ? <div className="empty-state"><Users size={30} /><h3>{t.noTeam}</h3></div> :
       <div className="team-table">{team.map((m) => (
-        <div key={m.id} className="admin-team-row">
+        <div key={m.id} className="admin-team-row" onClick={() => setSelectedEmployee(m)} style={{ cursor: 'pointer' }}>
           <div className="avatar avatar-small">{m.full_name.slice(0, 2).toUpperCase()}</div>
           <div>
             <strong>{m.full_name}</strong>
             <small>{getJobRoleName(m.job_role_id)}{getDeptName(m.job_role_id) ? ` · ${getDeptName(m.job_role_id)}` : ''}</small>
           </div>
           <span className={`status-badge ${m.is_active ? 'active' : 'inactive'}`}>{m.is_active ? t.active : t.inactive}</span>
-          <div className="admin-course-actions">
+          <div className="admin-course-actions" onClick={(e) => e.stopPropagation()}>
+            <button className="icon-button" onClick={() => setSelectedEmployee(m)} title="Ver resumen"><Users size={16} /></button>
             <button className="icon-button" onClick={() => startEdit(m)} title={t.editUser}><Settings size={16} /></button>
             <button className="icon-button" onClick={() => setChangeRoleUser(m)} title={t.changeRole}><Briefcase size={16} /></button>
             <button className="icon-button" onClick={() => setDeleteConfirm(m.id)} title={t.delete}><Trash2 size={16} /></button>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertCircle, Award, Bell, BellOff, BookOpen, CalendarDays, Check, Clock3, Download,
   FileText, History, Lock, Mail, Star, TrendingUp, Trophy, Zap,
@@ -9,6 +9,7 @@ import {
   fetchUserBadgesForUser, fetchCertificatesForUser, fetchRoleCertificationsForUser,
   fetchUserJobRoleHistory, fetchUserCourseRequirementsForUser, updateProfile,
 } from '@/lib/data';
+import { uploadToImageKit } from '@/lib/imagekit';
 import { getIcon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 
@@ -359,17 +360,40 @@ export function EmployeeCertifications({ userId, t }: { userId: string; t: Emplo
 export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeStrings }) {
   const [fullName, setFullName] = useState(profile.full_name);
   const [email, setEmail] = useState(profile.email ?? '');
+  const [cedula, setCedula] = useState(profile.cedula ?? '');
+  const [telefono, setTelefono] = useState(profile.telefono ?? '');
+  const [direccion, setDireccion] = useState(profile.direccion ?? '');
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? '');
   const [jobHistory, setJobHistory] = useState<(UserJobRoleHistory & { job_role?: JobRole })[]>([]);
   const [courseReqs, setCourseReqs] = useState<(UserCourseRequirement & { course?: Course; job_role?: JobRole })[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pwSaving, setPwSaving] = useState(false);
+  const localInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
+
+  const handlePhotoFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      setPhotoUploading(true);
+      const result = await uploadToImageKit(file, 'profiles');
+      setAvatarUrl(result.url);
+      setMessage({ type: 'success', text: 'Foto actualizada. Guarda el perfil para confirmar los cambios.' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'No se pudo subir la foto' });
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -386,7 +410,14 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
-    const { error } = await updateProfile(profile.id, { full_name: fullName, email, avatar_url: avatarUrl });
+    const { error } = await updateProfile(profile.id, {
+      full_name: fullName,
+      email,
+      cedula,
+      telefono,
+      direccion,
+      avatar_url: avatarUrl || null,
+    });
     if (error) {
       setMessage({ type: 'error', text: t.errorUpdating });
     } else {
@@ -439,7 +470,24 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
         <div className="profile-form">
           <label className="form-label">{t.fullName}<input className="form-input" value={fullName} onChange={(e) => setFullName(e.target.value)} /></label>
           <label className="form-label">{t.email}<input className="form-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-          <label className="form-label">Avatar URL<input className="form-input" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." /></label>
+          <label className="form-label">Cédula<input className="form-input" value={cedula} onChange={(e) => setCedula(e.target.value)} /></label>
+          <label className="form-label">Teléfono<input className="form-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} /></label>
+          <label className="form-label">Dirección<input className="form-input" value={direccion} onChange={(e) => setDireccion(e.target.value)} /></label>
+
+          <div className="field-group field-group-full" style={{ marginTop: 8 }}>
+            <label>Foto del usuario</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {avatarUrl ? <img src={avatarUrl} alt="Foto del usuario" style={{ width: 58, height: 58, borderRadius: '50%', objectFit: 'cover', border: '1px solid #d1d5db' }} /> : <div style={{ width: 58, height: 58, borderRadius: '50%', background: '#eef2ff', display: 'grid', placeItems: 'center', color: '#4338ca', fontWeight: 700 }}>U</div>}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" className="outline-button" onClick={() => localInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Subiendo...' : 'Archivo local'}</button>
+                <button type="button" className="outline-button" onClick={() => cameraInputRef.current?.click()} disabled={photoUploading}>Tomar foto</button>
+                {avatarUrl && <button type="button" className="outline-button" onClick={() => setAvatarUrl('')}>Quitar</button>}
+              </div>
+            </div>
+            <input ref={localInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoFile} />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhotoFile} />
+          </div>
+
           <div className="form-readonly">
             <div><span>{t.jobRole}</span><strong>{profile.job_role}</strong></div>
             <div><span>{t.hireDate}</span><strong>{profile.hire_date ? new Date(profile.hire_date).toLocaleDateString() : '—'}</strong></div>
@@ -463,7 +511,7 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
 
     <section className="section-card" style={{ marginTop: 20 }}>
       <div className="section-title"><div><h2>{t.stats}</h2></div></div>
-      <div className="stats-grid">
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
         <div className="stat-card"><div className="stat-icon g1"><BookOpen size={18} /></div><div><strong>{completedCourses}</strong><span>{t.coursesCompleted}</span></div></div>
         <div className="stat-card"><div className="stat-icon g2"><TrendingUp size={18} /></div><div><strong>{inProgressCourses}</strong><span>{t.coursesInProgress}</span></div></div>
         <div className="stat-card"><div className="stat-icon g3"><History size={18} /></div><div><strong>{jobHistory.length}</strong><span>{t.jobHistory}</span></div></div>
