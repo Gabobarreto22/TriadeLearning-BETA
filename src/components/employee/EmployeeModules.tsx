@@ -12,6 +12,7 @@ import {
 import { uploadToImageKit } from '@/lib/imagekit';
 import { getIcon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
+import { PaginatedList } from '../PaginatedList';
 
 export type EmployeeStrings = {
   notifications: string;
@@ -178,7 +179,7 @@ export function EmployeeNotifications({ userId, t }: { userId: string; t: Employ
     ) : (
       <div className="section-card">
         <div className="notif-list">
-          {notifications.map((n) => (
+          <PaginatedList items={notifications}>{(pageNotifications) => pageNotifications.map((n) => (
             <div key={n.id} className={`notif-row ${n.is_read ? 'read' : 'unread'}`}>
               <div className={`notif-icon ${n.type}`}>{iconForType(n.type)}</div>
               <div className="notif-content" onClick={() => !n.is_read && handleMarkRead(n.id)}>
@@ -190,7 +191,7 @@ export function EmployeeNotifications({ userId, t }: { userId: string; t: Employ
                 <small>{new Date(n.sent_at).toLocaleDateString()} · {new Date(n.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
               </div>
             </div>
-          ))}
+          ))}</PaginatedList>
         </div>
       </div>
     )}
@@ -243,8 +244,8 @@ export function EmployeeGamification({ userId, t, completedCount, inProgressCoun
         {userBadges.length === 0 ? (
           <div className="empty-state"><Trophy size={28} /><h3>{t.noBadges}</h3></div>
         ) : (
-          <div className="badges-grid">
-            {userBadges.map((ub) => (
+          <PaginatedList items={userBadges}>{(pageUserBadges) => <div className="badges-grid">
+            {pageUserBadges.map((ub) => (
               <div key={ub.id} className="badge-card earned">
                 <div className="badge-icon">{renderBadgeIcon(ub.badge?.icon_url, ub.badge?.name)}</div>
                 <strong>{ub.badge?.name}</strong>
@@ -252,7 +253,7 @@ export function EmployeeGamification({ userId, t, completedCount, inProgressCoun
                 <small className="muted">{t.earnedOn}: {new Date(ub.earned_at).toLocaleDateString()}</small>
               </div>
             ))}
-          </div>
+          </div>}</PaginatedList>
         )}
       </section>
 
@@ -261,8 +262,8 @@ export function EmployeeGamification({ userId, t, completedCount, inProgressCoun
         {lockedBadges.length === 0 ? (
           <div className="empty-state"><Trophy size={28} /><h3>¡Has desbloqueado todas las insignias!</h3></div>
         ) : (
-          <div className="badges-grid">
-            {lockedBadges.slice(0, 6).map((b) => (
+          <PaginatedList items={lockedBadges}>{(pageLockedBadges) => <div className="badges-grid">
+            {pageLockedBadges.map((b) => (
               <div key={b.id} className="badge-card locked">
                 <div className="badge-icon">{renderBadgeIcon(b.icon_url, b.name)}</div>
                 <strong>{b.name}</strong>
@@ -270,7 +271,7 @@ export function EmployeeGamification({ userId, t, completedCount, inProgressCoun
                 <div className="badge-locked-overlay"><Lock size={20} /></div>
               </div>
             ))}
-          </div>
+          </div>}</PaginatedList>
         )}
       </section>
     </div>
@@ -312,8 +313,8 @@ export function EmployeeCertifications({ userId, t }: { userId: string; t: Emplo
         {certificates.length === 0 ? (
           <div className="empty-state"><Award size={28} /><h3>{t.noCertificates}</h3></div>
         ) : (
-          <div className="certificate-grid">
-            {certificates.map((c) => <article className="certificate-card" key={c.id}>
+          <PaginatedList items={certificates}>{(pageCertificates) => <div className="certificate-grid">
+            {pageCertificates.map((c) => <article className="certificate-card" key={c.id}>
               <div className="certificate-art">
                 <div className="certificate-mark"><Award size={26} /></div>
                 <span>TRIADE</span>
@@ -330,7 +331,7 @@ export function EmployeeCertifications({ userId, t }: { userId: string; t: Emplo
                 <button><Download size={16} />{t.downloadCert}</button>
               </div>
             </article>)}
-          </div>
+          </div>}</PaginatedList>
         )}
       </section>
 
@@ -339,8 +340,8 @@ export function EmployeeCertifications({ userId, t }: { userId: string; t: Emplo
         {roleCerts.length === 0 ? (
           <div className="empty-state"><Trophy size={28} /><h3>{t.noRoleCerts}</h3></div>
         ) : (
-          <div className="role-cert-list">
-            {roleCerts.map((rc) => <div key={rc.id} className="role-cert-card">
+          <PaginatedList items={roleCerts}>{(pageRoleCerts) => <div className="role-cert-list">
+            {pageRoleCerts.map((rc) => <div key={rc.id} className="role-cert-card">
               <div className="role-cert-icon"><Award size={22} /></div>
               <div className="role-cert-info">
                 <strong>{rc.job_role?.name ?? 'Cargo'}</strong>
@@ -349,7 +350,7 @@ export function EmployeeCertifications({ userId, t }: { userId: string; t: Emplo
               </div>
               <span className={`status-badge ${rc.is_valid ? 'completed' : 'cancelled'}`}>{rc.is_valid ? t.valid : t.expired}</span>
             </div>)}
-          </div>
+          </div>}</PaginatedList>
         )}
       </section>
     </div>
@@ -523,8 +524,8 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
       {jobHistory.length === 0 ? (
         <div className="empty-state"><History size={28} /><h3>{t.noJobHistory}</h3></div>
       ) : (
-        <div className="timeline">
-          {jobHistory.map((h) => <div key={h.id} className={`timeline-item ${h.is_current ? 'done' : ''}`}>
+        <PaginatedList items={jobHistory}>{(pageJobHistory) => <div className="timeline">
+          {pageJobHistory.map((h) => <div key={h.id} className={`timeline-item ${h.is_current ? 'done' : ''}`}>
             <div className="timeline-content">
               <strong>{h.job_role?.name ?? 'Cargo'}</strong>
               <span>{t.startDate}: {new Date(h.start_date).toLocaleDateString()}</span>
@@ -533,7 +534,7 @@ export function EmployeeProfile({ profile, t }: { profile: Profile; t: EmployeeS
               {h.reason && <small>{t.reason}: {h.reason}</small>}
             </div>
           </div>)}
-        </div>
+        </div>}</PaginatedList>
       )}
     </section>
   </div>;

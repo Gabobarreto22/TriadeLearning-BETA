@@ -22,6 +22,7 @@ import { DashboardModule, CertificationsModule, FeedbackModule, NotificationsMod
 import { adminStringsES } from '@/components/admin/strings';
 import type { AdminData, AdminView } from '@/components/admin/types';
 import { EmployeeNotifications, EmployeeGamification, EmployeeCertifications, EmployeeProfile, CourseFeedbackModal, type EmployeeStrings } from '@/components/employee/EmployeeModules';
+import { PaginatedList } from '@/components/PaginatedList';
 
 type Language = 'ES' | 'EN';
 type View = 'dashboard' | 'catalog' | 'certificates' | 'calendar' | 'player' | 'exam' | 'notifications' | 'gamification' | 'profile';
@@ -570,7 +571,7 @@ function Catalog({ t, filter, setFilter, query, setQuery, courses, getCourseStat
     <div className="page-heading"><div><p className="eyebrow">FORMACIÓN POR CARGO</p><h1>{t.catalog}</h1><p className="muted">{t.catalogIntro} · <strong className="role-tag">{jobRole}</strong></p></div></div>
     <div className="catalog-toolbar"><div className="search-box"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search} /></div><div className="filter-tabs">{filters.map((f) => <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f}</button>)}</div></div>
     {visible.length === 0 ? <div className="empty-state"><Search size={30} /><h3>{courses.length === 0 ? t.noCourses : t.empty}</h3></div> :
-    <div className="catalog-grid">{visible.map((c) => <CourseCard key={c.id} course={c} t={t} getCourseState={getCourseState} onSelect={onSelect} />)}</div>}
+    <PaginatedList key={`${filter}-${query}`} items={visible}>{(pageCourses) => <div className="catalog-grid">{pageCourses.map((c) => <CourseCard key={c.id} course={c} t={t} getCourseState={getCourseState} onSelect={onSelect} />)}</div>}</PaginatedList>}
   </div>;
 }
 
@@ -638,7 +639,7 @@ function Certificates({ t, completedCourses, onPreview }: { t: typeof copy.ES; c
   return <div className="page animate-in"><div className="page-heading"><div><p className="eyebrow">LOGROS ACADÉMICOS</p><h1>{t.certificates}</h1><p className="muted">Tus certificaciones están listas para compartir.</p></div></div>
     <div className="certificate-banner"><div className="banner-seal"><Award size={31} /></div><div><strong>{completedCourses.length} certificaciones obtenidas</strong><span>Has completado cursos de tu ruta anual.</span></div><div className="banner-line" /><div className="banner-stat"><strong>{completedCourses.length}</strong><span>cursos certificados</span></div></div>
     {completedCourses.length === 0 ? <div className="empty-state"><Award size={30} /><h3>{t.noCourses}</h3></div> :
-    <div className="certificate-grid">{completedCourses.map((c, i) => <article className="certificate-card" key={c.id}><div className="certificate-art"><div className="certificate-mark"><Award size={26} /></div><span>TRIADE</span><small>{t.certificate}</small><strong>{c.title}</strong><em>{t.awardedTo}</em><div className="certificate-art-footer"><span>TRD-{new Date().getFullYear()}-{String(i + 1).padStart(5, '0')}</span><span>{new Date().toLocaleDateString()}</span></div></div><div className="certificate-actions"><button onClick={() => onPreview({ title: c.title, id: `TRD-${new Date().getFullYear()}-${String(i + 1).padStart(5, '0')}`, date: new Date().toLocaleDateString() })}><FileText size={16} />{t.seeCertificate}</button><button><Download size={16} />{t.downloadCert}</button></div></article>)}</div>}
+    <PaginatedList items={completedCourses}>{(pageCourses, firstItemIndex) => <div className="certificate-grid">{pageCourses.map((c, i) => <article className="certificate-card" key={c.id}><div className="certificate-art"><div className="certificate-mark"><Award size={26} /></div><span>TRIADE</span><small>{t.certificate}</small><strong>{c.title}</strong><em>{t.awardedTo}</em><div className="certificate-art-footer"><span>TRD-{new Date().getFullYear()}-{String(firstItemIndex + i + 1).padStart(5, '0')}</span><span>{new Date().toLocaleDateString()}</span></div></div><div className="certificate-actions"><button onClick={() => onPreview({ title: c.title, id: `TRD-${new Date().getFullYear()}-${String(firstItemIndex + i + 1).padStart(5, '0')}`, date: new Date().toLocaleDateString() })}><FileText size={16} />{t.seeCertificate}</button><button><Download size={16} />{t.downloadCert}</button></div></article>)}</div>}</PaginatedList>}
   </div>;
 }
 
@@ -671,7 +672,7 @@ function CourseModal({ course, t, courseState, onClose, onOpenPlayer, onOpenExam
       <div className="course-meta"><span><Clock3 size={14} />{course.duration}</span></div>
       <h2>{course.title}</h2><p>{course.description}</p>
       <div className="module-progress-bar"><div className="progress-label"><span>{completedCount} de {course.modules.length} {t.modules}</span><strong>{progress}%</strong></div><div className="progress-track"><span style={{ width: `${progress}%` }} /></div></div>
-      <div className="module-list">{course.modules.map((m, i) => <div key={m.id}><span className={courseState.completedModules[i] ? 'module-check' : 'module-check locked'}>{courseState.completedModules[i] ? <Check size={14} /> : <LockKeyhole size={13} />}</span><span><strong>{m.title}</strong><small>{m.duration} · {m.type === 'video' ? t.videoModule : m.type === 'image' ? t.imageModule : t.textModule}</small></span></div>)}</div>
+      <PaginatedList items={course.modules}>{(pageModules, firstModuleIndex) => <div className="module-list">{pageModules.map((m, i) => <div key={m.id}><span className={courseState.completedModules[firstModuleIndex + i] ? 'module-check' : 'module-check locked'}>{courseState.completedModules[firstModuleIndex + i] ? <Check size={14} /> : <LockKeyhole size={13} />}</span><span><strong>{m.title}</strong><small>{m.duration} · {m.type === 'video' ? t.videoModule : m.type === 'image' ? t.imageModule : t.textModule}</small></span></div>)}</div>}</PaginatedList>
       <div className="exam-section">
         <div className="exam-type-card"><div className="exam-type-header"><div className="exam-type-icon direct"><ShieldCheck size={18} /></div><div><strong>{t.directExam}</strong><small>{t.directExamDesc}</small></div></div>
           {courseState.directPassed ? <span className="exam-badge passed"><Check size={14} />Aprobada</span> : courseState.directFailed ? <span className="exam-badge locked"><LockKeyhole size={14} />{t.examLocked}</span> : <button className="primary-button exam-action" onClick={() => onOpenExam(course, 'direct')}><Play size={15} />{t.takeDirectExam}</button>}

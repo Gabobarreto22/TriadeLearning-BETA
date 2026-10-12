@@ -7,6 +7,7 @@ import { getIcon, availableIcons, availableAccents } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 import { uploadToImageKit, deleteFromImageKit, detectResourceType, type ResourceType } from '@/lib/imagekit';
 import type { AdminStrings } from './types';
+import { PaginatedList } from '../PaginatedList';
 
 type CourseTab = 'info' | 'modules' | 'exams' | 'assignments' | 'prerequisites';
 
@@ -43,7 +44,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
       <div className="section-card">
         {courses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3>
           <button className="primary-button" onClick={() => setEditingCourse({} as CourseWithRelations)} style={{ marginTop: 16 }}><Plus size={18} />{t.newCourse}</button></div> :
-          <div className="admin-list-stack">{courses.map((c) => {
+          <PaginatedList items={courses}>{(pageCourses) => <div className="admin-list-stack">{pageCourses.map((c) => {
             const Icon = getIcon(c.icon_name);
             return (
               <div key={c.id} className="admin-course-row">
@@ -55,7 +56,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
                 </div>
               </div>
             );
-          })}</div>}
+          })}</div>}</PaginatedList>}
       </div>
       {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
@@ -474,11 +475,11 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
       </div></div>, document.body)}
 
       {modules.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
-       <div className="admin-list-stack">{modules.map((m, i) => (
+       <PaginatedList items={modules}>{(pageModules, firstItemIndex) => <div className="admin-list-stack">{pageModules.map((m, i) => (
          <div key={m.id} className="admin-course-row">
            <div className="course-icon gray-2"><GripVertical size={16} /></div>
            <div className="course-row-info">
-             <strong>{i + 1}. {m.title}</strong>
+             <strong>{firstItemIndex + i + 1}. {m.title}</strong>
              <small>{typeIcon(m.type)} {m.type} · {m.duration}{m.resource_url ? ` · ${resourceIcon(m.resource_type)} ${resourceLabel(m.resource_type)}` : ''}</small>
            </div>
            <div className="admin-course-actions">
@@ -486,7 +487,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
              <button className="icon-button" onClick={() => setDeleteConfirm(m.id)}><Trash2 size={16} /></button>
            </div>
          </div>
-       ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }
@@ -608,16 +609,16 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
           </div>
 
           {exam.questions.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
-            <div className="admin-list-stack">{exam.questions.map((q, i) => (
+            <PaginatedList items={exam.questions}>{(pageQuestions, firstItemIndex) => <div className="admin-list-stack">{pageQuestions.map((q, i) => (
               <div key={q.id} className="admin-course-row">
                 <div className="course-icon gray-2"><Star size={16} /></div>
-                <div className="course-row-info"><strong>{i + 1}. {q.question}</strong><small>{q.options.length} {t.options.toLowerCase()} · {q.difficulty} · {q.points} {t.pointsLabel.toLowerCase()}</small></div>
+                <div className="course-row-info"><strong>{firstItemIndex + i + 1}. {q.question}</strong><small>{q.options.length} {t.options.toLowerCase()} · {q.difficulty} · {q.points} {t.pointsLabel.toLowerCase()}</small></div>
                 <div className="admin-course-actions">
                   <button className="icon-button" onClick={() => openEdit(q)} title="Editar"><Pencil size={16} /></button>
                   <button className="icon-button" onClick={() => setDeleteConfirm(q.id)}><Trash2 size={16} /></button>
                 </div>
               </div>
-            ))}</div>}
+            ))}</div>}</PaginatedList>}
         </div>
       ))}
 
@@ -752,13 +753,13 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, departments, onRef
       </div></div>, document.body)}
 
       {assignments.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> :
-       <div className="admin-list-stack">{assignments.map((a) => (
+      <PaginatedList items={assignments}>{(pageAssignments) => <div className="admin-list-stack">{pageAssignments.map((a) => (
          <div key={a.id} className="admin-course-row">
            <div className="course-icon gray-3"><BookOpen size={18} /></div>
            <div className="course-row-info"><strong>{getRoleName(a.job_role_id)}</strong><small>{a.is_mandatory ? t.mandatory : t.optional} · {a.priority ?? t.medium}</small></div>
            <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(a.id)}><Trash2 size={16} /></button></div>
          </div>
-       ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }
@@ -831,13 +832,13 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
       </div></div>, document.body)}
 
       {prerequisites.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noPrerequisites}</p> :
-       <div className="admin-list-stack">{prerequisites.map((p) => (
+      <PaginatedList items={prerequisites}>{(pagePrerequisites) => <div className="admin-list-stack">{pagePrerequisites.map((p) => (
          <div key={p.id} className="admin-course-row">
            <div className="course-icon gray-1"><Check size={18} /></div>
            <div className="course-row-info"><strong>{getCourseTitle(p.prerequisite_course_id)}</strong><small>{p.is_mandatory ? t.mandatory : t.optional}</small></div>
            <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(p.id)}><Trash2 size={16} /></button></div>
          </div>
-       ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }

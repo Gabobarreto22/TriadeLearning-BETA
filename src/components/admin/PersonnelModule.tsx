@@ -13,6 +13,7 @@ import {
 } from '@/lib/data';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
+import { PaginatedList } from '../PaginatedList';
 
 function UserPhotoField({ value, uploading, onChange, onClear }: {
   value: string | null;
@@ -355,8 +356,8 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
                   <h3 style={{ margin: '0 0 10px' }}>Cursos</h3>
                   {employeeSummary?.courseReqs && employeeSummary.courseReqs.length > 0 ? (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {employeeSummary.courseReqs.map((req) => (
+                    <PaginatedList items={employeeSummary.courseReqs}>{(pageCourseReqs) => <div style={{ display: 'grid', gap: 8 }}>
+                      {pageCourseReqs.map((req) => (
                         <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
                           <div>
                             <strong>{req.course?.title ?? 'Curso'}</strong>
@@ -365,15 +366,15 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
                           <span className={`status-badge ${req.status === 'completed' ? 'active' : 'inactive'}`}>{req.status}</span>
                         </div>
                       ))}
-                    </div>
+                    </div>}</PaginatedList>
                   ) : <p className="muted">Sin cursos asignados.</p>}
                 </div>
 
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
                   <h3 style={{ margin: '0 0 10px' }}>Certificaciones</h3>
                   {employeeSummary?.certificates && employeeSummary.certificates.length > 0 ? (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {employeeSummary.certificates.map((cert) => (
+                    <PaginatedList items={employeeSummary.certificates}>{(pageCertificates) => <div style={{ display: 'grid', gap: 8 }}>
+                      {pageCertificates.map((cert) => (
                         <div key={cert.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
                           <div>
                             <strong>{cert.user_course_requirement?.course?.title ?? 'Certificado'}</strong>
@@ -382,15 +383,15 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
                           <small>{cert.issue_date ? new Date(cert.issue_date).toLocaleDateString() : '—'}</small>
                         </div>
                       ))}
-                    </div>
+                    </div>}</PaginatedList>
                   ) : <p className="muted">Sin certificaciones.</p>}
                 </div>
 
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
                   <h3 style={{ margin: '0 0 10px' }}>Certificaciones de cargo</h3>
                   {employeeSummary?.roleCerts && employeeSummary.roleCerts.length > 0 ? (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {employeeSummary.roleCerts.map((rc) => (
+                    <PaginatedList items={employeeSummary.roleCerts}>{(pageRoleCerts) => <div style={{ display: 'grid', gap: 8 }}>
+                      {pageRoleCerts.map((rc) => (
                         <div key={rc.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
                           <div>
                             <strong>{rc.job_role?.name ?? 'Cargo'}</strong>
@@ -399,15 +400,15 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
                           <small>{rc.certified_at ? new Date(rc.certified_at).toLocaleDateString() : '—'}</small>
                         </div>
                       ))}
-                    </div>
+                    </div>}</PaginatedList>
                   ) : <p className="muted">Sin certificaciones de cargo.</p>}
                 </div>
 
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
                   <h3 style={{ margin: '0 0 10px' }}>Historial de cargos</h3>
                   {employeeSummary?.history && employeeSummary.history.length > 0 ? (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {employeeSummary.history.map((h) => (
+                    <PaginatedList items={employeeSummary.history}>{(pageHistory) => <div style={{ display: 'grid', gap: 8 }}>
+                      {pageHistory.map((h) => (
                         <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #f3f4f6', paddingBottom: 6 }}>
                           <div>
                             <strong>{h.job_role?.name ?? 'Cargo'}</strong>
@@ -416,7 +417,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
                           <small>{h.start_date ? new Date(h.start_date).toLocaleDateString() : '—'}</small>
                         </div>
                       ))}
-                    </div>
+                    </div>}</PaginatedList>
                   ) : <p className="muted">Sin historial de cargos.</p>}
                 </div>
               </div>
@@ -426,7 +427,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
       </div></div>, document.body)}
 
       {team.length === 0 ? <div className="empty-state"><Users size={30} /><h3>{t.noTeam}</h3></div> :
-      <div className="team-table">{team.map((m) => (
+      <PaginatedList items={team}>{(pageTeam) => <div className="team-table">{pageTeam.map((m) => (
         <div key={m.id} className="admin-team-row" onClick={() => setSelectedEmployee(m)} style={{ cursor: 'pointer' }}>
           <div className="avatar avatar-small">{m.full_name.slice(0, 2).toUpperCase()}</div>
           <div>
@@ -441,7 +442,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
             <button className="icon-button" onClick={() => setDeleteConfirm(m.id)} title={t.delete}><Trash2 size={16} /></button>
           </div>
         </div>
-      ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }
@@ -565,7 +566,7 @@ function AdminsTab({ t, team, onRefresh }: {
       </div></div>, document.body)}
 
       {team.length === 0 ? <div className="empty-state"><Settings size={30} /><h3>{t.noAdmins}</h3></div> :
-      <div className="team-table">{team.map((m) => (
+      <PaginatedList items={team}>{(pageTeam) => <div className="team-table">{pageTeam.map((m) => (
         <div key={m.id} className="admin-team-row">
           <div className="avatar avatar-small">{m.full_name.slice(0, 2).toUpperCase()}</div>
           <div>
@@ -579,7 +580,7 @@ function AdminsTab({ t, team, onRefresh }: {
             <button className="icon-button" onClick={() => setDeleteConfirm(m.id)} title={t.delete}><Trash2 size={16} /></button>
           </div>
         </div>
-      ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }
@@ -647,7 +648,7 @@ function DepartmentsTab({ t, departments, onRefresh }: {
       </div></div>, document.body)}
 
       {departments.length === 0 ? <div className="empty-state"><Building2 size={30} /><h3>{t.noData}</h3></div> :
-      <div className="team-table">{departments.map((d) => (
+      <PaginatedList items={departments}>{(pageDepartments) => <div className="team-table">{pageDepartments.map((d) => (
         <div key={d.id} className="admin-team-row">
           <div className="avatar avatar-small"><Building2 size={16} /></div>
           <div><strong>{d.name}</strong><small>{d.code}{d.description ? ` · ${d.description}` : ''}</small></div>
@@ -657,7 +658,7 @@ function DepartmentsTab({ t, departments, onRefresh }: {
             <button className="icon-button" onClick={() => setDeleteConfirm(d.id)}><Trash2 size={16} /></button>
           </div>
         </div>
-      ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }
@@ -735,7 +736,7 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
       </div></div>, document.body)}
 
       {jobRoles.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noRoles}</h3></div> :
-      <div className="team-table">{jobRoles.map((r) => (
+      <PaginatedList items={jobRoles}>{(pageJobRoles) => <div className="team-table">{pageJobRoles.map((r) => (
         <div key={r.id} className="admin-team-row">
           <div className="avatar avatar-small"><ShieldCheck size={16} /></div>
           <div><strong>{r.name}{getDeptName(r.department_id) ? ` · ${getDeptName(r.department_id)}` : ''}</strong><small>{r.description || '—'}</small></div>
@@ -746,7 +747,7 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
             <button className="icon-button" onClick={() => setDeleteConfirm(r.id)}><Trash2 size={16} /></button>
           </div>
         </div>
-      ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }
@@ -790,7 +791,7 @@ function HistoryTab({ t, team, jobRoles, departments }: {
       {loading ? <p className="muted">{t.loading}</p> :
        !selectedUserId ? <div className="empty-state"><History size={30} /><h3>{t.noHistory}</h3></div> :
        history.length === 0 ? <div className="empty-state"><History size={30} /><h3>{t.noHistory}</h3></div> :
-       <div className="timeline">{history.map((h) => (
+      <PaginatedList items={history}>{(pageHistory) => <div className="timeline">{pageHistory.map((h) => (
         <div key={h.id} className="timeline-item">
           <div className={`timeline-dot ${h.is_current ? 'current' : ''}`} />
           <div className="timeline-content">
@@ -799,7 +800,7 @@ function HistoryTab({ t, team, jobRoles, departments }: {
             {h.reason && <p className="muted">{h.reason}</p>}
           </div>
         </div>
-      ))}</div>}
+      ))}</div>}</PaginatedList>}
     </div>
   );
 }
@@ -900,7 +901,7 @@ function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
 
       {!selectedRoleId ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.selectRole}</h3></div> :
        assignedCourses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3></div> :
-       <div className="admin-list-stack">{assignedCourses.map((c) => {
+      <PaginatedList items={assignedCourses}>{(pageCourses) => <div className="admin-list-stack">{pageCourses.map((c) => {
          const assignment = c.assignments.find((a) => a.job_role_id === selectedRoleId);
          return (
            <div key={c.id} className="admin-course-row">
@@ -911,7 +912,7 @@ function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
              </div>
            </div>
          );
-       })}</div>}
+      })}</div>}</PaginatedList>}
     </div>
   );
 }

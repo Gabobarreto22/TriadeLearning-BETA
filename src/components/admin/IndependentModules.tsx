@@ -6,6 +6,7 @@ import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, 
 import { getIcon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
+import { PaginatedList } from '../PaginatedList';
 
 // ===================== DASHBOARD =====================
 export function DashboardModule({ t, data, onNavigate }: {
@@ -97,24 +98,24 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
         <div className="section-card">
           <div className="section-title"><div><h2>{t.totalCertificates}</h2><p className="muted">{certificates.length}</p></div></div>
           {certificates.length === 0 ? <div className="empty-state"><Award size={30} /><h3>{t.noCertificates}</h3></div> :
-           <div className="admin-list-stack">{certificates.map((c) => (
+           <PaginatedList items={certificates}>{(pageCertificates) => <div className="admin-list-stack">{pageCertificates.map((c) => (
              <div key={c.id} className="admin-course-row">
                <div className="course-icon gray-3"><Award size={20} /></div>
                <div><strong>{c.certificate_number}</strong><small>{c.user_course_requirement?.user?.full_name ?? '—'} · {c.user_course_requirement?.course?.title ?? '—'}</small></div>
                <span className="status-badge active">{c.issue_date}</span>
              </div>
-           ))}</div>}
+           ))}</div>}</PaginatedList>}
         </div>
         <div className="section-card">
           <div className="section-title"><div><h2>{t.roleManagement}</h2><p className="muted">{roleCertifications.length}</p></div></div>
           {roleCertifications.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noData}</h3></div> :
-           <div className="admin-list-stack">{roleCertifications.map((rc) => (
+           <PaginatedList items={roleCertifications}>{(pageRoleCertifications) => <div className="admin-list-stack">{pageRoleCertifications.map((rc) => (
              <div key={rc.id} className="admin-course-row">
                <div className="course-icon gray-2"><ShieldCheck size={20} /></div>
                <div><strong>{rc.user?.full_name ?? '—'}</strong><small>{rc.job_role?.name ?? '—'} · {rc.certified_at?.slice(0, 10)}</small></div>
                <span className={`status-badge ${rc.is_valid ? 'active' : 'inactive'}`}>{rc.is_valid ? t.valid : t.expired}</span>
              </div>
-           ))}</div>}
+           ))}</div>}</PaginatedList>}
         </div>
       </div>
     </div>
@@ -191,7 +192,7 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
       </div>
       <div className="section-card">
         {feedback.length === 0 ? <div className="empty-state"><Star size={30} /><h3>{t.noFeedback}</h3></div> :
-         <div className="admin-list-stack">{feedback.map((f) => (
+         <PaginatedList items={feedback}>{(pageFeedback) => <div className="admin-list-stack">{pageFeedback.map((f) => (
            <div key={f.id} className="feedback-card">
              <div className="feedback-header">
                <div className="feedback-user-info">
@@ -210,7 +211,7 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
              </div>
              {f.feedback_text && <p className="feedback-text">{f.feedback_text}</p>}
            </div>
-         ))}</div>}
+         ))}</div>}</PaginatedList>}
       </div>
     </div>
   );
@@ -415,7 +416,7 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
         <div className="section-card">
           <div className="section-title"><div><h2>{t.totalBadges}</h2><p className="muted">{badges.length}</p></div></div>
           {badges.length === 0 ? <div className="empty-state"><Star size={30} /><h3>{t.noBadges}</h3></div> :
-           <div className="badges-grid">{badges.map((b) => (
+           <PaginatedList items={badges}>{(pageBadges) => <div className="badges-grid">{pageBadges.map((b) => (
              <div key={b.id} className="badge-card">
                <div className="badge-icon">{renderBadgeIcon(b.icon_url, b.name)}</div>
                <strong>{b.name}</strong>
@@ -423,17 +424,17 @@ export function GamificationModule({ t, data, onRefresh }: { t: AdminStrings; da
                <span className="badge-points">{b.points} {t.pointsLabel.toLowerCase()}</span>
                <button className="icon-button badge-delete" onClick={() => setDeleteConfirm(b.id)}><Trash2 size={14} /></button>
              </div>
-           ))}</div>}
+           ))}</div>}</PaginatedList>}
         </div>
         <div className="section-card">
           <div className="section-title"><div><h2>{t.earnedBy}</h2><p className="muted">{userBadges.length}</p></div></div>
           {userBadges.length === 0 ? <div className="empty-state"><Award size={30} /><h3>{t.noUserBadges}</h3></div> :
-           <div className="admin-list-stack">{userBadges.map((ub) => (
+           <PaginatedList items={userBadges}>{(pageUserBadges) => <div className="admin-list-stack">{pageUserBadges.map((ub) => (
              <div key={ub.id} className="admin-team-row">
                <div className="badge-icon-sm">{renderBadgeIcon(ub.badge?.icon_url, ub.badge?.name)}</div>
                <div><strong>{ub.badge?.name ?? '—'}</strong><small>{ub.user?.full_name ?? '—'} · {ub.earned_at?.slice(0, 10)}</small></div>
              </div>
-           ))}</div>}
+           ))}</div>}</PaginatedList>}
         </div>
       </div>
     </div>
@@ -508,14 +509,14 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
 
       <div className="section-card">
         {notifications.length === 0 ? <div className="empty-state"><Bell size={30} /><h3>{t.noNotifications}</h3></div> :
-         <div className="admin-list-stack">{notifications.map((n) => (
+         <PaginatedList items={notifications}>{(pageNotifications) => <div className="admin-list-stack">{pageNotifications.map((n) => (
            <div key={n.id} className="admin-course-row">
              <div className={`course-icon ${n.type === 'warning' ? 'gray-3' : 'gray-1'}`}>{typeIcon(n.type)}</div>
              <div className="course-row-info"><strong>{n.title}</strong><small>{n.user?.full_name ?? '—'} · {n.message}</small></div>
              <span className={`status-badge ${n.is_read ? 'active' : 'inactive'}`}>{n.is_read ? t.read : t.unread}</span>
              <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(n.id)}><Trash2 size={16} /></button></div>
            </div>
-         ))}</div>}
+         ))}</div>}</PaginatedList>}
       </div>
     </div>
   );
@@ -619,8 +620,8 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
                 {completedCourses.length === 0 ? (
                   <p className="muted">Este empleado aún no ha realizado cursos.</p>
                 ) : (
-                  <div className="admin-list-stack">
-                    {completedCourses.map((req) => (
+                  <PaginatedList items={completedCourses}>{(pageCompletedCourses) => <div className="admin-list-stack">
+                    {pageCompletedCourses.map((req) => (
                       <div key={req.id} className="admin-course-row">
                         <div className="course-icon gray-2"><FileText size={18} /></div>
                         <div className="course-row-info">
@@ -630,7 +631,7 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
                         <span className="status-badge completed">{t.completed}</span>
                       </div>
                     ))}
-                  </div>
+                  </div>}</PaginatedList>
                 )}
 
                 <div style={{ marginTop: 22 }}>
@@ -642,10 +643,8 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
                   {employeeAttempts.every((item) => item.failedAttempts.length === 0) ? (
                     <p className="muted">Este empleado no tiene intentos fallidos.</p>
                   ) : (
-                    <div className="admin-list-stack">
-                      {employeeAttempts
-                        .filter((item) => item.failedAttempts.length > 0)
-                        .map((item) => (
+                    <PaginatedList items={employeeAttempts.filter((item) => item.failedAttempts.length > 0)}>{(pageEmployeeAttempts) => <div className="admin-list-stack">
+                      {pageEmployeeAttempts.map((item) => (
                           <div key={item.id} className="admin-course-row">
                             <div className="course-icon gray-2"><AlertCircle size={18} /></div>
                             <div className="course-row-info">
@@ -655,7 +654,7 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
                             <span className="status-badge inactive">{item.failedAttempts.length}</span>
                           </div>
                         ))}
-                    </div>
+                    </div>}</PaginatedList>
                   )}
                 </div>
               </div>
@@ -734,13 +733,13 @@ export function SettingsModule({ t, data, onRefresh }: { t: AdminStrings; data: 
 
       <div className="section-card">
         {settings.length === 0 ? <div className="empty-state"><Settings size={30} /><h3>{t.noSettings}</h3></div> :
-         <div className="admin-list-stack">{settings.map((s) => (
+         <PaginatedList items={settings}>{(pageSettings) => <div className="admin-list-stack">{pageSettings.map((s) => (
            <div key={s.id} className="admin-course-row">
              <div className="course-icon gray-2"><Settings size={18} /></div>
              <div className="course-row-info"><strong>{s.key}</strong><small>{s.category} · {s.description ?? '—'}{s.is_public ? ' · Público' : ''}</small></div>
              <button className="icon-button" onClick={() => { setEditingId(s.id); setKey(s.key); setValue(JSON.stringify(s.value)); setDescription(s.description ?? ''); setCategory(s.category); setIsPublic(s.is_public); setShowForm(true); }}><Settings size={16} /></button>
            </div>
-         ))}</div>}
+         ))}</div>}</PaginatedList>}
       </div>
     </div>
   );
@@ -763,7 +762,7 @@ export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
       <div className="page-heading"><div><p className="eyebrow">AUDITORÍA</p><h1>{t.audit}</h1><p className="muted">{t.auditDesc}</p></div></div>
       <div className="section-card">
         {auditLogs.length === 0 ? <div className="empty-state"><History size={30} /><h3>{t.noAudit}</h3></div> :
-         <div className="admin-list-stack">{auditLogs.map((log) => {
+         <PaginatedList items={auditLogs}>{(pageAuditLogs) => <div className="admin-list-stack">{pageAuditLogs.map((log) => {
            const date = new Date(log.created_at);
            const dateStr = date.toLocaleDateString();
            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -792,7 +791,7 @@ export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
                </div>
              </div>
            );
-         })}</div>}
+         })}</div>}</PaginatedList>}
       </div>
     </div>
   );

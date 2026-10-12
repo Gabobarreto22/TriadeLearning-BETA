@@ -512,6 +512,15 @@ select.auth-input{cursor:pointer;appearance:none;background-image:url("data:imag
 .admin-course-row strong{display:block;font:600 14px 'Manrope',sans-serif;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .admin-course-row small{font-size:12px;color:var(--muted)}
 .admin-course-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.data-pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px;padding:8px 2px 2px;color:var(--muted);font-size:11px}
+.data-pagination-summary{margin-right:auto;font-variant-numeric:tabular-nums}
+.data-pagination-size{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.data-pagination-size select{height:30px;padding:0 24px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:600 11px 'Manrope',sans-serif}
+.data-pagination-button{height:32px;width:32px;border:1px solid var(--line);border-radius:6px;display:grid;place-items:center;background:var(--surface);color:var(--ink);cursor:pointer}
+.data-pagination-button:hover:not(:disabled){background:var(--surface-2);border-color:var(--line-2)}
+.data-pagination-button:disabled{opacity:.42;cursor:not-allowed}
+.data-pagination-button:focus-visible,.data-pagination-size select:focus-visible{outline:2px solid var(--ink-2);outline-offset:2px}
+.data-pagination-page{min-width:42px;text-align:center;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .admin-team-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .admin-team-row:last-child{border-bottom:0}
 .admin-team-row>div:nth-child(2){flex:1}
@@ -557,6 +566,7 @@ html.dark .form-actions-row .primary-button:active{background:#ffffff !important
 /* TEAM TABLE */
 .team-table{display:flex;flex-direction:column}
 .team-table .admin-team-row{padding:14px 0}
+@media(max-width:560px){.data-pagination{justify-content:center}.data-pagination-summary{width:100%;text-align:center}.data-pagination-size{margin-right:auto}}
 
 /* PLAYER VIDEO ELEMENT */
 .player-video-el{width:100%;border-radius:12px;outline:none;background:#000}
