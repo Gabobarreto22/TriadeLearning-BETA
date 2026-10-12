@@ -396,6 +396,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AdminData | null>(null);
+  const courseEditorLeaveGuardRef = useRef<(() => boolean) | null>(null);
   const { signOut } = useAuth();
 
   const refreshAll = async () => {
@@ -423,7 +424,14 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
     })();
   }, []);
 
-  const navigate = (v: string) => { setTab(v as AdminTab); setMobileOpen(false); };
+  const navigate = (v: string) => {
+    if (courseEditorLeaveGuardRef.current && !courseEditorLeaveGuardRef.current()) return;
+    setTab(v as AdminTab);
+    setMobileOpen(false);
+  };
+  const registerCourseEditorLeaveGuard = (guard: (() => boolean) | null) => {
+    courseEditorLeaveGuardRef.current = guard;
+  };
   const breadcrumbLabel = () => {
     const labels: Record<string, string> = {
       dashboard: at.dashboard, personnel: at.personnel, courses: at.courses,
@@ -475,7 +483,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
       </header>
       {tab === 'dashboard' && <DashboardModule t={at} data={data} onNavigate={navigate} />}
       {tab === 'personnel' && <PersonnelModule t={at} team={data.team} jobRoles={data.jobRoles} departments={data.departments} courses={data.courses} onRefresh={refreshAll} />}
-      {tab === 'courses' && <CoursesModule t={at} courses={data.courses} jobRoles={data.jobRoles} departments={data.departments} profile={profile} onRefresh={refreshAll} />}
+      {tab === 'courses' && <CoursesModule t={at} courses={data.courses} jobRoles={data.jobRoles} departments={data.departments} profile={profile} onRefresh={refreshAll} onLeaveGuardChange={registerCourseEditorLeaveGuard} />}
       {tab === 'certifications' && <CertificationsModule t={at} data={data} />}
       {tab === 'feedback' && <FeedbackModule t={at} data={data} />}
       {tab === 'notifications' && <NotificationsModule t={at} data={data} onRefresh={refreshAll} />}

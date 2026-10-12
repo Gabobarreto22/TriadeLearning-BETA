@@ -10,13 +10,14 @@ import type { AdminStrings } from './types';
 
 type CourseTab = 'info' | 'modules' | 'exams' | 'assignments' | 'prerequisites';
 
-export function CoursesModule({ t, courses, jobRoles, departments, profile, onRefresh }: {
+export function CoursesModule({ t, courses, jobRoles, departments, profile, onRefresh, onLeaveGuardChange }: {
   t: AdminStrings;
   courses: CourseWithRelations[];
   jobRoles: JobRole[];
   departments: Department[];
   profile: Profile;
   onRefresh: () => void;
+  onLeaveGuardChange: (guard: (() => boolean) | null) => void;
 }) {
   const [editingCourse, setEditingCourse] = useState<CourseWithRelations | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
   }, [courses, editingCourse?.id]);
 
   if (editingCourse) {
-    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} departments={departments} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { onRefresh(); }} />;
+    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} departments={departments} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { onRefresh(); }} onLeaveGuardChange={onLeaveGuardChange} />;
   }
 
   return (
@@ -67,7 +68,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
 }
 
 // ===================== COURSE EDITOR =====================
-function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, onBack, onSaved }: {
+function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, onBack, onSaved, onLeaveGuardChange }: {
   t: AdminStrings;
   course: CourseWithRelations;
   jobRoles: JobRole[];
@@ -76,6 +77,7 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   profile: Profile;
   onBack: () => void;
   onSaved: () => void;
+  onLeaveGuardChange: (guard: (() => boolean) | null) => void;
 }) {
   const isNew = !course.id;
   const [tab, setTab] = useState<CourseTab>('info');
@@ -96,6 +98,23 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const [courseId, setCourseId] = useState(course.id ?? '');
   const courseImageRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const validateRequiredExams = () => {
+    const modulesWithoutExam = (course.modules ?? []).filter((module) => !(course.exam_questions ?? []).some((question) => question.module_id === module.id));
+    const hasFinalExamQuestions = (course.exam_questions ?? []).some((question) => question.module_id === null);
+    if (modulesWithoutExam.length === 0 && hasFinalExamQuestions) return true;
+    setTab('exams');
+    const pending = [
+      ...modulesWithoutExam.map((module) => module.title),
+      ...(!hasFinalExamQuestions ? ['Examen final del curso'] : []),
+    ];
+    toast(`Agrega preguntas al examen final y al examen de cada módulo antes de salir. Pendientes: ${pending.join(', ')}`, 'error');
+    return false;
+  };
+
+  useEffect(() => {
+    onLeaveGuardChange(validateRequiredExams);
+    return () => onLeaveGuardChange(null);
+  }, [course.modules, course.exam_questions, tab, onLeaveGuardChange]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,7 +175,7 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
     <div className="page animate-in">
       <div className="page-heading">
         <div><p className="eyebrow">{isNew ? t.newCourse : t.editCourse}</p><h1>{t.courseEditor}</h1></div>
-        <button className="outline-button" onClick={onBack}><ArrowLeft size={18} />{t.backToAdmin}</button>
+        <button className="outline-button" onClick={() => { if (validateRequiredExams()) onBack(); }}><ArrowLeft size={18} />{t.backToAdmin}</button>
       </div>
       {error && <div className="auth-error" style={{ marginBottom: 16 }}><AlertCircle size={16} />{error}</div>}
       <div className="admin-tabs">
