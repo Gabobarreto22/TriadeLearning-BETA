@@ -18,14 +18,14 @@ import {
 import { getIcon, availableIcons, availableAccents } from './lib/icons';
 import { PersonnelModule } from '@/components/admin/PersonnelModule';
 import { CoursesModule } from '@/components/admin/CoursesModule';
-import { DashboardModule, CertificationsModule, AutoAssignModule, FeedbackModule, GamificationModule, NotificationsModule, ReportsModule, SettingsModule, AuditModule } from '@/components/admin/IndependentModules';
+import { DashboardModule, CertificationsModule, FeedbackModule, NotificationsModule, ReportsModule, SettingsModule, AuditModule } from '@/components/admin/IndependentModules';
 import { adminStringsES } from '@/components/admin/strings';
 import type { AdminData, AdminView } from '@/components/admin/types';
 import { EmployeeNotifications, EmployeeGamification, EmployeeCertifications, EmployeeProfile, CourseFeedbackModal, type EmployeeStrings } from '@/components/employee/EmployeeModules';
 
 type Language = 'ES' | 'EN';
 type View = 'dashboard' | 'catalog' | 'certificates' | 'calendar' | 'player' | 'exam' | 'notifications' | 'gamification' | 'profile';
-type AdminTab = 'dashboard' | 'personnel' | 'courses' | 'certifications' | 'auto-assign' | 'feedback' | 'gamification' | 'notifications' | 'reports' | 'settings' | 'audit';
+type AdminTab = 'dashboard' | 'personnel' | 'courses' | 'certifications' | 'feedback' | 'notifications' | 'reports' | 'settings' | 'audit';
 type ExamType = 'direct' | 'course' | 'module';
 
 type YouTubePlayerApi = {
@@ -354,7 +354,6 @@ function EmployeeApp({ profile, language, setLanguage, dark, setDark }: { profil
         <NavItem icon={<Award size={19} />} label={t.certificates} active={view === 'certificates'} onClick={() => navigate('certificates')} />
         <div className="nav-divider" />
         <NavItem icon={<Bell size={19} />} label={t.notifications} active={view === 'notifications'} onClick={() => navigate('notifications')} />
-        <NavItem icon={<Trophy size={19} />} label={t.gamification} active={view === 'gamification'} onClick={() => navigate('gamification')} />
         <NavItem icon={<User size={19} />} label={t.myProfile} active={view === 'profile'} onClick={() => navigate('profile')} />
       </nav>
       <div className="sidebar-bottom">
@@ -428,8 +427,8 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
   const breadcrumbLabel = () => {
     const labels: Record<string, string> = {
       dashboard: at.dashboard, personnel: at.personnel, courses: at.courses,
-      certifications: at.certifications, 'auto-assign': at.autoAssign, feedback: at.feedback,
-      gamification: at.gamification, notifications: at.notifications, reports: at.reports,
+      certifications: at.certifications, feedback: at.feedback,
+      notifications: at.notifications, reports: at.reports,
       settings: at.settings, audit: at.audit,
     };
     return labels[tab] ?? '';
@@ -442,9 +441,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
     { key: 'personnel', label: at.personnel, icon: Users },
     { key: 'courses', label: at.courses, icon: BookOpen },
     { key: 'certifications', label: at.certifications, icon: Award },
-    { key: 'auto-assign', label: at.autoAssign, icon: Zap },
     { key: 'feedback', label: at.feedback, icon: Star },
-    { key: 'gamification', label: at.gamification, icon: Award },
     { key: 'notifications', label: at.notifications, icon: Bell },
     { key: 'reports', label: at.reports, icon: BarChart3 },
     { key: 'settings', label: at.settings, icon: Settings },
@@ -480,9 +477,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
       {tab === 'personnel' && <PersonnelModule t={at} team={data.team} jobRoles={data.jobRoles} departments={data.departments} courses={data.courses} onRefresh={refreshAll} />}
       {tab === 'courses' && <CoursesModule t={at} courses={data.courses} jobRoles={data.jobRoles} departments={data.departments} profile={profile} onRefresh={refreshAll} />}
       {tab === 'certifications' && <CertificationsModule t={at} data={data} />}
-      {tab === 'auto-assign' && <AutoAssignModule t={at} data={data} onRefresh={refreshAll} />}
       {tab === 'feedback' && <FeedbackModule t={at} data={data} />}
-      {tab === 'gamification' && <GamificationModule t={at} data={data} onRefresh={refreshAll} />}
       {tab === 'notifications' && <NotificationsModule t={at} data={data} onRefresh={refreshAll} />}
       {tab === 'reports' && <ReportsModule t={at} data={data} />}
       {tab === 'settings' && <SettingsModule t={at} data={data} onRefresh={refreshAll} />}
