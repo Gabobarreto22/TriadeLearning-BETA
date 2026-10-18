@@ -24,7 +24,7 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Accesos rápidos',
-        body: 'Debajo de las estadísticas encontrarás botones para ir directamente a cada módulo: Cursos, Personal, Certificaciones, Reportes, Gamificación y Configuración.',
+        body: 'Debajo de las estadísticas encontrarás botones para ir directamente a cada módulo: Cursos, Personal, Certificaciones, Reportes, Notificaciones y Configuración.',
       },
     ],
   },
@@ -75,18 +75,18 @@ export const docSections: DocSection[] = [
         example: 'Curso "Seguridad Industrial Básica", categoría "Seguridad", duración "2 horas", ícono "shield", color de acento "blue".',
       },
       {
-        heading: 'Pestaña Módulos',
-        body: 'Cada curso puede tener múltiples módulos en orden secuencial. Los tipos de módulo disponibles son: texto (lectura), imagen/infografía, video (YouTube, Vimeo o archivo subido), PDF y presentación PowerPoint. Cada módulo tiene título, duración y contenido. Los módulos se desbloquean secuencialmente: el empleado debe completar uno para acceder al siguiente.',
-        example: 'Un curso puede tener: 1) Módulo de texto "Introducción", 2) Módulo de video "Demostración", 3) Módulo PDF "Manual de procedimientos".',
-      },
-      {
-        heading: 'Pestaña Recursos',
-        body: 'Los recursos son archivos descargables asociados a un módulo o al curso en general. Puedes agregar títulos, URLs de archivos, tipos de archivo y marcar si son descargables.',
+        heading: 'Pestaña Módulos (con recursos)',
+        body: 'Cada curso puede tener múltiples módulos en orden secuencial. Los tipos de módulo disponibles son: texto (lectura), imagen/infografía, video (YouTube, Vimeo o archivo subido), PDF y presentación PowerPoint. Cada módulo tiene título, duración y contenido. Los recursos (archivos descargables como PDFs, presentaciones o enlaces) se agregan directamente dentro de cada módulo al que pertenecen, ya no existen como una pestaña separada. Los módulos se desbloquean secuencialmente: el empleado debe completar uno para acceder al siguiente.',
+        example: 'Un curso puede tener: 1) Módulo de texto "Introducción" con un PDF adjunto "Guía rápida", 2) Módulo de video "Demostración" con una presentación PowerPoint descargable, 3) Módulo PDF "Manual de procedimientos".',
       },
       {
         heading: 'Pestaña Exámenes',
-        body: 'Crea preguntas de selección múltiple para evaluar el conocimiento. Cada pregunta tiene un enunciado, opciones (una por línea), el índice de la respuesta correcta (empezando en 0), una explicación, nivel de dificultad y puntos. Las preguntas pueden estar asociadas al curso completo o a un módulo específico.',
-        example: 'Pregunta: "¿Qué significa EPP?" con opciones: 1) Equipo de Protección Personal, 2) Equipo de Prevención de Plagas. Respuesta correcta: índice 0.',
+        body: 'Crea preguntas de selección múltiple para evaluar el conocimiento. Cada pregunta tiene un enunciado, opciones (una por línea), el índice de la respuesta correcta, una explicación, nivel de dificultad y puntos. Las preguntas pueden estar asociadas al curso completo o a un módulo específico.',
+      },
+      {
+        heading: '¿Cómo funciona el índice de la respuesta correcta?',
+        body: 'El "Índice de respuesta correcta" indica cuál de las opciones que escribiste es la correcta. El conteo empieza en 0, no en 1. Esto significa que la primera opción que escribiste es la número 0, la segunda es la número 1, la tercera es la número 2, y así sucesivamente. Es importante recordar esto porque es fácil confundirse y poner 1 pensando en "la primera opción", cuando en realidad la primera opción es 0.',
+        example: 'Escribes estas 3 opciones (una por línea):\n1) Equipo de Protección Personal\n2) Equipo de Prevención de Plagas\n3) Equipo de Prueba de Presión\n\nLa respuesta correcta es "Equipo de Protección Personal". Como es la primera opción, su índice es 0. Si la correcta fuera "Equipo de Prevención de Plagas" (la segunda), el índice sería 1. Si fuera la tercera, el índice sería 2.',
       },
       {
         heading: 'Pestaña Asignaciones',

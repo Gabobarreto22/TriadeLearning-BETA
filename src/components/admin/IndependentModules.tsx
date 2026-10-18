@@ -39,7 +39,7 @@ export function DashboardModule({ t, data, onNavigate }: {
     { label: t.personnel, icon: Users, view: 'personnel' },
     { label: t.certifications, icon: Award, view: 'certifications' },
     { label: t.reports, icon: BarChart3, view: 'reports' },
-    { label: t.gamification, icon: Star, view: 'gamification' },
+    { label: t.notifications, icon: Bell, view: 'notifications' },
     { label: t.settings, icon: Settings, view: 'settings' },
   ];
 
