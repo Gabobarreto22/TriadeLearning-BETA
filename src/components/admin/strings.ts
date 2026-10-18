@@ -12,6 +12,7 @@ export const adminStringsES: AdminStrings = {
   reports: 'Reportes',
   settings: 'Configuración',
   audit: 'Auditoría',
+  documentation: 'Documentación',
   newCourse: 'Nuevo curso',
   newRole: 'Nuevo cargo',
   newUser: 'Nuevo usuario',

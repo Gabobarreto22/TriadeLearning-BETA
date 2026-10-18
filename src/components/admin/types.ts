@@ -30,7 +30,8 @@ export type AdminView =
   | 'notifications'
   | 'reports'
   | 'settings'
-  | 'audit';
+  | 'audit'
+  | 'documentation';
 
 export type AdminStrings = {
   dashboard: string;
@@ -44,6 +45,7 @@ export type AdminStrings = {
   reports: string;
   settings: string;
   audit: string;
+  documentation: string;
   newCourse: string;
   newRole: string;
   newUser: string;

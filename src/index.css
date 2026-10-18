@@ -810,3 +810,40 @@ html.dark .toast-success{background:linear-gradient(135deg,#052e1f,#064e3b);colo
 html.dark .toast-error{background:linear-gradient(135deg,#2a0f0f,#7f1d1d);color:#fca5a5;border-color:#991b1b}
 html.dark .toast-info{background:linear-gradient(135deg,#0c1e3a,#1e3a5f);color:#93c5fd;border-color:#1e40af}
 html.dark .toast-loading{background:linear-gradient(135deg,#1a1f2a,#262f3b);color:#e5e7eb;border-color:#374151}
+
+/* HELP BUTTON */
+.help-btn-wrap{position:relative;display:inline-block}
+.help-btn{height:28px;width:28px;border-radius:50%;border:1px solid var(--line-2);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:.2s;flex-shrink:0}
+.help-btn:hover{color:var(--ink);border-color:var(--ink-2);background:var(--surface-2)}
+html.dark .help-btn{background:var(--surface-2);border-color:var(--line);color:var(--muted)}
+html.dark .help-btn:hover{color:var(--ink);border-color:var(--ink-2);background:var(--surface-3)}
+.help-tooltip{position:absolute;top:100%;right:0;margin-top:8px;width:280px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 10px 28px rgba(15,23,42,.16);z-index:100;animation:tooltip-in .15s ease}
+.help-tooltip p{font-size:12px;color:var(--muted);line-height:1.5;margin:0 0 8px}
+.help-tooltip-link{border:0;background:none;color:var(--ink-2);font:700 11px 'Manrope',sans-serif;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px}
+.help-tooltip-link:hover{color:var(--ink);text-decoration:underline}
+html.dark .help-tooltip{background:var(--surface);border-color:var(--line);box-shadow:0 10px 28px rgba(0,0,0,.4)}
+@keyframes tooltip-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* DOCUMENTATION MODULE */
+.docs-layout{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:flex-start}
+.docs-sidebar{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;position:sticky;top:20px}
+.docs-search{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-bottom:14px;color:var(--muted)}
+.docs-search input{border:0;outline:0;background:none;color:var(--ink);height:36px;width:100%;font:12px 'Manrope',sans-serif}
+.docs-nav{display:flex;flex-direction:column;gap:2px;max-height:calc(100vh - 220px);overflow-y:auto}
+.docs-nav-item{border:0;background:none;color:var(--muted);display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font:600 12px 'Manrope',sans-serif;cursor:pointer;text-align:left;transition:.15s;width:100%}
+.docs-nav-item:hover{color:var(--ink);background:var(--surface-2)}
+.docs-nav-item.active{color:var(--ink);background:var(--soft);font-weight:700}
+.docs-nav-item span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.docs-content{min-width:0}
+.docs-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:24px}
+.docs-header-icon{height:42px;width:42px;border-radius:11px;display:grid;place-items:center;background:var(--surface-3);color:var(--ink-2);flex-shrink:0}
+.docs-header h2{font-size:22px;letter-spacing:-.03em;margin:0}
+.docs-sections{display:flex;flex-direction:column;gap:20px}
+.docs-article{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.docs-article h3{font-size:15px;font-weight:700;margin:0 0 10px;letter-spacing:-.02em}
+.docs-article p{font-size:13px;color:var(--ink-2);line-height:1.65;margin:0}
+.docs-example{margin-top:14px;padding:14px 16px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;border-left:3px solid var(--ink-2)}
+.docs-example strong{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);display:block;margin-bottom:6px}
+.docs-example p{font-size:12px;color:var(--muted);margin:0;line-height:1.6}
+html.dark .docs-example{border-left-color:var(--ink)}
+@media(max-width:760px){.docs-layout{grid-template-columns:1fr}.docs-sidebar{position:static;max-height:none}}

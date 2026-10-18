@@ -19,6 +19,9 @@ import { getIcon, availableIcons, availableAccents } from './lib/icons';
 import { PersonnelModule } from '@/components/admin/PersonnelModule';
 import { CoursesModule } from '@/components/admin/CoursesModule';
 import { DashboardModule, CertificationsModule, FeedbackModule, NotificationsModule, ReportsModule, SettingsModule, AuditModule } from '@/components/admin/IndependentModules';
+import { DocumentationModule } from '@/components/admin/DocumentationModule';
+import { HelpButton } from '@/components/admin/HelpButton';
+import { docSummaryMap } from '@/lib/docs';
 import { adminStringsES } from '@/components/admin/strings';
 import type { AdminData, AdminView } from '@/components/admin/types';
 import { EmployeeNotifications, EmployeeGamification, EmployeeCertifications, EmployeeProfile, CourseFeedbackModal, type EmployeeStrings } from '@/components/employee/EmployeeModules';
@@ -26,7 +29,7 @@ import { PaginatedList } from '@/components/PaginatedList';
 
 type Language = 'ES' | 'EN';
 type View = 'dashboard' | 'catalog' | 'certificates' | 'calendar' | 'player' | 'exam' | 'notifications' | 'gamification' | 'profile';
-type AdminTab = 'dashboard' | 'personnel' | 'courses' | 'certifications' | 'feedback' | 'notifications' | 'reports' | 'settings' | 'audit';
+type AdminTab = 'dashboard' | 'personnel' | 'courses' | 'certifications' | 'feedback' | 'notifications' | 'reports' | 'settings' | 'audit' | 'documentation';
 type ExamType = 'direct' | 'course' | 'module';
 
 type YouTubePlayerApi = {
@@ -430,6 +433,14 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
     setTab(v as AdminTab);
     setMobileOpen(false);
   };
+  const navigateDoc = (docId: string) => {
+    setTab('documentation');
+    setMobileOpen(false);
+    setTimeout(() => {
+      const event = new CustomEvent('docs:navigate', { detail: docId });
+      window.dispatchEvent(event);
+    }, 50);
+  };
   const registerCourseEditorLeaveGuard = (guard: (() => boolean) | null) => {
     courseEditorLeaveGuardRef.current = guard;
   };
@@ -439,6 +450,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
       certifications: at.certifications, feedback: at.feedback,
       notifications: at.notifications, reports: at.reports,
       settings: at.settings, audit: at.audit,
+      documentation: at.documentation,
     };
     return labels[tab] ?? '';
   };
@@ -455,6 +467,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
     { key: 'reports', label: at.reports, icon: BarChart3 },
     { key: 'settings', label: at.settings, icon: Settings },
     { key: 'audit', label: at.audit, icon: History },
+    { key: 'documentation', label: at.documentation, icon: FileText },
   ];
 
   return <div className={dark ? 'app-shell dark' : 'app-shell'}>
@@ -477,6 +490,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
         <button className="menu-button" onClick={() => setMobileOpen(true)}><Menu size={21} /></button>
         <div className="breadcrumb">TRIADE <ChevronRight size={14} /> <span>{breadcrumbLabel()}</span></div>
         <div className="top-actions">
+          {tab !== 'documentation' && docSummaryMap[tab] && <HelpButton summary={docSummaryMap[tab]} docId={tab} onNavigateDoc={navigateDoc} />}
           <button className="language-toggle" onClick={() => setLanguage(language === 'ES' ? 'EN' : 'ES')}><span className={language === 'ES' ? 'selected' : ''}>ES</span><span>/</span><span className={language === 'EN' ? 'selected' : ''}>EN</span></button>
           <button className="icon-button" onClick={() => setDark(!dark)}>{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
           <div className="avatar avatar-small">{profile.full_name.slice(0, 2).toUpperCase()}</div>
@@ -491,6 +505,7 @@ function AdminApp({ profile, language, setLanguage, dark, setDark }: { profile: 
       {tab === 'reports' && <ReportsModule t={at} data={data} />}
       {tab === 'settings' && <SettingsModule t={at} data={data} onRefresh={refreshAll} />}
       {tab === 'audit' && <AuditModule t={at} data={data} />}
+      {tab === 'documentation' && <DocumentationModule t={at} />}
     </main>
   </div>;
 }
