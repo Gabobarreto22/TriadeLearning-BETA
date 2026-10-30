@@ -4,6 +4,7 @@ import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, Clock3, Download,
 import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
 import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications, createNotification, deleteNotification, fetchAllFeedback, fetchBadges, createBadge, deleteBadge, fetchUserBadges, fetchSystemSettings, updateSystemSetting, createSystemSetting, fetchAuditLogs } from '@/lib/data';
 import { getIcon } from '@/lib/icons';
+import type { AdminSection } from '@/lib/routes';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
@@ -12,7 +13,7 @@ import { PaginatedList } from '../PaginatedList';
 export function DashboardModule({ t, data, onNavigate }: {
   t: AdminStrings;
   data: AdminData;
-  onNavigate: (view: string) => void;
+  onNavigate: (view: AdminSection) => void;
 }) {
   const { courses, team, jobRoles, certificates, badges, notifications, feedback, examAttempts } = data;
   const activeUsers = team.filter((u) => u.is_active).length;
@@ -34,7 +35,7 @@ export function DashboardModule({ t, data, onNavigate }: {
     { icon: Bell, value: String(notifications.length), label: t.totalNotifications, tone: 'g4' },
   ];
 
-  const quickLinks = [
+  const quickLinks: { label: string; icon: typeof BookOpen; view: AdminSection }[] = [
     { label: t.courses, icon: BookOpen, view: 'courses' },
     { label: t.personnel, icon: Users, view: 'personnel' },
     { label: t.certifications, icon: Award, view: 'certifications' },
