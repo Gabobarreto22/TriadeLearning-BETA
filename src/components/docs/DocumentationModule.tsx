@@ -1,24 +1,23 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, ChevronRight, FileText, Search } from 'lucide-react';
-import { docSections, type DocSection } from '@/lib/docs';
-import type { AdminStrings } from './types';
+import type { DocSection } from '@/lib/docs';
 
-export function DocumentationModule({ t: _t }: { t: AdminStrings }) {
-  const [activeId, setActiveId] = useState<string>(docSections[0]?.id ?? '');
+export function DocumentationModule({ sections }: { sections: DocSection[] }) {
+  const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? '');
   const [query, setQuery] = useState('');
 
   useEffect(() => {
     const handler = (e: Event) => {
       const docId = (e as CustomEvent<string>).detail;
-      if (docId && docSections.some((s) => s.id === docId)) {
+      if (docId && sections.some((s) => s.id === docId)) {
         setActiveId(docId);
       }
     };
     window.addEventListener('docs:navigate', handler);
     return () => window.removeEventListener('docs:navigate', handler);
-  }, []);
+  }, [sections]);
 
-  const filtered = docSections.filter((s) => {
+  const filtered = sections.filter((s) => {
     if (!query) return true;
     const q = query.toLowerCase();
     return (
@@ -28,7 +27,7 @@ export function DocumentationModule({ t: _t }: { t: AdminStrings }) {
     );
   });
 
-  const active: DocSection | undefined = docSections.find((s) => s.id === activeId) ?? docSections[0];
+  const active: DocSection | undefined = sections.find((s) => s.id === activeId) ?? sections[0];
 
   return (
     <div className="page animate-in">

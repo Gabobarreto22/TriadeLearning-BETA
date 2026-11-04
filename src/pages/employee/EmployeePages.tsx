@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { DocumentationModule } from '@/components/docs/DocumentationModule';
 import { CalendarView } from '@/components/employee/CalendarView';
 import { Certificates } from '@/components/employee/CertificatesView';
 import { Catalog } from '@/components/employee/CourseCatalog';
@@ -10,6 +11,7 @@ import { useCourseEntry, useEmployeeContext } from '@/components/employee/Employ
 import { Exam } from '@/components/employee/Exam';
 import { buildEmployeeStrings } from '@/components/employee/employeeStrings';
 import type { ExamType } from '@/components/employee/employeeTypes';
+import { employeeDocSections } from '@/lib/employeeDocs';
 import { usePreferences } from '@/lib/preferences';
 import { employeePaths } from '@/lib/routes';
 
@@ -56,6 +58,10 @@ export function ProfilePage() {
   const { t } = usePreferences();
   const { profile } = useEmployeeContext();
   return <EmployeeProfile profile={profile} t={buildEmployeeStrings(t)} />;
+}
+
+export function DocumentationPage() {
+  return <DocumentationModule sections={employeeDocSections} />;
 }
 
 export function CoursePlayerPage() {

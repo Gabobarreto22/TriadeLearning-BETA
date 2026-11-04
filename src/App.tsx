@@ -10,7 +10,7 @@ import {
   AdminFeedbackPage, AdminNotificationsPage, AdminPersonnelPage, AdminReportsPage, AdminSettingsPage,
 } from '@/pages/admin/AdminPages';
 import {
-  CalendarPage, CatalogPage, CertificatesPage, CoursePlayerPage, DashboardPage,
+  CalendarPage, CatalogPage, CertificatesPage, CoursePlayerPage, DashboardPage, DocumentationPage,
   ExamPage, GamificationPage, NotificationsPage, ProfilePage,
 } from '@/pages/employee/EmployeePages';
 
@@ -49,6 +49,7 @@ export default function App() {
       <Route path={employeePaths.notifications} element={<NotificationsPage />} />
       <Route path={employeePaths.gamification} element={<GamificationPage />} />
       <Route path={employeePaths.profile} element={<ProfilePage />} />
+      <Route path={employeePaths.documentation} element={<DocumentationPage />} />
       <Route path="/curso/:courseId/reproducir" element={<CoursePlayerPage />} />
       <Route path="/curso/:courseId/evaluacion" element={<ExamPage />} />
       <Route path="*" element={<Navigate to={employeePaths.dashboard} replace />} />

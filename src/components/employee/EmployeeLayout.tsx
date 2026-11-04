@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Award, Bell, BookOpen, CalendarDays, LayoutDashboard, User } from 'lucide-react';
+import { Award, Bell, BookOpen, CalendarDays, FileText, LayoutDashboard, User } from 'lucide-react';
 import { CourseFeedbackModal } from '@/components/employee/EmployeeModules';
 import { buildEmployeeStrings } from '@/components/employee/employeeStrings';
 import { CertificatePreview, CourseModal, ExitWarningModal } from '@/components/employee/LearningModals';
@@ -225,6 +225,7 @@ export function EmployeeLayout({ profile }: { profile: Profile }) {
     [employeePaths.notifications]: t.notifications,
     [employeePaths.gamification]: t.gamification,
     [employeePaths.profile]: t.myProfile,
+    [employeePaths.documentation]: 'Documentación',
   };
   const breadcrumb = pathname.startsWith('/curso/')
     ? (pathname.endsWith('/evaluacion') ? t.exam : t.player)
@@ -262,6 +263,7 @@ export function EmployeeLayout({ profile }: { profile: Profile }) {
   const accountItems = [
     { path: employeePaths.notifications, label: t.notifications, icon: <Bell size={19} /> },
     { path: employeePaths.profile, label: t.myProfile, icon: <User size={19} /> },
+    { path: employeePaths.documentation, label: 'Documentación', icon: <FileText size={19} /> },
   ];
 
   return <AppFrame

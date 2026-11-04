@@ -21,6 +21,7 @@ export const employeePaths = {
   notifications: '/notificaciones',
   gamification: '/gamificacion',
   profile: '/perfil',
+  documentation: '/documentacion',
 } as const;
 
 export const coursePath = (courseId: string, step: 'reproducir' | 'evaluacion') => `/curso/${courseId}/${step}`;
