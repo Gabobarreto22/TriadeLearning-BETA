@@ -4,20 +4,27 @@ import { copy } from '@/lib/copy';
 import { getIcon } from '@/lib/icons';
 import type { CourseWithRelations } from '@/lib/supabase';
 
-export function Catalog({ t, filter, setFilter, query, setQuery, courses, getCourseState, onSelect, jobRole }: { t: typeof copy.ES; filter: string; setFilter: (v: string) => void; query: string; setQuery: (v: string) => void; courses: CourseWithRelations[]; getCourseState: (id: string) => { completedModules: boolean[]; directFailed: boolean; directPassed: boolean; courseExamPassed: boolean }; onSelect: (c: CourseWithRelations) => void; jobRole: string }) {
-  const filters = [t.all, t.inProgress, t.notStarted, t.completed];
+export type CatalogFilter = 'all' | 'inProgress' | 'notStarted' | 'completed';
+
+export function Catalog({ t, filter, setFilter, query, setQuery, courses, getCourseState, onSelect, jobRole }: { t: typeof copy.ES; filter: CatalogFilter; setFilter: (v: CatalogFilter) => void; query: string; setQuery: (v: string) => void; courses: CourseWithRelations[]; getCourseState: (id: string) => { completedModules: boolean[]; directFailed: boolean; directPassed: boolean; courseExamPassed: boolean }; onSelect: (c: CourseWithRelations) => void; jobRole: string }) {
+  const filters: { key: CatalogFilter; label: string }[] = [
+    { key: 'all', label: t.all },
+    { key: 'inProgress', label: t.inProgress },
+    { key: 'notStarted', label: t.notStarted },
+    { key: 'completed', label: t.completed },
+  ];
   const visible = courses.filter((c) => {
     const state = getCourseState(c.id);
     const isCompleted = state.courseExamPassed;
     const isInProgress = state.completedModules.some(Boolean) && !isCompleted;
     const isNotStarted = !state.completedModules.some(Boolean) && !isCompleted;
-    const matchesFilter = filter === t.all || (filter === t.completed && isCompleted) || (filter === t.inProgress && isInProgress) || (filter === t.notStarted && isNotStarted);
+    const matchesFilter = filter === 'all' || (filter === 'completed' && isCompleted) || (filter === 'inProgress' && isInProgress) || (filter === 'notStarted' && isNotStarted);
     return matchesFilter && c.title.toLowerCase().includes(query.toLowerCase());
   });
 
   return <div className="page animate-in">
     <div className="page-heading"><div><p className="eyebrow">FORMACIÓN POR CARGO</p><h1>{t.catalog}</h1><p className="muted">{t.catalogIntro} · <strong className="role-tag">{jobRole}</strong></p></div></div>
-    <div className="catalog-toolbar"><div className="search-box"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search} /></div><div className="filter-tabs">{filters.map((f) => <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f}</button>)}</div></div>
+    <div className="catalog-toolbar"><div className="search-box"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search} /></div><div className="filter-tabs">{filters.map((f) => <button key={f.key} className={filter === f.key ? 'active' : ''} onClick={() => setFilter(f.key)}>{f.label}</button>)}</div></div>
     {visible.length === 0 ? <div className="empty-state"><Search size={30} /><h3>{courses.length === 0 ? t.noCourses : t.empty}</h3></div> :
     <PaginatedList key={`${filter}-${query}`} items={visible}>{(pageCourses) => <div className="catalog-grid">{pageCourses.map((c) => <CourseCard key={c.id} course={c} t={t} getCourseState={getCourseState} onSelect={onSelect} />)}</div>}</PaginatedList>}
   </div>;

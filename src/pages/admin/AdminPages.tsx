@@ -8,7 +8,7 @@ import { ReportsModule } from '@/components/admin/ReportsModule';
 import { SettingsModule } from '@/components/admin/SettingsModule';
 import { AuditModule } from '@/components/admin/AuditModule';
 import { DocumentationModule } from '@/components/docs/DocumentationModule';
-import { docSections } from '@/lib/docs';
+import { docSections, docsLabels } from '@/lib/docs';
 import { adminStringsES } from '@/components/admin/strings';
 import { useAdminContext } from '@/components/admin/AdminLayout';
 
@@ -60,5 +60,5 @@ export function AdminAuditPage() {
 }
 
 export function AdminDocumentationPage() {
-  return <DocumentationModule sections={docSections} />;
+  return <DocumentationModule sections={docSections} labels={docsLabels.ES} />;
 }

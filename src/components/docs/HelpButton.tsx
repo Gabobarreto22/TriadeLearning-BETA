@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { HelpCircle } from 'lucide-react';
 
+import type { DocsLabels } from '@/lib/docs';
+
 type HelpButtonProps = {
   summary: string;
   docId: string;
+  labels: Pick<DocsLabels, 'help' | 'viewFull'>;
   onNavigateDoc: (docId: string) => void;
 };
 
-export function HelpButton({ summary, docId, onNavigateDoc }: HelpButtonProps) {
+export function HelpButton({ summary, docId, labels, onNavigateDoc }: HelpButtonProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -26,7 +29,7 @@ export function HelpButton({ summary, docId, onNavigateDoc }: HelpButtonProps) {
       <button
         className="help-btn"
         onClick={() => onNavigateDoc(docId)}
-        aria-label="Ayuda"
+        aria-label={labels.help}
         title=""
       >
         <HelpCircle size={16} />
@@ -35,7 +38,7 @@ export function HelpButton({ summary, docId, onNavigateDoc }: HelpButtonProps) {
         <div className="help-tooltip" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
           <p>{summary}</p>
           <button className="help-tooltip-link" onClick={() => onNavigateDoc(docId)}>
-            Ver documentación completa
+            {labels.viewFull}
           </button>
         </div>
       )}

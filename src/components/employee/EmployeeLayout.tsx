@@ -7,7 +7,8 @@ import { buildEmployeeStrings } from '@/components/employee/employeeStrings';
 import { CertificatePreview, CourseModal, ExitWarningModal } from '@/components/employee/LearningModals';
 import type { CertificatePreviewData, CourseState, EmployeeContextValue, ExamType } from '@/components/employee/employeeTypes';
 import { AppFrame, LoadingScreen } from '@/components/layout/AppFrame';
-import { employeeDocSummaryMap } from '@/lib/employeeDocs';
+import { employeeDocsByLanguage } from '@/lib/employeeDocs';
+import { docsLabels } from '@/lib/docs';
 import { useAuth } from '@/lib/auth';
 import { ensureUserCourseRequirement, fetchCoursesForRole, fetchExamResults, fetchModuleProgress, markModuleComplete, saveCourseFeedback, saveExamResult } from '@/lib/data';
 import { usePreferences } from '@/lib/preferences';
@@ -53,7 +54,7 @@ function NavItem({ icon, label, active, onClick }: { icon: ReactNode; label: str
 }
 
 export function EmployeeLayout({ profile }: { profile: Profile }) {
-  const { t } = usePreferences();
+  const { t, language } = usePreferences();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { signOut } = useAuth();
@@ -97,7 +98,7 @@ export function EmployeeLayout({ profile }: { profile: Profile }) {
       window.dispatchEvent(new CustomEvent('docs:navigate', { detail: docId }));
     }, 50);
   };
-  const helpDocId = helpDocIds[pathname];
+  const helpDoc = employeeDocsByLanguage[language].find((s) => s.id === helpDocIds[pathname]);
 
   const getCourseState = (courseId: string): CourseState => {
     const course = courses.find((c) => c.id === courseId);
@@ -243,7 +244,7 @@ export function EmployeeLayout({ profile }: { profile: Profile }) {
     [employeePaths.notifications]: t.notifications,
     [employeePaths.gamification]: t.gamification,
     [employeePaths.profile]: t.myProfile,
-    [employeePaths.documentation]: 'Documentación',
+    [employeePaths.documentation]: t.documentation,
   };
   const breadcrumb = pathname.startsWith('/curso/')
     ? (pathname.endsWith('/evaluacion') ? t.exam : t.player)
@@ -281,14 +282,14 @@ export function EmployeeLayout({ profile }: { profile: Profile }) {
   const accountItems = [
     { path: employeePaths.notifications, label: t.notifications, icon: <Bell size={19} /> },
     { path: employeePaths.profile, label: t.myProfile, icon: <User size={19} /> },
-    { path: employeePaths.documentation, label: 'Documentación', icon: <FileText size={19} /> },
+    { path: employeePaths.documentation, label: t.documentation, icon: <FileText size={19} /> },
   ];
 
   return <AppFrame
     workspaceLabel="TRIADE LEARNING"
     breadcrumb={breadcrumb}
     initials={profile.full_name.slice(0, 2).toUpperCase()}
-    topbarExtras={helpDocId ? <HelpButton summary={employeeDocSummaryMap[helpDocId]} docId={helpDocId} onNavigateDoc={navigateDoc} /> : null}
+    topbarExtras={helpDoc ? <HelpButton summary={helpDoc.summary} docId={helpDoc.id} labels={docsLabels[language]} onNavigateDoc={navigateDoc} /> : null}
     fullscreen={isFullscreen}
     mobileOpen={mobileOpen}
     onMobileOpenChange={setMobileOpen}

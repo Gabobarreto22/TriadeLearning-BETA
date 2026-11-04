@@ -6,7 +6,7 @@ import type { AdminData } from '@/components/admin/types';
 import { HelpButton } from '@/components/docs/HelpButton';
 import { AppFrame, LoadingScreen } from '@/components/layout/AppFrame';
 import { useAuth } from '@/lib/auth';
-import { docSummaryMap } from '@/lib/docs';
+import { docSummaryMap, docsLabels } from '@/lib/docs';
 import {
   fetchAllCourses, fetchAllProfiles, fetchJobRoles, fetchDepartments,
   fetchUserCourseRequirements, fetchAllModuleProgress, fetchAllExamAttempts,
@@ -111,7 +111,7 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     mobileOpen={mobileOpen}
     onMobileOpenChange={setMobileOpen}
     topbarExtras={currentKey && currentKey !== 'documentation' && docSummaryMap[currentKey]
-      ? <HelpButton summary={docSummaryMap[currentKey]} docId={currentKey} onNavigateDoc={navigateDoc} />
+      ? <HelpButton summary={docSummaryMap[currentKey]} docId={currentKey} labels={docsLabels.ES} onNavigateDoc={navigateDoc} />
       : null}
     sidebarContent={<>
       <nav className="admin-nav-scroll">

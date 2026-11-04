@@ -1,4 +1,6 @@
 import type { DocSection } from '@/lib/docs';
+import { employeeDocSectionsEN } from '@/lib/employeeDocsEN';
+import type { Language } from '@/lib/copy';
 
 export const employeeDocSections: DocSection[] = [
   {
@@ -235,6 +237,7 @@ export const employeeDocSections: DocSection[] = [
   },
 ];
 
-export const employeeDocSummaryMap: Record<string, string> = Object.fromEntries(
-  employeeDocSections.map((s) => [s.id, s.summary])
-);
+export const employeeDocsByLanguage: Record<Language, DocSection[]> = {
+  ES: employeeDocSections,
+  EN: employeeDocSectionsEN,
+};

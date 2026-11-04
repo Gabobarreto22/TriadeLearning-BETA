@@ -1,3 +1,5 @@
+import type { Language } from '@/lib/copy';
+
 export type DocSection = {
   id: string;
   title: string;
@@ -233,3 +235,37 @@ export const docSections: DocSection[] = [
 export const docSummaryMap: Record<string, string> = Object.fromEntries(
   docSections.map((s) => [s.id, s.summary])
 );
+
+export type DocsLabels = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  searchPlaceholder: string;
+  example: string;
+  noResults: string;
+  help: string;
+  viewFull: string;
+};
+
+export const docsLabels: Record<Language, DocsLabels> = {
+  ES: {
+    eyebrow: 'CENTRO DE AYUDA',
+    title: 'Documentación',
+    subtitle: 'Guía detallada de cada módulo y proceso del sistema.',
+    searchPlaceholder: 'Buscar en documentación...',
+    example: 'Ejemplo:',
+    noResults: 'No se encontraron resultados.',
+    help: 'Ayuda',
+    viewFull: 'Ver documentación completa',
+  },
+  EN: {
+    eyebrow: 'HELP CENTER',
+    title: 'Documentation',
+    subtitle: 'A detailed guide to each module and process in the system.',
+    searchPlaceholder: 'Search documentation...',
+    example: 'Example:',
+    noResults: 'No results found.',
+    help: 'Help',
+    viewFull: 'View full documentation',
+  },
+};

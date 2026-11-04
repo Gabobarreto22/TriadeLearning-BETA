@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, ChevronRight, FileText, Search } from 'lucide-react';
-import type { DocSection } from '@/lib/docs';
+import type { DocSection, DocsLabels } from '@/lib/docs';
 
-export function DocumentationModule({ sections }: { sections: DocSection[] }) {
+export function DocumentationModule({ sections, labels }: { sections: DocSection[]; labels: DocsLabels }) {
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? '');
   const [query, setQuery] = useState('');
 
@@ -33,9 +33,9 @@ export function DocumentationModule({ sections }: { sections: DocSection[] }) {
     <div className="page animate-in">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">CENTRO DE AYUDA</p>
-          <h1>Documentación</h1>
-          <p className="muted">Guía detallada de cada módulo y proceso del sistema.</p>
+          <p className="eyebrow">{labels.eyebrow}</p>
+          <h1>{labels.title}</h1>
+          <p className="muted">{labels.subtitle}</p>
         </div>
       </div>
 
@@ -46,7 +46,7 @@ export function DocumentationModule({ sections }: { sections: DocSection[] }) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar en documentación..."
+              placeholder={labels.searchPlaceholder}
             />
           </div>
           <nav className="docs-nav">
@@ -63,7 +63,7 @@ export function DocumentationModule({ sections }: { sections: DocSection[] }) {
             ))}
             {filtered.length === 0 && (
               <p className="muted" style={{ padding: '16px 8px', fontSize: 12 }}>
-                No se encontraron resultados.
+                {labels.noResults}
               </p>
             )}
           </nav>
@@ -88,7 +88,7 @@ export function DocumentationModule({ sections }: { sections: DocSection[] }) {
                     <p>{sec.body}</p>
                     {sec.example && (
                       <div className="docs-example">
-                        <strong>Ejemplo:</strong>
+                        <strong>{labels.example}</strong>
                         <p>{sec.example}</p>
                       </div>
                     )}

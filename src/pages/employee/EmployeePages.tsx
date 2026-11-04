@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DocumentationModule } from '@/components/docs/DocumentationModule';
 import { CalendarView } from '@/components/employee/CalendarView';
 import { Certificates } from '@/components/employee/CertificatesView';
-import { Catalog } from '@/components/employee/CourseCatalog';
+import { Catalog, type CatalogFilter } from '@/components/employee/CourseCatalog';
 import { CoursePlayer } from '@/components/employee/CoursePlayer';
 import { Dashboard } from '@/components/employee/EmployeeDashboard';
 import { EmployeeGamification, EmployeeNotifications, EmployeeProfile } from '@/components/employee/EmployeeModules';
@@ -11,7 +11,8 @@ import { useCourseEntry, useEmployeeContext } from '@/components/employee/Employ
 import { Exam } from '@/components/employee/Exam';
 import { buildEmployeeStrings } from '@/components/employee/employeeStrings';
 import type { ExamType } from '@/components/employee/employeeTypes';
-import { employeeDocSections } from '@/lib/employeeDocs';
+import { employeeDocsByLanguage } from '@/lib/employeeDocs';
+import { docsLabels } from '@/lib/docs';
 import { usePreferences } from '@/lib/preferences';
 import { employeePaths } from '@/lib/routes';
 
@@ -25,7 +26,7 @@ export function DashboardPage() {
 export function CatalogPage() {
   const { t } = usePreferences();
   const { profile, courses, getCourseState, setSelectedCourse } = useEmployeeContext();
-  const [filter, setFilter] = useState(t.all);
+  const [filter, setFilter] = useState<CatalogFilter>('all');
   const [query, setQuery] = useState('');
   return <Catalog t={t} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} courses={courses} getCourseState={getCourseState} onSelect={setSelectedCourse} jobRole={profile.job_role} />;
 }
@@ -61,7 +62,8 @@ export function ProfilePage() {
 }
 
 export function DocumentationPage() {
-  return <DocumentationModule sections={employeeDocSections} />;
+  const { language } = usePreferences();
+  return <DocumentationModule sections={employeeDocsByLanguage[language]} labels={docsLabels[language]} />;
 }
 
 export function CoursePlayerPage() {
