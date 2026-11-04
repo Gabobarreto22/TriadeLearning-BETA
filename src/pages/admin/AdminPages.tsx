@@ -1,6 +1,12 @@
 import { PersonnelModule } from '@/components/admin/PersonnelModule';
 import { CoursesModule } from '@/components/admin/CoursesModule';
-import { DashboardModule, CertificationsModule, FeedbackModule, NotificationsModule, ReportsModule, SettingsModule, AuditModule } from '@/components/admin/IndependentModules';
+import { DashboardModule } from '@/components/admin/DashboardModule';
+import { CertificationsModule } from '@/components/admin/CertificationsModule';
+import { FeedbackModule } from '@/components/admin/FeedbackModule';
+import { NotificationsModule } from '@/components/admin/NotificationsModule';
+import { ReportsModule } from '@/components/admin/ReportsModule';
+import { SettingsModule } from '@/components/admin/SettingsModule';
+import { AuditModule } from '@/components/admin/AuditModule';
 import { DocumentationModule } from '@/components/admin/DocumentationModule';
 import { adminStringsES } from '@/components/admin/strings';
 import { useAdminContext } from '@/components/admin/AdminLayout';
