@@ -8,57 +8,66 @@ import { ReportsModule } from '@/components/admin/ReportsModule';
 import { SettingsModule } from '@/components/admin/SettingsModule';
 import { AuditModule } from '@/components/admin/AuditModule';
 import { DocumentationModule } from '@/components/docs/DocumentationModule';
-import { docSections, docsLabels } from '@/lib/docs';
-import { adminStringsES } from '@/components/admin/strings';
+import { docSectionsByLanguage, docsLabels } from '@/lib/docs';
+import { adminStringsByLanguage } from '@/components/admin/strings';
 import { useAdminContext } from '@/components/admin/AdminLayout';
-
-const t = adminStringsES;
+import { usePreferences } from '@/lib/preferences';
 
 export function AdminDashboardPage() {
+  const { language } = usePreferences();
   const { data, navigateToSection } = useAdminContext();
-  return <DashboardModule t={t} data={data} onNavigate={navigateToSection} />;
+  return <DashboardModule t={adminStringsByLanguage[language]} data={data} onNavigate={navigateToSection} />;
 }
 
 export function AdminPersonnelPage() {
+  const { language } = usePreferences();
   const { data, refreshAll } = useAdminContext();
-  return <PersonnelModule t={t} team={data.team} jobRoles={data.jobRoles} departments={data.departments} courses={data.courses} onRefresh={refreshAll} />;
+  return <PersonnelModule t={adminStringsByLanguage[language]} team={data.team} jobRoles={data.jobRoles} departments={data.departments} courses={data.courses} onRefresh={refreshAll} />;
 }
 
 export function AdminCoursesPage() {
+  const { language } = usePreferences();
   const { data, profile, refreshAll, registerCourseEditorLeaveGuard } = useAdminContext();
-  return <CoursesModule t={t} courses={data.courses} jobRoles={data.jobRoles} departments={data.departments} profile={profile} onRefresh={refreshAll} onLeaveGuardChange={registerCourseEditorLeaveGuard} />;
+  return <CoursesModule t={adminStringsByLanguage[language]} courses={data.courses} jobRoles={data.jobRoles} departments={data.departments} profile={profile} onRefresh={refreshAll} onLeaveGuardChange={registerCourseEditorLeaveGuard} />;
 }
 
 export function AdminCertificationsPage() {
+  const { language } = usePreferences();
   const { data } = useAdminContext();
-  return <CertificationsModule t={t} data={data} />;
+  return <CertificationsModule t={adminStringsByLanguage[language]} data={data} />;
 }
 
 export function AdminFeedbackPage() {
+  const { language } = usePreferences();
   const { data } = useAdminContext();
-  return <FeedbackModule t={t} data={data} />;
+  return <FeedbackModule t={adminStringsByLanguage[language]} data={data} />;
 }
 
 export function AdminNotificationsPage() {
+  const { language } = usePreferences();
   const { data, refreshAll } = useAdminContext();
-  return <NotificationsModule t={t} data={data} onRefresh={refreshAll} />;
+  return <NotificationsModule t={adminStringsByLanguage[language]} data={data} onRefresh={refreshAll} />;
 }
 
 export function AdminReportsPage() {
+  const { language } = usePreferences();
   const { data } = useAdminContext();
-  return <ReportsModule t={t} data={data} />;
+  return <ReportsModule t={adminStringsByLanguage[language]} data={data} />;
 }
 
 export function AdminSettingsPage() {
+  const { language } = usePreferences();
   const { data, refreshAll } = useAdminContext();
-  return <SettingsModule t={t} data={data} onRefresh={refreshAll} />;
+  return <SettingsModule t={adminStringsByLanguage[language]} data={data} onRefresh={refreshAll} />;
 }
 
 export function AdminAuditPage() {
+  const { language } = usePreferences();
   const { data } = useAdminContext();
-  return <AuditModule t={t} data={data} />;
+  return <AuditModule t={adminStringsByLanguage[language]} data={data} />;
 }
 
 export function AdminDocumentationPage() {
-  return <DocumentationModule sections={docSections} labels={docsLabels.ES} />;
+  const { language } = usePreferences();
+  return <DocumentationModule sections={docSectionsByLanguage[language]} labels={docsLabels[language]} />;
 }

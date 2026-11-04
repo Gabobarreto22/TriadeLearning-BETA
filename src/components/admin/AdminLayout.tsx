@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Award, BarChart3, Bell, BookOpen, FileText, History, LayoutDashboard, Settings, Star, Users } from 'lucide-react';
-import { adminStringsES } from '@/components/admin/strings';
+import { adminStringsByLanguage } from '@/components/admin/strings';
 import type { AdminData } from '@/components/admin/types';
 import { HelpButton } from '@/components/docs/HelpButton';
 import { AppFrame, LoadingScreen } from '@/components/layout/AppFrame';
 import { useAuth } from '@/lib/auth';
-import { docSummaryMap, docsLabels } from '@/lib/docs';
+import { docSummaryMapByLanguage, docsLabels } from '@/lib/docs';
 import {
   fetchAllCourses, fetchAllProfiles, fetchJobRoles, fetchDepartments,
   fetchUserCourseRequirements, fetchAllModuleProgress, fetchAllExamAttempts,
@@ -30,8 +30,9 @@ export function useAdminContext() {
 }
 
 export function AdminLayout({ profile }: { profile: Profile }) {
-  const { t } = usePreferences();
-  const at = adminStringsES;
+  const { t, language } = usePreferences();
+  const at = adminStringsByLanguage[language];
+  const docSummaryMap = docSummaryMapByLanguage[language];
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { signOut } = useAuth();
@@ -111,7 +112,7 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     mobileOpen={mobileOpen}
     onMobileOpenChange={setMobileOpen}
     topbarExtras={currentKey && currentKey !== 'documentation' && docSummaryMap[currentKey]
-      ? <HelpButton summary={docSummaryMap[currentKey]} docId={currentKey} labels={docsLabels.ES} onNavigateDoc={navigateDoc} />
+      ? <HelpButton summary={docSummaryMap[currentKey]} docId={currentKey} labels={docsLabels[language]} onNavigateDoc={navigateDoc} />
       : null}
     sidebarContent={<>
       <nav className="admin-nav-scroll">

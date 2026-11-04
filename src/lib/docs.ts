@@ -232,9 +232,241 @@ export const docSections: DocSection[] = [
   },
 ];
 
-export const docSummaryMap: Record<string, string> = Object.fromEntries(
-  docSections.map((s) => [s.id, s.summary])
-);
+export const docSectionsEN: DocSection[] = [
+  {
+    id: 'dashboard',
+    title: 'Dashboard',
+    icon: 'LayoutDashboard',
+    summary: 'System overview with key statistics, quick access and recent activity.',
+    sections: [
+      {
+        heading: 'What does the Dashboard show?',
+        body: 'The Dashboard is the home screen of the admin panel. It displays statistics cards with totals for courses, users, roles, certificates, badges, notifications, the exam pass rate and the average completion percentage. It also includes quick access buttons to each module and a recent activity view.',
+      },
+      {
+        heading: 'Statistics cards',
+        body: 'Each card shows a number and a label. Data is calculated in real time from the database. For example, the "Pass rate" is calculated by dividing passed exams by total attempts.',
+        example: 'If there are 10 registered exams and 8 are passed, the displayed rate will be 80%.',
+      },
+      {
+        heading: 'Quick access',
+        body: 'Below the statistics you will find buttons to go directly to each module: Courses, Personnel, Certifications, Reports, Notifications and Settings.',
+      },
+    ],
+  },
+  {
+    id: 'personnel',
+    title: 'Personnel Management',
+    icon: 'Users',
+    summary: 'Manage employees, admins, departments, roles, role history and requirements by role.',
+    sections: [
+      {
+        heading: 'Employees tab',
+        body: 'Here you view and manage all employees in the system. You can create new users with name, email, password, role and department. You can also edit their data, change their role (which generates a history entry), activate or deactivate them, and delete them.',
+        example: 'To create an employee: click "New user", fill in the form with name, email and password, select their role and department, and save. The employee can sign in immediately.',
+      },
+      {
+        heading: 'Admins tab',
+        body: 'Admins have full access to the admin panel. You can create new admins with the same fields as an employee, but assigning them the administrator role.',
+      },
+      {
+        heading: 'Departments tab',
+        body: 'Departments group roles and people. Each department has a name, a code and a description. You can create, edit and delete departments.',
+        example: 'Department "Operations" with code "OPS" groups roles related to maintenance and production.',
+      },
+      {
+        heading: 'Roles tab',
+        body: 'Roles define which courses each employee must complete. Each role has a name and description. When you assign courses to a role, all employees with that role automatically receive the assignments.',
+        example: 'The role "Maintenance Technician" has assigned courses on Industrial Safety, Preventive Maintenance and Emergencies.',
+      },
+      {
+        heading: 'History tab',
+        body: 'Shows the role change history for each employee: start date, end date, previous role and reason for the change. This allows tracing each person\'s trajectory in the organization.',
+      },
+      {
+        heading: 'Requirements by role tab',
+        body: 'Shows which courses are assigned to each role and lets you manage those assignments: add courses, remove them, define priority, mandatory status and completion deadline days.',
+      },
+    ],
+  },
+  {
+    id: 'courses',
+    title: 'Course Management',
+    icon: 'BookOpen',
+    summary: 'Create and edit courses with modules, resources, exam questions, role assignments and prerequisites.',
+    sections: [
+      {
+        heading: 'Creating a course',
+        body: 'Click "New course" to open the editor. Fill in the title, description, category, duration, image URL, icon and accent color. The course is saved and then you can add content in the editor tabs.',
+        example: 'Course "Basic Industrial Safety", category "Safety", duration "2 hours", icon "shield", accent color "blue".',
+      },
+      {
+        heading: 'Modules tab (with resources)',
+        body: 'Each course can have multiple modules in sequential order. Available module types are: text (reading), image/infographic, video (YouTube, Vimeo or uploaded file), PDF and PowerPoint presentation. Each module has a title, duration and content. Resources (downloadable files like PDFs, presentations or links) are added directly inside each module they belong to, they no longer exist as a separate tab. Modules unlock sequentially: the employee must complete one to access the next.',
+        example: 'A course can have: 1) Text module "Introduction" with an attached PDF "Quick guide", 2) Video module "Demo" with a downloadable PowerPoint presentation, 3) PDF module "Procedures manual".',
+      },
+      {
+        heading: 'Exams tab',
+        body: 'Create multiple-choice questions to assess knowledge. Each question has a statement, options (one per line), the correct answer index, an explanation, difficulty level and points. Questions can be associated with the whole course or a specific module.',
+      },
+      {
+        heading: 'How does the correct answer index work?',
+        body: 'The "Correct answer index" indicates which of the options you wrote is the correct one. Counting starts at 0, not 1. This means the first option you wrote is number 0, the second is number 1, the third is number 2, and so on. It is important to remember this because it is easy to confuse and put 1 thinking "the first option", when the first option is actually 0.',
+        example: 'You write these 3 options (one per line):\n1) Personal Protective Equipment\n2) Pest Prevention Equipment\n3) Pressure Test Equipment\n\nThe correct answer is "Personal Protective Equipment". Since it is the first option, its index is 0. If the correct one were "Pest Prevention Equipment" (the second), the index would be 1. If it were the third, the index would be 2.',
+      },
+      {
+        heading: 'Assignments tab',
+        body: 'Assign the course to one or more roles. Define whether it is mandatory, the priority (low, medium, high, critical) and the deadline days for completion. All employees with that role will receive the assignment automatically.',
+        example: 'Assign "Industrial Safety" to the role "Maintenance Technician" as mandatory, high priority, 30 days deadline.',
+      },
+      {
+        heading: 'Prerequisites tab',
+        body: 'Define which courses must be completed before accessing this one. Prerequisites can be mandatory (the course does not unlock until they are completed) or optional.',
+      },
+    ],
+  },
+  {
+    id: 'certifications',
+    title: 'Certifications',
+    icon: 'Award',
+    summary: 'View certificates issued for course completion and role certifications of employees.',
+    sections: [
+      {
+        heading: 'Course certificates',
+        body: 'When an employee completes a course and passes the final exam with at least 90%, a certificate is automatically generated with a unique number, issue date and expiry date. Here you can see all issued certificates, who they belong to and which course they completed.',
+        example: 'Certificate TRIADE-SEG101-2026-001 issued to "Test Employee" for completing "Basic Industrial Safety".',
+      },
+      {
+        heading: 'Role certifications',
+        body: 'A role certification validates that an employee has completed all required courses for their position. It shows the certification date, expiry date and whether it is valid or expired.',
+      },
+    ],
+  },
+  {
+    id: 'feedback',
+    title: 'Feedback',
+    icon: 'Star',
+    summary: 'Review the ratings and comments employees leave about completed courses.',
+    sections: [
+      {
+        heading: 'What is Feedback?',
+        body: 'After completing a course, employees can leave a 1 to 5 star rating, a written comment, whether they would recommend the course, whether the time was adequate and the perceived difficulty level. All this information is centralized here.',
+        example: 'An employee rates "Preventive Maintenance" with 4 stars, comments "Very useful", marks that they would recommend it and that the difficulty was medium.',
+      },
+      {
+        heading: 'How to use this information',
+        body: 'Feedback lets you identify courses that need improvement (low ratings), courses that are too difficult (high difficulty) or time issues (inadequate time). The average rating is shown at the top.',
+      },
+    ],
+  },
+  {
+    id: 'notifications',
+    title: 'Notifications',
+    icon: 'Bell',
+    summary: 'Send notifications to employees: course reminders, expiry notices, achievement congratulations.',
+    sections: [
+      {
+        heading: 'Creating a notification',
+        body: 'You can create manual notifications to send to any employee. Define the type (information, warning, success, error, reminder), the title, the message and the recipient. The notification appears in the employee panel.',
+        example: 'Notification type "reminder" with title "Pending course" and message "You have 15 days to complete the Emergencies course".',
+      },
+      {
+        heading: 'Automatic notifications',
+        body: 'The system generates notifications automatically when an employee completes a course, earns a certificate, or when a course is about to expire. These notifications do not need to be created manually.',
+      },
+    ],
+  },
+  {
+    id: 'reports',
+    title: 'Reports',
+    icon: 'BarChart3',
+    summary: 'Detailed statistics: compliance by role, individual progress, exam results and feedback.',
+    sections: [
+      {
+        heading: 'Compliance by role report',
+        body: 'Shows what percentage of employees in each role have completed their assigned courses. Useful for identifying roles with low compliance and taking action.',
+        example: 'Role "Maintenance Technician": 1 of 3 courses completed on average, 33% compliance.',
+      },
+      {
+        heading: 'Individual progress report',
+        body: 'Shows the progress of each employee: how many modules they have completed, which courses they are working on, their progress percentage and exams taken.',
+      },
+      {
+        heading: 'Exam report',
+        body: 'Statistics for all exams: total attempts, pass rate, average score, passed vs failed exams.',
+      },
+      {
+        heading: 'Export',
+        body: 'Reports can be exported in Excel, PDF or CSV format to share or archive.',
+      },
+    ],
+  },
+  {
+    id: 'settings',
+    title: 'Settings',
+    icon: 'Settings',
+    summary: 'General system settings: branding, evaluation parameters, automatic notifications and security.',
+    sections: [
+      {
+        heading: 'General settings',
+        body: 'Global system parameters such as the organization name, the exam pass threshold (default 90%), and other values that affect the entire system.',
+      },
+      {
+        heading: 'Branding',
+        body: 'Customize the system appearance: logos, colors and other visual elements shown to employees.',
+      },
+      {
+        heading: 'Security',
+        body: 'Configure password policies, session expiration and other system security aspects.',
+      },
+    ],
+  },
+  {
+    id: 'audit',
+    title: 'Audit',
+    icon: 'History',
+    summary: 'Log of all actions performed in the system: who did what, when and what changes occurred.',
+    sections: [
+      {
+        heading: 'What is logged?',
+        body: 'Every time an admin creates, edits or deletes an item (course, user, role, assignment, badge, etc.), an audit log entry is generated that includes: the user who performed the action, the action type (CREATE, UPDATE, DELETE), the affected entity type, the old and new values, the date and time, and the IP address.',
+        example: 'Entry: User "System Administrator" created the course "Basic Industrial Safety" on 09/04/2026 from IP 192.168.1.1.',
+      },
+      {
+        heading: 'What is it for?',
+        body: 'The audit log maintains traceability of all system changes, meets compliance requirements, investigates incidents and verifies that changes were authorized.',
+      },
+    ],
+  },
+  {
+    id: 'documentation',
+    title: 'Documentation',
+    icon: 'FileText',
+    summary: 'This page. Detailed guide to each module and system process with examples.',
+    sections: [
+      {
+        heading: 'How to use this documentation',
+        body: 'Navigate the sections using the left sidebar menu. Each section explains in detail what the module does, how to use it and includes practical examples. If you need quick help within any module, look for the round button with a question mark (?) in the upper right corner of the page title.',
+      },
+      {
+        heading: 'Contextual help buttons',
+        body: 'In each module of the admin panel you will find a small round button with a question mark next to the title. Hovering over it shows a brief description of the module. Clicking it takes you directly to the corresponding documentation section.',
+      },
+    ],
+  },
+];
+
+export const docSectionsByLanguage: Record<Language, DocSection[]> = {
+  ES: docSections,
+  EN: docSectionsEN,
+};
+
+export const docSummaryMapByLanguage: Record<Language, Record<string, string>> = {
+  ES: Object.fromEntries(docSections.map((s) => [s.id, s.summary])),
+  EN: Object.fromEntries(docSectionsEN.map((s) => [s.id, s.summary])),
+};
+
+export const docSummaryMap: Record<string, string> = docSummaryMapByLanguage.ES;
 
 export type DocsLabels = {
   eyebrow: string;
