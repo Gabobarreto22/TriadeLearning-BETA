@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router
 import { Award, BarChart3, Bell, BookOpen, FileText, History, LayoutDashboard, Settings, Star, Users } from 'lucide-react';
 import { adminStringsES } from '@/components/admin/strings';
 import type { AdminData } from '@/components/admin/types';
-import { HelpButton } from '@/components/admin/HelpButton';
+import { HelpButton } from '@/components/docs/HelpButton';
 import { AppFrame, LoadingScreen } from '@/components/layout/AppFrame';
 import { useAuth } from '@/lib/auth';
 import { docSummaryMap } from '@/lib/docs';

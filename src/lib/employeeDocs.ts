@@ -188,23 +188,6 @@ export const employeeDocSections: DocSection[] = [
     ],
   },
   {
-    id: 'gamificacion',
-    title: 'Gamificación',
-    icon: 'Trophy',
-    summary: 'Tus insignias, puntos y avances en un solo lugar.',
-    sections: [
-      {
-        heading: 'Resumen de logros',
-        body: 'Muestra cuatro indicadores: insignias obtenidas, puntos totales (la suma de los puntos de tus insignias), cursos completados y cursos en progreso.',
-      },
-      {
-        heading: 'Insignias obtenidas y próximas',
-        body: '"Insignias obtenidas" muestra las que ya ganaste. "Próximas insignias" muestra las que están bloqueadas, con un candado y los puntos que valen. Las insignias que aún no ganas aparecen en esa lista.',
-        example: 'Tienes la insignia "Primer curso" y ves bloqueada "Experto en seguridad" con 50 puntos. Al completar más cursos, la insignia bloqueada se desbloqueará.',
-      },
-    ],
-  },
-  {
     id: 'perfil',
     title: 'Mi perfil',
     icon: 'User',
@@ -234,8 +217,8 @@ export const employeeDocSections: DocSection[] = [
     ],
   },
   {
-    id: 'calificar',
-    title: 'Calificar un curso',
+    id: 'feedback',
+    title: 'Feedback',
     icon: 'Star',
     summary: 'Tu opinión sobre los cursos que completaste, para mejorar la formación.',
     sections: [
@@ -250,16 +233,8 @@ export const employeeDocSections: DocSection[] = [
       },
     ],
   },
-  {
-    id: 'documentacion',
-    title: 'Documentación',
-    icon: 'FileText',
-    summary: 'Esta guía. Explica cada parte del sistema con ejemplos.',
-    sections: [
-      {
-        heading: 'Cómo usar esta guía',
-        body: 'Elige un tema en el menú lateral izquierdo. Puedes escribir una palabra en el buscador para encontrar la sección que necesitas, por ejemplo "examen" o "contraseña".',
-      },
-    ],
-  },
 ];
+
+export const employeeDocSummaryMap: Record<string, string> = Object.fromEntries(
+  employeeDocSections.map((s) => [s.id, s.summary])
+);

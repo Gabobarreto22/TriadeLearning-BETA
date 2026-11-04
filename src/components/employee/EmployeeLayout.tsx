@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Award, Bell, BookOpen, CalendarDays, FileText, LayoutDashboard, User } from 'lucide-react';
+import { HelpButton } from '@/components/docs/HelpButton';
 import { CourseFeedbackModal } from '@/components/employee/EmployeeModules';
 import { buildEmployeeStrings } from '@/components/employee/employeeStrings';
 import { CertificatePreview, CourseModal, ExitWarningModal } from '@/components/employee/LearningModals';
 import type { CertificatePreviewData, CourseState, EmployeeContextValue, ExamType } from '@/components/employee/employeeTypes';
 import { AppFrame, LoadingScreen } from '@/components/layout/AppFrame';
+import { employeeDocSummaryMap } from '@/lib/employeeDocs';
 import { useAuth } from '@/lib/auth';
 import { ensureUserCourseRequirement, fetchCoursesForRole, fetchExamResults, fetchModuleProgress, markModuleComplete, saveCourseFeedback, saveExamResult } from '@/lib/data';
 import { usePreferences } from '@/lib/preferences';
@@ -36,6 +38,15 @@ export function useCourseEntry(course: CourseWithRelations | undefined) {
 
   return status;
 }
+
+const helpDocIds: Partial<Record<string, string>> = {
+  [employeePaths.dashboard]: 'inicio',
+  [employeePaths.catalog]: 'catalogo',
+  [employeePaths.calendar]: 'calendario',
+  [employeePaths.certificates]: 'certificados',
+  [employeePaths.notifications]: 'notificaciones',
+  [employeePaths.profile]: 'perfil',
+};
 
 function NavItem({ icon, label, active, onClick }: { icon: ReactNode; label: string; active: boolean; onClick: () => void }) {
   return <button className={active ? 'nav-item active' : 'nav-item'} onClick={onClick}>{icon}<span>{label}</span>{active && <span className="active-dot" />}</button>;
@@ -80,6 +91,13 @@ export function EmployeeLayout({ profile }: { profile: Profile }) {
     navigate(path);
     setMobileOpen(false);
   };
+  const navigateDoc = (docId: string) => {
+    go(employeePaths.documentation);
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('docs:navigate', { detail: docId }));
+    }, 50);
+  };
+  const helpDocId = helpDocIds[pathname];
 
   const getCourseState = (courseId: string): CourseState => {
     const course = courses.find((c) => c.id === courseId);
@@ -270,6 +288,7 @@ export function EmployeeLayout({ profile }: { profile: Profile }) {
     workspaceLabel="TRIADE LEARNING"
     breadcrumb={breadcrumb}
     initials={profile.full_name.slice(0, 2).toUpperCase()}
+    topbarExtras={helpDocId ? <HelpButton summary={employeeDocSummaryMap[helpDocId]} docId={helpDocId} onNavigateDoc={navigateDoc} /> : null}
     fullscreen={isFullscreen}
     mobileOpen={mobileOpen}
     onMobileOpenChange={setMobileOpen}
