@@ -9,13 +9,10 @@ import {
   AdminAuditPage, AdminCertificationsPage, AdminCoursesPage, AdminDashboardPage, AdminDocumentationPage,
   AdminFeedbackPage, AdminNotificationsPage, AdminPersonnelPage, AdminReportsPage, AdminSettingsPage,
 } from '@/pages/admin/AdminPages';
-import { CalendarPage } from '@/pages/employee/CalendarPage';
-import { CatalogPage } from '@/pages/employee/CatalogPage';
-import { CertificatesPage } from '@/pages/employee/CertificatesPage';
-import { CoursePlayerPage } from '@/pages/employee/CoursePlayerPage';
-import { DashboardPage } from '@/pages/employee/DashboardPage';
-import { ExamPage } from '@/pages/employee/ExamPage';
-import { GamificationPage, NotificationsPage, ProfilePage } from '@/pages/employee/AccountPages';
+import {
+  CalendarPage, CatalogPage, CertificatesPage, CoursePlayerPage, DashboardPage,
+  ExamPage, GamificationPage, NotificationsPage, ProfilePage,
+} from '@/pages/employee/EmployeePages';
 
 export default function App() {
   const { profile, loading } = useAuth();
