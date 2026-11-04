@@ -847,3 +847,46 @@ html.dark .help-tooltip{background:var(--surface);border-color:var(--line);box-s
 .docs-example p{font-size:12px;color:var(--muted);margin:0;line-height:1.6}
 html.dark .docs-example{border-left-color:var(--ink)}
 @media(max-width:760px){.docs-layout{grid-template-columns:1fr}.docs-sidebar{position:static;max-height:none}}
+.docs-visual{margin-top:14px;padding:18px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px}
+.docs-visual-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:14px}
+.docs-mock-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.docs-mock-stat{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.docs-mock-stat strong{font-size:18px;font-weight:800;line-height:1}
+.docs-mock-stat span{font-size:10px;color:var(--muted);display:block;margin-top:3px}
+.docs-mock-icon{height:32px;width:32px;border-radius:8px;display:grid;place-items:center;flex-shrink:0}
+.docs-mock-icon.g1{background:#dbeafe;color:#2563eb}
+.docs-mock-icon.g2{background:#d1fae5;color:#059669}
+.docs-mock-icon.g3{background:#fef3c7;color:#d97706}
+.docs-mock-icon.g4{background:#e0e7ff;color:#4f46e5}
+.docs-mock-links{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.docs-mock-link{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;text-align:center}
+.docs-mock-link strong{font-size:12px}
+.docs-mock-link span{font-size:10px;color:var(--muted)}
+.docs-mock-list{display:flex;flex-direction:column;gap:8px}
+.docs-mock-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.docs-mock-row strong{font-size:13px;display:block}
+.docs-mock-row small{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.docs-mock-course-icon{height:34px;width:34px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;background:var(--surface-3);color:var(--ink-2)}
+.docs-mock-course-icon.blue{background:#dbeafe;color:#2563eb}
+.docs-mock-course-icon.green{background:#d1fae5;color:#059669}
+.docs-mock-course-icon.orange{background:#fed7aa;color:#ea580c}
+.docs-mock-avatar{height:32px;width:32px;border-radius:50%;background:var(--surface-3);color:var(--ink-2);display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
+.docs-mock-stars{font-size:14px;color:#f59e0b;letter-spacing:1px;margin-left:auto}
+.docs-mock-formula{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.docs-mock-formula-box{display:flex;flex-direction:column;align-items:center;padding:14px 20px;background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:90px}
+.docs-mock-formula-box strong{font-size:24px;font-weight:800}
+.docs-mock-formula-box span{font-size:10px;color:var(--muted);margin-top:4px;text-align:center}
+.docs-mock-formula-op{font-size:22px;font-weight:700;color:var(--muted)}
+.docs-mock-formula-result{display:flex;flex-direction:column;align-items:center;padding:14px 24px;background:var(--surface-3);border:2px solid var(--ink-2);border-radius:10px;min-width:100px}
+.docs-mock-formula-result strong{font-size:28px;font-weight:800;color:var(--ink-2)}
+.docs-mock-formula-result span{font-size:10px;color:var(--muted);margin-top:4px;text-align:center}
+.docs-mock-completion{padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.docs-mock-completion-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.docs-mock-completion-header span{font-size:12px;color:var(--muted)}
+.docs-mock-completion-header strong{font-size:22px;font-weight:800}
+.docs-mock-bar-track{height:10px;background:var(--surface-3);border-radius:6px;overflow:hidden}
+.docs-mock-bar-fill{height:100%;background:linear-gradient(90deg,#2563eb,#059669);border-radius:6px;transition:width .6s ease}
+.docs-mock-completion-detail{display:flex;gap:20px;margin-top:12px;flex-wrap:wrap}
+.docs-mock-completion-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.docs-mock-completion-item svg{color:var(--ink-2)}
+@media(max-width:600px){.docs-mock-stats{grid-template-columns:repeat(2,1fr)}.docs-mock-links{grid-template-columns:repeat(2,1fr)}.docs-mock-formula{justify-content:center}}

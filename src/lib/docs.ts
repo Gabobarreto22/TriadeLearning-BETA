@@ -1,11 +1,19 @@
 import type { Language } from '@/lib/copy';
 
+export type DocVisual =
+  | 'stat-cards'
+  | 'quick-links'
+  | 'course-list'
+  | 'feedback-list'
+  | 'pass-rate'
+  | 'completion-bar';
+
 export type DocSection = {
   id: string;
   title: string;
   icon: string;
   summary: string;
-  sections: { heading: string; body: string; example?: string }[];
+  sections: { heading: string; body: string; example?: string; visual?: DocVisual }[];
 };
 
 export const docSections: DocSection[] = [
@@ -17,16 +25,48 @@ export const docSections: DocSection[] = [
     sections: [
       {
         heading: '¿Qué muestra el Dashboard?',
-        body: 'El Dashboard es la pantalla de inicio del panel de administración. Muestra tarjetas de estadísticas con los totales de cursos, usuarios, cargos, certificados, insignias, notificaciones, la tasa de aprobación de exámenes y el porcentaje de completación promedio. También incluye accesos rápidos a cada módulo y una vista de actividad reciente.',
+        body: 'El Dashboard es la pantalla de inicio del panel de administración. Es tu centro de control: al entrar ves de un vistazo cómo está toda la organización en materia de formación. Se divide en tres zonas principales: (1) tarjetas de estadísticas en la parte superior con los totales más importantes, (2) accesos rápidos a cada módulo en el centro, y (3) dos paneles laterales con un resumen de cursos recientes y feedback reciente. Todo se calcula en tiempo real desde la base de datos, así que los números que ves siempre reflejan el estado actual.',
       },
       {
         heading: 'Tarjetas de estadísticas',
-        body: 'Cada tarjeta muestra un número y una etiqueta. Los datos se calculan en tiempo real desde la base de datos. Por ejemplo, la "Tasa de aprobación" se calcula dividiendo los exámenes aprobados entre el total de intentos.',
-        example: 'Si hay 10 exámenes registrados y 8 están aprobados, la tasa mostrada será 80%.',
+        body: 'En la parte superior del Dashboard verás 8 tarjetas de estadísticas. Cada tarjeta tiene un ícono, un número grande y una etiqueta. Estas son: Cursos totales (cantidad de cursos creados en el sistema), Usuarios totales (empleados y administradores registrados), Cargos totales (posiciones definidas), Certificados totales (certificados emitidos), Completación promedio (porcentaje global de módulos completados), Tasa de aprobación (porcentaje de exámenes aprobados), Insignias totales (insignias creadas) y Notificaciones totales (notificaciones enviadas). Los datos se calculan en tiempo real desde la base de datos.',
+        visual: 'stat-cards',
+        example: 'Si acabas de crear un curso nuevo llamado "Operación de Bombas", al volver al Dashboard verás que el número de "Cursos totales" aumentó en 1 automáticamente.',
+      },
+      {
+        heading: 'Cómo se calcula la tasa de aprobación',
+        body: 'La "Tasa de aprobación" se calcula dividiendo el número de exámenes aprobados entre el total de intentos realizados, y multiplicando por 100 para obtener el porcentaje. Este indicador te dice qué tan efectiva es la formación: una tasa muy baja puede indicar que los cursos son demasiado difíciles o que las preguntas no están bien redactadas.',
+        visual: 'pass-rate',
+        example: 'Si hay 10 exámenes registrados y 8 están aprobados, el cálculo es: 8 ÷ 10 × 100 = 80%. La tarjeta mostrará "80%".',
+      },
+      {
+        heading: 'Cómo se calcula la completación promedio',
+        body: 'El porcentaje de "Completación promedio" representa qué tan avanzada está toda la organización en sus cursos. Se calcula dividiendo los módulos marcados como completados entre el total de módulos asignados a todos los empleados, y multiplicando por 100. Este número te da una idea general del progreso de aprendizaje de toda la empresa.',
+        visual: 'completion-bar',
+        example: 'Si en toda la organización hay 200 módulos asignados y los empleados han completado 130, el cálculo es: 130 ÷ 200 × 100 = 65%. La tarjeta mostrará "65%".',
       },
       {
         heading: 'Accesos rápidos',
-        body: 'Debajo de las estadísticas encontrarás botones para ir directamente a cada módulo: Cursos, Personal, Certificaciones, Reportes, Notificaciones y Configuración.',
+        body: 'Debajo de las estadísticas encontrarás una cuadrícula de botones grandes para ir directamente a cada módulo: Cursos, Personal, Certificaciones, Reportes, Notificaciones y Configuración. Cada botón muestra el ícono del módulo y su nombre. Al hacer clic en cualquiera, navegas directamente a esa sección sin tener que usar el menú lateral.',
+        visual: 'quick-links',
+        example: 'Si necesitas crear un usuario nuevo, en lugar de buscar en el menú lateral, puedes hacer clic en "Personal" desde los accesos rápidos y llegar directamente al módulo de gestión de personal.',
+      },
+      {
+        heading: 'Panel de cursos recientes',
+        body: 'En la parte inferior izquierda del Dashboard verás una tarjeta con el título "Cursos" que muestra hasta 4 cursos recientes. Cada curso se muestra con su ícono, su título, el número de módulos que contiene y cuántos cargos lo tienen asignado. Junto al título hay un botón "Ver todos" que te lleva al módulo completo de gestión de cursos. Si no hay cursos creados, verás el mensaje "No hay cursos creados".',
+        visual: 'course-list',
+        example: 'Ves "Seguridad Industrial Básica" con "5 módulos · 3 cargos asignados". Esto te dice de un vistazo que es un curso con contenido y ya está asignado a tres cargos diferentes.',
+      },
+      {
+        heading: 'Panel de feedback reciente',
+        body: 'En la parte inferior derecha del Dashboard verás una tarjeta con el título "Feedback" que muestra hasta 5 comentarios recientes de empleados sobre cursos completados. Cada entrada muestra las iniciales del empleado, su nombre, el curso que calificó y una calificación en estrellas (de 1 a 5). Junto al título hay un botón "Ver todos" que te lleva al módulo completo de feedback. Si no hay feedback, verás el mensaje "No hay feedback registrado".',
+        visual: 'feedback-list',
+        example: 'Ves que "Juan Pérez" calificó "Mantenimiento Preventivo" con 4 estrellas (★★★★). Esto te indica que el curso le pareció bueno pero con margen de mejora.',
+      },
+      {
+        heading: 'Cómo usar el Dashboard en el día a día',
+        body: 'El Dashboard es tu punto de partida cada vez que entras al sistema. Te recomendamos revisarlo al inicio de cada sesión para detectar situaciones que requieran acción: (1) Si la tasa de aprobación bajó, revisa si alguna pregunta de examen está mal redactada o si un curso es muy difícil. (2) Si la completación promedio es baja, considera enviar notificaciones recordatorias a los empleados. (3) Si hay feedback con pocas estrellas, lee los comentarios en el módulo de Feedback para identificar mejoras. (4) Usa los accesos rápidos para ir directamente al módulo donde necesitas trabajar.',
+        example: 'Lunes por la mañana: entras al Dashboard y ves que la completación bajó de 70% a 55%. Haces clic en "Notificaciones" desde los accesos rápidos y envías un recordatorio a los empleados que tienen cursos pendientes.',
       },
     ],
   },
@@ -241,16 +281,48 @@ export const docSectionsEN: DocSection[] = [
     sections: [
       {
         heading: 'What does the Dashboard show?',
-        body: 'The Dashboard is the home screen of the admin panel. It displays statistics cards with totals for courses, users, roles, certificates, badges, notifications, the exam pass rate and the average completion percentage. It also includes quick access buttons to each module and a recent activity view.',
+        body: 'The Dashboard is the home screen of the admin panel. It is your control center: when you log in you see at a glance how the entire organization is doing in terms of training. It is divided into three main areas: (1) statistics cards at the top with the most important totals, (2) quick access to each module in the center, and (3) two side panels with a summary of recent courses and recent feedback. Everything is calculated in real time from the database, so the numbers you see always reflect the current state.',
       },
       {
         heading: 'Statistics cards',
-        body: 'Each card shows a number and a label. Data is calculated in real time from the database. For example, the "Pass rate" is calculated by dividing passed exams by total attempts.',
-        example: 'If there are 10 registered exams and 8 are passed, the displayed rate will be 80%.',
+        body: 'At the top of the Dashboard you will see 8 statistics cards. Each card has an icon, a large number and a label. They are: Total courses (number of courses created in the system), Total users (employees and admins registered), Total roles (positions defined), Total certificates (certificates issued), Average completion (global percentage of modules completed), Pass rate (percentage of exams passed), Total badges (badges created) and Total notifications (notifications sent). Data is calculated in real time from the database.',
+        visual: 'stat-cards',
+        example: 'If you just created a new course called "Pump Operation", when you return to the Dashboard you will see that the "Total courses" number increased by 1 automatically.',
+      },
+      {
+        heading: 'How the pass rate is calculated',
+        body: 'The "Pass rate" is calculated by dividing the number of passed exams by the total number of attempts, and multiplying by 100 to get the percentage. This indicator tells you how effective the training is: a very low rate may indicate that courses are too difficult or that questions are poorly written.',
+        visual: 'pass-rate',
+        example: 'If there are 10 registered exams and 8 are passed, the calculation is: 8 ÷ 10 × 100 = 80%. The card will show "80%".',
+      },
+      {
+        heading: 'How average completion is calculated',
+        body: 'The "Average completion" percentage represents how advanced the entire organization is in its courses. It is calculated by dividing the modules marked as completed by the total modules assigned to all employees, and multiplying by 100. This number gives you a general idea of the learning progress across the whole company.',
+        visual: 'completion-bar',
+        example: 'If across the organization there are 200 assigned modules and employees have completed 130, the calculation is: 130 ÷ 200 × 100 = 65%. The card will show "65%".',
       },
       {
         heading: 'Quick access',
-        body: 'Below the statistics you will find buttons to go directly to each module: Courses, Personnel, Certifications, Reports, Notifications and Settings.',
+        body: 'Below the statistics you will find a grid of large buttons to go directly to each module: Courses, Personnel, Certifications, Reports, Notifications and Settings. Each button shows the module icon and its name. Clicking any of them navigates you directly to that section without having to use the sidebar menu.',
+        visual: 'quick-links',
+        example: 'If you need to create a new user, instead of looking in the sidebar, you can click "Personnel" from the quick access and go directly to the personnel management module.',
+      },
+      {
+        heading: 'Recent courses panel',
+        body: 'In the lower left part of the Dashboard you will see a card titled "Courses" showing up to 4 recent courses. Each course is shown with its icon, its title, the number of modules it contains and how many roles have it assigned. Next to the title there is a "View all" button that takes you to the full course management module. If no courses exist, you will see the message "No courses created".',
+        visual: 'course-list',
+        example: 'You see "Basic Industrial Safety" with "5 modules · 3 assigned roles". This tells you at a glance that it is a course with content and is already assigned to three different roles.',
+      },
+      {
+        heading: 'Recent feedback panel',
+        body: 'In the lower right part of the Dashboard you will see a card titled "Feedback" showing up to 5 recent comments from employees about completed courses. Each entry shows the employee initials, their name, the course they rated and a star rating (1 to 5). Next to the title there is a "View all" button that takes you to the full feedback module. If there is no feedback, you will see the message "No feedback recorded".',
+        visual: 'feedback-list',
+        example: 'You see that "John Smith" rated "Preventive Maintenance" with 4 stars (★★★★). This indicates the course seemed good to them but with room for improvement.',
+      },
+      {
+        heading: 'Using the Dashboard day to day',
+        body: 'The Dashboard is your starting point every time you enter the system. We recommend reviewing it at the start of each session to detect situations that require action: (1) If the pass rate dropped, check if an exam question is poorly written or if a course is too difficult. (2) If average completion is low, consider sending reminder notifications to employees. (3) If there is feedback with few stars, read the comments in the Feedback module to identify improvements. (4) Use the quick access buttons to go directly to the module where you need to work.',
+        example: 'Monday morning: you enter the Dashboard and see that completion dropped from 70% to 55%. You click "Notifications" from the quick access and send a reminder to employees with pending courses.',
       },
     ],
   },
