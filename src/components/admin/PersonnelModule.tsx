@@ -9,7 +9,6 @@ import {
   updateProfile, deleteProfile,
   fetchUserJobRoleHistory, changeUserRole,
   fetchUserCourseRequirementsForUser, fetchCertificatesForUser, fetchRoleCertificationsForUser, fetchUserBadgesForUser,
-  assignCourseToRole, removeAssignment,
 } from '@/lib/data';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
@@ -93,7 +92,7 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
         {tab === 'departments' && <DepartmentsTab t={t} departments={departments} onRefresh={onRefresh} />}
         {tab === 'roles' && <RolesTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
         {tab === 'history' && <HistoryTab t={t} team={team} jobRoles={jobRoles} departments={departments} />}
-        {tab === 'requirements' && <RequirementsTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
+        {tab === 'requirements' && <RequirementsTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} />}
       </div>
     </div>
   );
@@ -806,36 +805,18 @@ function HistoryTab({ t, team, jobRoles, departments }: {
 }
 
 // ===================== REQUIREMENTS TAB =====================
-function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
+function RequirementsTab({ t, jobRoles, departments, courses }: {
   t: AdminStrings;
   jobRoles: JobRole[];
   departments: Department[];
   courses: CourseWithRelations[];
-  onRefresh: () => void;
 }) {
-  const [assignRoleId, setAssignRoleId] = useState('');
-  const [showAssign, setShowAssign] = useState(false);
-  const [courseId, setCourseId] = useState('');
-  const [isMandatory, setIsMandatory] = useState(true);
-  const [priority, setPriority] = useState('medium');
-  const [deadlineDays, setDeadlineDays] = useState('');
-  const [orderIndex, setOrderIndex] = useState('0');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const { toast } = useToast();
-
-  const unassignedCourses = courses.filter((c) => !c.assignments.some((a) => a.job_role_id === assignRoleId));
-
-  const handleAssign = async () => {
-    if (!courseId || !assignRoleId) { setError(t.selectCourse); return; }
-    setSaving(true);
-    const { error: err } = await assignCourseToRole(courseId, assignRoleId, isMandatory, priority, deadlineDays ? parseInt(deadlineDays) : null, parseInt(orderIndex) || 0);
-    if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); setCourseId(''); setDeadlineDays(''); setOrderIndex('0'); setError(null); setShowAssign(false);
-    toast('Curso asignado', 'success'); onRefresh();
-  };
+  const [selectedRoleId, setSelectedRoleId] = useState('');
+  const selectedRole = jobRoles.find((r) => r.id === selectedRoleId) ?? null;
+  const selectedDept = selectedRole ? departments.find((d) => d.id === selectedRole.department_id)?.name : undefined;
+  const roleCourses = selectedRole
+    ? courses.filter((c) => c.assignments.some((a) => a.job_role_id === selectedRole.id))
+    : [];
 
   return (
     <div className="section-card">
@@ -844,72 +825,33 @@ function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
         <div style={{ flex: 1 }}><h2>{t.personnelTabs.requirements}</h2><p className="muted">{t.assignedCourses}</p></div>
       </div>
 
-      {showAssign && createPortal(<div className="modal-backdrop" onClick={() => setShowAssign(false)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={() => setShowAssign(false)}><X size={19} /></button>
-        <div className="modal-body">
-          <h2>{t.assignCourse}</h2>
-          {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
-          <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group field-group-full"><label>{t.courseCol}</label>
-              <select className="auth-input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
-                <option value="">{t.selectCourse}</option>
-                {unassignedCourses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-              </select>
-            </div>
-            <div className="field-group"><label>{t.mandatory}</label>
-              <div className="auth-role-select">
-                <button className={isMandatory ? 'active' : ''} onClick={() => setIsMandatory(true)}><Check size={16} />{t.mandatory}</button>
-                <button className={!isMandatory ? 'active' : ''} onClick={() => setIsMandatory(false)}>{t.optional}</button>
-              </div>
-            </div>
-            <div className="field-group"><label>{t.priority}</label>
-              <select className="auth-input" value={priority} onChange={(e) => setPriority(e.target.value)}>
-                <option value="low">{t.low}</option><option value="medium">{t.medium}</option>
-                <option value="high">{t.high}</option><option value="critical">{t.critical}</option>
-              </select>
-            </div>
-            <div className="field-group"><label>{t.deadlineDays}</label><input className="auth-input" type="number" value={deadlineDays} onChange={(e) => setDeadlineDays(e.target.value)} /></div>
-            <div className="field-group"><label>{t.order}</label><input className="auth-input" type="number" value={orderIndex} onChange={(e) => setOrderIndex(e.target.value)} /></div>
-          </div>
-          <div className="form-actions-row" style={{ marginTop: 4 }}>
-            <button className="outline-button" onClick={() => setShowAssign(false)}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleAssign} disabled={saving}>{saving ? t.loading : t.save}</button>
-          </div>
+      {jobRoles.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noRoles}</h3></div> : <>
+        <div className="field-group" style={{ marginBottom: 16 }}>
+          <label>{t.jobRole}</label>
+          <select className="auth-input" value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)}>
+            <option value="">{t.selectRole}</option>
+            {jobRoles.map((r) => {
+              const dept = departments.find((d) => d.id === r.department_id)?.name;
+              return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
+            })}
+          </select>
         </div>
-      </div></div>, document.body)}
 
-      {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="exit-warning-icon"><Trash2 size={40} /></div>
-        <h2>{t.deleteConfirm}</h2>
-        <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await removeAssignment(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Asignación eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
-      </div></div>, document.body)}
-
-      {jobRoles.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noRoles}</h3></div> :
-      <div className="docs-sections">{jobRoles.map((role) => {
-        const dept = departments.find((d) => d.id === role.department_id)?.name;
-        const roleCourses = courses.filter((c) => c.assignments.some((a) => a.job_role_id === role.id));
-        return (
-          <article key={role.id} className="docs-article">
-            <div className="section-title" style={{ marginBottom: 12 }}>
-              <div><h3>{role.name}</h3>{dept && <p>{dept}</p>}</div>
-              <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={() => { setAssignRoleId(role.id); setShowAssign(true); }}><Plus size={16} />{t.assignCourse}</button>
-            </div>
-            {roleCourses.length === 0 ? <p className="muted">{t.noCourses}</p> : <div className="admin-list-stack">{roleCourses.map((c) => {
-              const assignment = c.assignments.find((a) => a.job_role_id === role.id);
-              return (
-                <div key={c.id} className="admin-course-row">
-                  <div className="course-icon gray-2"><BookOpen size={20} /></div>
-                  <div><strong>{c.title}</strong><small>{c.modules.length} {t.modulesLabel} · {assignment?.is_mandatory ? t.mandatory : t.optional} · {assignment?.priority ?? t.medium}</small></div>
-                  <div className="admin-course-actions">
-                    <button className="icon-button" onClick={() => assignment && setDeleteConfirm(assignment.id)}><Trash2 size={16} /></button>
-                  </div>
-                </div>
-              );
-            })}</div>}
-          </article>
-        );
-      })}</div>}
+        {selectedRole && <article className="docs-article">
+          <div className="section-title" style={{ marginBottom: 12 }}>
+            <div><h3>{selectedRole.name}</h3>{selectedDept && <p>{selectedDept}</p>}</div>
+          </div>
+          {roleCourses.length === 0 ? <p className="muted">{t.noCourses}</p> : <div className="admin-list-stack">{roleCourses.map((c) => {
+            const assignment = c.assignments.find((a) => a.job_role_id === selectedRole.id);
+            return (
+              <div key={c.id} className="admin-course-row">
+                <div className="course-icon gray-2"><BookOpen size={20} /></div>
+                <div><strong>{c.title}</strong><small>{c.modules.length} {t.modulesLabel} · {assignment?.is_mandatory ? t.mandatory : t.optional} · {assignment?.priority ?? t.medium}</small></div>
+              </div>
+            );
+          })}</div>}
+        </article>}
+      </>}
     </div>
   );
 }
