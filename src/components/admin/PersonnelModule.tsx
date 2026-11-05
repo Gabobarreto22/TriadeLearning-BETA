@@ -77,23 +77,30 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
           <p className="muted">{team.length} {t.users} · {jobRoles.length} {t.jobRole.toLowerCase()}s · {departments.length} {t.department.toLowerCase()}s</p>
         </div>
       </div>
-      <div className="admin-tabs">
-        {tabs.map((tabItem) => {
-          const Icon = tabItem.icon;
-          return (
-            <button key={tabItem.key} className={tab === tabItem.key ? 'admin-tab active' : 'admin-tab'} onClick={() => setTab(tabItem.key)}>
-              <Icon size={16} /> {tabItem.label}
-            </button>
-          );
-        })}
-      </div>
-      <div className="admin-tab-content">
+      <div className="docs-layout">
+        <aside className="docs-sidebar">
+          <nav className="docs-nav">
+            {tabs.map((tabItem) => {
+              const Icon = tabItem.icon;
+              const active = tab === tabItem.key;
+              return (
+                <button key={tabItem.key} className={active ? 'docs-nav-item active' : 'docs-nav-item'} onClick={() => setTab(tabItem.key)}>
+                  <Icon size={15} />
+                  <span>{tabItem.label}</span>
+                  {active && <ChevronRight size={14} />}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+        <div className="docs-content admin-tab-content">
         {tab === 'employees' && <EmployeesTab t={t} team={team.filter((m) => m.role === 'employee')} jobRoles={jobRoles} departments={departments} onRefresh={onRefresh} />}
         {tab === 'admins' && <AdminsTab t={t} team={team.filter((m) => m.role === 'admin')} onRefresh={onRefresh} />}
         {tab === 'departments' && <DepartmentsTab t={t} departments={departments} onRefresh={onRefresh} />}
         {tab === 'roles' && <RolesTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
         {tab === 'history' && <HistoryTab t={t} team={team} jobRoles={jobRoles} departments={departments} />}
         {tab === 'requirements' && <RequirementsTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
+        </div>
       </div>
     </div>
   );
