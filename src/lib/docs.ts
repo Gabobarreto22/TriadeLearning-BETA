@@ -6,7 +6,30 @@ export type DocVisual =
   | 'course-list'
   | 'feedback-list'
   | 'pass-rate'
-  | 'completion-bar';
+  | 'completion-bar'
+  | 'employee-form'
+  | 'department-list'
+  | 'role-assignment'
+  | 'history-timeline'
+  | 'requirements-table'
+  | 'course-editor-tabs'
+  | 'module-types'
+  | 'exam-question-form'
+  | 'assignment-form'
+  | 'prerequisite-chain'
+  | 'certificate-card'
+  | 'role-cert-badge'
+  | 'feedback-form'
+  | 'rating-breakdown'
+  | 'notification-types'
+  | 'notification-form'
+  | 'compliance-chart'
+  | 'progress-table'
+  | 'export-buttons'
+  | 'settings-categories'
+  | 'branding-preview'
+  | 'audit-log-table'
+  | 'action-types';
 
 export type DocSection = {
   id: string;
@@ -41,7 +64,7 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Cómo se calcula la completación promedio',
-        body: 'El porcentaje de "Completación promedio" representa qué tan avanzada está toda la organización en sus cursos. Se calcula dividiendo los módulos marcados como completados entre el total de módulos asignados a todos los empleados, y multiplicando por 100. Este número te da una idea general del progreso de aprendizaje de toda la empresa.',
+        body: 'El porcentaje de "Completación promedio" representa qué tan avanzada está toda la organización en sus cursos asignados. Se calcula promediando el porcentaje de progreso de cada asignación activa (excluyendo las canceladas y exentas). Cada asignación tiene un campo de progreso que refleja cuántos módulos del curso ha completado el empleado. Este número te da una idea general del avance de aprendizaje de toda la empresa.',
         visual: 'completion-bar',
         example: 'Si en toda la organización hay 200 módulos asignados y los empleados han completado 130, el cálculo es: 130 ÷ 200 × 100 = 65%. La tarjeta mostrará "65%".',
       },
@@ -78,30 +101,48 @@ export const docSections: DocSection[] = [
     sections: [
       {
         heading: 'Pestaña Empleados',
-        body: 'Aquí ves y gestionas todos los empleados del sistema. Puedes crear nuevos usuarios con nombre, correo, contraseña, cargo y departamento. También puedes editar sus datos, cambiar su cargo (lo que genera un registro en el historial), activarlos o desactivarlos, y eliminarlos.',
+        body: 'Aquí ves y gestionas todos los empleados del sistema. Puedes crear nuevos usuarios con nombre, correo, contraseña, cargo y departamento. También puedes editar sus datos, cambiar su cargo (lo que genera un registro en el historial), activarlos o desactivarlos, y eliminarlos. La lista muestra el nombre, correo, cargo, departamento y estado (activo/inactivo) de cada empleado. Usa el buscador para encontrar rápidamente a una persona por su nombre o correo.',
+        visual: 'employee-form',
         example: 'Para crear un empleado: haz clic en "Nuevo usuario", completa el formulario con nombre, correo y contraseña, selecciona su cargo y departamento, y guarda. El empleado podrá iniciar sesión inmediatamente.',
       },
       {
         heading: 'Pestaña Administradores',
-        body: 'Los administradores tienen acceso completo al panel de administración. Puedes crear nuevos administradores con los mismos campos que un empleado, pero asignándoles el rol de administrador.',
+        body: 'Los administradores tienen acceso completo al panel de administración. Puedes crear nuevos administradores con los mismos campos que un empleado, pero asignándoles el rol de administrador. Ten precaución: un administrador puede crear, editar y eliminar cursos, usuarios, cargos, insignias y configuraciones del sistema. Solo crea administradores para personas que realmente necesitan este acceso.',
+        example: 'Creas un administrador para el jefe de capacitación, quien necesita gestionar cursos y personal. Le asignas el rol "Administrador" en lugar de "Empleado".',
       },
       {
         heading: 'Pestaña Departamentos',
-        body: 'Los departamentos agrupan cargos y personas. Cada departamento tiene un nombre, un código y una descripción. Puedes crear, editar y eliminar departamentos.',
+        body: 'Los departamentos agrupan cargos y personas. Cada departamento tiene un nombre, un código corto y una descripción. Puedes crear, editar y eliminar departamentos. Los departamentos te ayudan a organizar la estructura de la organización y a filtrar empleados al momento de gestionar asignaciones o reportes.',
+        visual: 'department-list',
         example: 'Departamento "Operaciones" con código "OPS" agrupa los cargos relacionados con mantenimiento y producción.',
       },
       {
         heading: 'Pestaña Cargos',
-        body: 'Los cargos definen qué cursos debe completar cada empleado. Cada cargo tiene nombre y descripción. Al asignar cursos a un cargo, todos los empleados con ese cargo recibieron automáticamente las asignaciones.',
-        example: 'El cargo "Técnico de Mantenimiento" tiene asignados los cursos de Seguridad Industrial, Mantenimiento Preventivo y Emergencias.',
+        body: 'Los cargos definen qué cursos debe completar cada empleado. Cada cargo tiene nombre y descripción. Al asignar cursos a un cargo, todos los empleados con ese cargo recibieron automáticamente las asignaciones. Esto significa que si cambias las asignaciones de un cargo, el cambio se refleja inmediatamente en todos los empleados que tienen ese cargo.',
+        visual: 'role-assignment',
+        example: 'El cargo "Técnico de Mantenimiento" tiene asignados los cursos de Seguridad Industrial (prioridad alta), Mantenimiento Preventivo (prioridad media) y Emergencias (prioridad crítica).',
       },
       {
-        heading: 'Pestaña Historial',
-        body: 'Muestra el historial de cambios de cargo de cada empleado: fecha de inicio, fecha de fin, cargo anterior y razón del cambio. Esto permite trazar la trayectoria de cada persona en la organización.',
+        heading: 'Pestaña Historial de cargos',
+        body: 'Muestra el historial de cambios de cargo de cada empleado: fecha de inicio, fecha de fin, cargo anterior y razón del cambio. Cada vez que cambias el cargo de un empleado desde la pestaña Empleados, se genera automáticamente un registro en el historial. Esto permite trazar la trayectoria de cada persona en la organización y mantener un registro auditable.',
+        visual: 'history-timeline',
+        example: 'Un empleado entró como "Aprendiz" el 01/03/2025, fue ascendido a "Operador Junior" el 15/06/2025, y luego a "Técnico de Mantenimiento" el 01/01/2026. El historial muestra las tres etapas con sus fechas y razones.',
       },
       {
         heading: 'Pestaña Requisitos por cargo',
-        body: 'Muestra qué cursos están asignados a cada cargo y permite gestionar esas asignaciones: agregar cursos, quitarlos, definir prioridad, obligatoriedad y días límite de completación.',
+        body: 'Muestra qué cursos están asignados a cada cargo y permite gestionar esas asignaciones: agregar cursos, quitarlos, definir prioridad (baja, media, alta, crítica), obligatoriedad (sí/no) y días límite de completación. Esta pestaña es el corazón del sistema de asignaciones: desde aquí controlas qué debe aprender cada cargo y con qué urgencia.',
+        visual: 'requirements-table',
+        example: 'Para el cargo "Técnico de Mantenimiento": Seguridad Industrial es obligatorio, prioridad alta, 30 días de plazo. Gas Lift Básico es opcional, prioridad baja, 90 días de plazo.',
+      },
+      {
+        heading: 'Activar y desactivar empleados',
+        body: 'Un empleado inactivo no puede iniciar sesión, pero sus datos y progreso se conservan. Esto es útil cuando alguien se va de la organización temporalmente (licencia, vacaciones extendidas) y vas a reactivarlo después. Si eliminas un empleado, sus datos se borran permanentemente, incluyendo su progreso, certificados e insignias. Usa la eliminación con precaución.',
+        example: 'Un empleado pide licencia por 3 meses. En lugar de eliminarlo, lo desactivas. Cuando regrese, lo reactivas y todo su progreso sigue intacto.',
+      },
+      {
+        heading: 'Buenas prácticas de gestión de personal',
+        body: 'Recomendaciones: (1) Crea los departamentos antes de crear los cargos, y los cargos antes de crear los empleados. (2) Asigna cursos a los cargos, no a empleados individuales, para que el sistema escale automáticamente. (3) Usa la pestaña Requisitos por cargo para gestionar asignaciones masivas en lugar de asignar curso por curso. (4) Revisa el historial de cargos periódicamente para verificar que las trayectorias estén actualizadas.',
+        example: 'Antes de incorporar 20 empleados nuevos, creas el departamento "Producción", luego el cargo "Operador", le asignas 3 cursos, y luego creas los 20 empleados con ese cargo. Los 20 reciben automáticamente los 3 cursos.',
       },
     ],
   },
@@ -113,17 +154,31 @@ export const docSections: DocSection[] = [
     sections: [
       {
         heading: 'Crear un curso',
-        body: 'Haz clic en "Nuevo curso" para abrir el editor. Completa el título, descripción, categoría, duración, URL de imagen, ícono y color de acento. El curso se guarda y luego puedes agregarle contenido en las pestañas del editor.',
+        body: 'Haz clic en "Nuevo curso" para abrir el editor. Completa el título, descripción, categoría, duración, URL de imagen, ícono y color de acento. El color de acento se usa en el catálogo del empleado para identificar visualmente el curso. El ícono aparece en la tarjeta del curso y en la barra lateral del reproductor. El curso se guarda y luego puedes agregarle contenido en las pestañas del editor.',
+        visual: 'course-editor-tabs',
         example: 'Curso "Seguridad Industrial Básica", categoría "Seguridad", duración "2 horas", ícono "shield", color de acento "blue".',
+      },
+      {
+        heading: 'Pestaña Información',
+        body: 'Aquí editas los datos básicos del curso: título, descripción, categoría, duración estimada, URL de la imagen de portada, ícono y color de acento. La imagen de portada se muestra en el catálogo del empleado. Si no pones una URL de imagen, el curso usa una imagen por defecto. La descripción aparece debajo del título en el catálogo.',
+        example: 'Pones una imagen de un casco de seguridad como portada del curso "Seguridad Industrial Básica" para que los empleados lo identifiquen rápidamente.',
       },
       {
         heading: 'Pestaña Módulos (con recursos)',
         body: 'Cada curso puede tener múltiples módulos en orden secuencial. Los tipos de módulo disponibles son: texto (lectura), imagen/infografía, video (YouTube, Vimeo o archivo subido), PDF y presentación PowerPoint. Cada módulo tiene título, duración y contenido. Los recursos (archivos descargables como PDFs, presentaciones o enlaces) se agregan directamente dentro de cada módulo al que pertenecen, ya no existen como una pestaña separada. Los módulos se desbloquean secuencialmente: el empleado debe completar uno para acceder al siguiente.',
+        visual: 'module-types',
         example: 'Un curso puede tener: 1) Módulo de texto "Introducción" con un PDF adjunto "Guía rápida", 2) Módulo de video "Demostración" con una presentación PowerPoint descargable, 3) Módulo PDF "Manual de procedimientos".',
       },
       {
+        heading: 'Orden de los módulos',
+        body: 'Los módulos se numeran automáticamente según el orden en que los creas. Puedes reordenarlos cambiando su posición en la lista. El orden es importante porque los módulos se desbloquean secuencialmente: el empleado debe completar el módulo 1 para acceder al módulo 2, y así sucesivamente. Asegúrate de que el orden tenga sentido pedagógico: primero lo básico, luego lo intermedio, y al final lo avanzado.',
+        example: 'En un curso de Seguridad, el orden correcto sería: 1) Conceptos básicos (texto), 2) Uso de EPP (video), 3) Procedimientos (PDF), 4) Casos prácticos (infografía).',
+      },
+      {
         heading: 'Pestaña Exámenes',
-        body: 'Crea preguntas de selección múltiple para evaluar el conocimiento. Cada pregunta tiene un enunciado, opciones (una por línea), el índice de la respuesta correcta, una explicación, nivel de dificultad y puntos. Las preguntas pueden estar asociadas al curso completo o a un módulo específico.',
+        body: 'Crea preguntas de selección múltiple para evaluar el conocimiento. Cada pregunta tiene un enunciado, opciones (una por línea), el índice de la respuesta correcta, una explicación que se muestra después de responder, nivel de dificultad (fácil, media, difícil) y puntos. Las preguntas pueden estar asociadas al curso completo o a un módulo específico. Las preguntas de módulo se presentan al final de cada módulo; las del curso se presentan en la prueba de aprobación final.',
+        visual: 'exam-question-form',
+        example: 'Pregunta: "¿Qué significa EPP?" con 3 opciones, índice correcto 0, dificultad fácil, 10 puntos.',
       },
       {
         heading: '¿Cómo funciona el índice de la respuesta correcta?',
@@ -132,12 +187,15 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Pestaña Asignaciones',
-        body: 'Asigna el curso a uno o varios cargos. Define si es obligatorio, la prioridad (baja, media, alta, crítica) y los días límite para completación. Todos los empleados con ese cargo recibirán la asignación automáticamente.',
+        body: 'Asigna el curso a uno o varios cargos. Define si es obligatorio (el empleado debe completarlo sí o sí) u opcional, la prioridad (baja, media, alta, crítica) y los días límite para completación. Todos los empleados con ese cargo recibirán la asignación automáticamente en el momento que guardes. Si ya hay empleados con ese cargo, verán el curso aparecer en su catálogo inmediatamente.',
+        visual: 'assignment-form',
         example: 'Asignar "Seguridad Industrial" al cargo "Técnico de Mantenimiento" como obligatorio, prioridad alta, 30 días de plazo.',
       },
       {
         heading: 'Pestaña Prerrequisitos',
-        body: 'Define qué cursos deben completarse antes de poder acceder a este. Los prerrequisitos pueden ser obligatorios (el curso no se desbloquea hasta completarlos) u opcionales.',
+        body: 'Define qué cursos deben completarse antes de poder acceder a este. Los prerrequisitos pueden ser obligatorios (el curso no se desbloquea hasta completarlos) u opcionales. Esto te permite crear rutas de aprendizaje estructuradas: el empleado no puede saltar a un curso avanzado sin antes haber aprobado los básicos. El sistema bloquea automáticamente el acceso al curso hasta que se cumplan los prerrequisitos obligatorios.',
+        visual: 'prerequisite-chain',
+        example: 'El curso "Gas Lift Avanzado" tiene como prerrequisito obligatorio "Mantenimiento Preventivo". Un empleado nuevo no puede abrir "Gas Lift Avanzado" hasta haber aprobado "Mantenimiento Preventivo".',
       },
     ],
   },
@@ -148,13 +206,31 @@ export const docSections: DocSection[] = [
     summary: 'Visualiza certificados emitidos por completación de cursos y certificaciones de cargo de los empleados.',
     sections: [
       {
-        heading: 'Certificados de cursos',
-        body: 'Cuando un empleado completa un curso y aprueba el examen final con al menos 90%, se genera automáticamente un certificado con un número único, fecha de emisión y fecha de vencimiento. Aquí puedes ver todos los certificados emitidos, a quién pertenecen y qué curso completaron.',
-        example: 'Certificado TRIADE-SEG101-2026-001 emitido a "Empleado de Prueba" por completar "Seguridad Industrial Básica".',
+        heading: '¿Qué son los certificados de cursos?',
+        body: 'Cuando un empleado completa un curso y aprueba el examen final con al menos 90%, se genera automáticamente un certificado con un número único, fecha de emisión y fecha de vencimiento. El certificado incluye el nombre del empleado, el título del curso completado, el número de certificado (formato TRIADE-XXX-AAAA-NNN) y las fechas. Aquí puedes ver todos los certificados emitidos, a quién pertenecen y qué curso completaron.',
+        visual: 'certificate-card',
+        example: 'Certificado TRIADE-SEG101-2026-001 emitido a "Empleado de Prueba" por completar "Seguridad Industrial Básica" el 15/09/2026.',
+      },
+      {
+        heading: 'Número de certificado',
+        body: 'Cada certificado tiene un número único generado automáticamente con el formato TRIADE-[código de curso]-[año]-[secuencia]. Este número es inmutable y sirve para verificar la autenticidad del certificado. Si necesitas verificar que un certificado presentado por un empleado es válido, puedes buscarlo por su número en esta sección.',
+        example: 'Un empleado te presenta un certificado con el número TRIADE-SEG101-2026-001. Lo buscas en el sistema y confirmas que fue emitido el 15/09/2026.',
       },
       {
         heading: 'Certificaciones de cargo',
-        body: 'Una certificación de cargo valida que un empleado ha completado todos los cursos requeridos para su posición. Muestra la fecha de certificación, la fecha de vencimiento y si está vigente o expirada.',
+        body: 'Una certificación de cargo valida que un empleado ha completado todos los cursos requeridos para su posición. A diferencia del certificado de curso (que se emite por cada curso aprobado), la certificación de cargo se obtiene cuando el empleado completa TODOS los cursos asignados a su cargo. Muestra la fecha de certificación, la fecha de vencimiento y si está vigente (verde) o expirada (rojo).',
+        visual: 'role-cert-badge',
+        example: 'El cargo "Técnico de Mantenimiento" requiere 3 cursos. Juan Pérez completa los 3 y obtiene la certificación de cargo. María Gómez tiene 2 de 3, así que su certificación está expirada.',
+      },
+      {
+        heading: 'Vigencia y vencimiento',
+        body: 'Tanto los certificados de curso como las certificaciones de cargo tienen una fecha de vencimiento. Cuando un certificado está por vencer, el sistema envía automáticamente una notificación al empleado. Las certificaciones expiradas aparecen en rojo. Si un empleado cambia de cargo, sus certificaciones del cargo anterior pueden quedar obsoletas y necesitará completar los nuevos cursos requeridos.',
+        example: 'La certificación de cargo de Carlos expira el 01/12/2026. En noviembre, el sistema le envía una notificación de vencimiento próximo para que se prepare.',
+      },
+      {
+        heading: 'Cómo usar esta sección',
+        body: 'Esta sección es de solo lectura: no puedes crear certificados manualmente, ya que se generan automáticamente cuando se cumple la condición (aprobar el examen final con 90%). Usa esta pantalla para: (1) verificar que los certificados se estén emitiendo correctamente, (2) buscar certificados por empleado o por número, (3) identificar empleados con certificaciones por vencer, y (4) exportar listados de certificados para auditorías.',
+        example: 'Antes de una auditoría externa, exportas la lista de certificados de curso emitidos en el último trimestre para comprobar que el personal está capacitado.',
       },
     ],
   },
@@ -166,12 +242,30 @@ export const docSections: DocSection[] = [
     sections: [
       {
         heading: '¿Qué es el Feedback?',
-        body: 'Después de completar un curso, los empleados pueden dejar una calificación de 1 a 5 estrellas, un comentario escrito, si recomendarían el curso, si el tiempo fue adecuado y el nivel de dificultad percibido. Toda esta información se centraliza aquí.',
+        body: 'Después de aprobar la prueba de aprobación de un curso, los empleados pueden dejar una calificación de 1 a 5 estrellas, un comentario escrito, si recomendarían el curso (sí o no), si el tiempo fue adecuado (sí o no) y el nivel de dificultad percibido (muy fácil, fácil, medio, difícil, muy difícil). Toda esta información se centraliza aquí y te permite evaluar la calidad de tus cursos desde la perspectiva de quienes los tomaron.',
+        visual: 'feedback-form',
         example: 'Un empleado califica "Mantenimiento Preventivo" con 4 estrellas, comenta "Muy útil", marca que lo recomendaría y que la dificultad fue media.',
       },
       {
+        heading: 'Desglose de calificaciones',
+        body: 'En la parte superior de la sección verás un desglose de cuántas calificaciones hay de cada nivel (5★, 4★, 3★, 2★, 1★) con barras visuales, y el promedio general. Este desglose te dice de un vistazo si tus cursos están siendo bien recibidos. Un promedio alto (4-5 estrellas) indica satisfacción; un promedio bajo (1-3 estrellas) indica que algo necesita mejorar.',
+        visual: 'rating-breakdown',
+        example: 'El curso "Seguridad Industrial" tiene 12 calificaciones de 5★, 5 de 4★, 2 de 3★, 1 de 2★ y 0 de 1★. Promedio: 4.4 estrellas. Curso bien evaluado.',
+      },
+      {
+        heading: 'Cómo interpretar los comentarios',
+        body: 'Los comentarios escritos son la fuente más valiosa de información cualitativa. Lee cada comentario con atención: los que dicen "muy útil" o "bien explicado" indican fortalezas del curso. Los que dicen "muy largo", "confuso" o "faltan ejemplos" indican áreas de mejora. Agrupa los comentarios por tema para identificar patrones: si varios empleados dicen que un módulo es confuso, es una señal clara de que ese módulo necesita reescribirse.',
+        example: 'Tres empleados comentan que el módulo de "Procedimientos de emergencia" es confuso. Revisas el módulo y descubres que las instrucciones están en un orden incorrecto. Lo reorganizas y el feedback mejora.',
+      },
+      {
+        heading: 'Indicadores de dificultad y tiempo',
+        body: 'Además de las estrellas, el feedback incluye dos indicadores clave: (1) Dificultad percibida: si muchos marcan "muy difícil", el curso puede necesitar más material de apoyo o prerrequisitos. Si marcan "muy fácil", puede ser muy básico. (2) Tiempo adecuado: si marcan que el tiempo no fue adecuado, revisa la duración estimada del curso o la cantidad de módulos.',
+        example: 'El 80% de los empleados marca que "Gas Lift Avanzado" es "muy difícil". Decides agregar un módulo de repaso de conceptos básicos al principio del curso.',
+      },
+      {
         heading: 'Cómo usar esta información',
-        body: 'El feedback te permite identificar cursos que necesitan mejoras (calificaciones bajas), cursos muy difíciles (dificultad alta) o problemas de tiempo (tiempo inadecuado). La calificación promedio se muestra en la parte superior.',
+        body: 'El feedback te permite identificar cursos que necesitan mejoras (calificaciones bajas), cursos muy difíciles (dificultad alta) o problemas de tiempo (tiempo inadecuado). La calificación promedio se muestra en la parte superior. Te recomendamos revisar el feedback semanalmente y priorizar las mejoras en los cursos con peor evaluación. También celebra los cursos con buena evaluación: comparte los resultados con los instructores o creadores de contenido.',
+        example: 'Revisas el feedback semanal y notas que "Emergencias" bajó de 4.5 a 3.2 estrellas. Lees los comentarios y descubres que un video ya no carga. Lo reemplazas y el feedback recupera su nivel.',
       },
     ],
   },
@@ -182,13 +276,31 @@ export const docSections: DocSection[] = [
     summary: 'Envía notificaciones a empleados: recordatorios de cursos, avisos de vencimientos, felicitaciones por logros.',
     sections: [
       {
-        heading: 'Crear una notificación',
-        body: 'Puedes crear notificaciones manuales para enviar a cualquier empleado. Define el tipo (información, advertencia, éxito, error, recordatorio), el título, el mensaje y el destinatario. La notificación aparece en el panel del empleado.',
+        heading: 'Tipos de notificación',
+        body: 'El sistema maneja 5 tipos de notificación, cada uno con un ícono y color distinto para que el empleado identifique rápidamente su importancia: Información (azul, avisos generales), Advertencia (amarillo, alertas importantes), Éxito (verde, logros completados), Error (rojo, problemas detectados) y Recordatorio (morado, plazos pendientes). Elige el tipo adecuado para que el empleado priorice correctamente.',
+        visual: 'notification-types',
+        example: 'Usas "Recordatorio" para avisar de un curso pendiente, "Éxito" para felicitar por un certificado obtenido, "Advertencia" para un curso que vence pronto.',
+      },
+      {
+        heading: 'Crear una notificación manual',
+        body: 'Puedes crear notificaciones manuales para enviar a cualquier empleado. Define el tipo, el título, el mensaje y el destinatario. La notificación aparece en el panel del empleado inmediatamente. El título debe ser corto y claro (máximo 50 caracteres recomendado). El mensaje puede ser más extenso y debe incluir toda la información necesaria para que el empleado sepa qué hacer.',
+        visual: 'notification-form',
         example: 'Notificación tipo "recordatorio" con título "Curso pendiente" y mensaje "Tienes 15 días para completar el curso de Emergencias".',
       },
       {
         heading: 'Notificaciones automáticas',
-        body: 'El sistema genera notificaciones automáticamente cuando un empleado completa un curso, obtiene un certificado, o cuando un curso está por vencer. Estas notificaciones no necesitan ser creadas manualmente.',
+        body: 'El sistema genera notificaciones automáticamente cuando un empleado completa un curso, obtiene un certificado, gana una insignia, o cuando un curso está por vencer. Estas notificaciones no necesitan ser creadas manualmente. Las notificaciones automáticas aparecen en el panel del empleado de la misma forma que las manuales, pero con el tipo "Éxito" o "Recordatorio" según corresponda.',
+        example: 'Un empleado aprueba el examen de "Seguridad Industrial" con 92%. El sistema le envía automáticamente una notificación de tipo "Éxito" con el título "¡Felicidades! Has aprobado".',
+      },
+      {
+        heading: 'Gestión de notificaciones enviadas',
+        body: 'En esta sección puedes ver todas las notificaciones enviadas, tanto manuales como automáticas. Para cada notificación se muestra el destinatario, el tipo, el título, el estado (leída o no leída) y la fecha de envío. Puedes eliminar notificaciones si fueron enviadas por error o si contienen información incorrecta. Esto elimina la notificación del panel del empleado.',
+        example: 'Enviaste una notificación con un título equivocado. La buscas en la lista, la eliminas y creas una nueva con el título correcto.',
+      },
+      {
+        heading: 'Buenas prácticas',
+        body: 'No satures a los empleados con demasiadas notificaciones. Usa prioridades: (1) Recordatorios de vencimiento: envíalos 15 días antes del plazo. (2) Felicitaciones: envíalas inmediatamente después del logro. (3) Avisos generales: agrúpalos y envía uno por semana si es posible. Si un empleado recibe 10 notificaciones por día, dejará de leerlas. La moderación es clave para que las notificaciones sigan siendo efectivas.',
+        example: 'En lugar de enviar 5 notificaciones individuales sobre cursos pendientes, esperas a fin de semana y envías una sola notificación de tipo "Recordatorio" por empleado, listando todos sus cursos pendientes.',
       },
     ],
   },
@@ -200,20 +312,36 @@ export const docSections: DocSection[] = [
     sections: [
       {
         heading: 'Reporte de cumplimiento por cargo',
-        body: 'Muestra qué porcentaje de empleados en cada cargo han completado los cursos asignados. Útil para identificar cargos con bajo cumplimiento y tomar acciones.',
-        example: 'Cargo "Técnico de Mantenimiento": 1 de 3 cursos completados en promedio, 33% de cumplimiento.',
+        body: 'Muestra qué porcentaje de empleados en cada cargo han completado los cursos asignados. Cada cargo aparece con una barra de progreso que indica el nivel de cumplimiento. Útil para identificar cargos con bajo cumplimiento y tomar acciones, como enviar recordatorios o ajustar las asignaciones. Los colores indican el nivel: verde (alto cumplimiento), amarillo (medio), rojo (bajo).',
+        visual: 'compliance-chart',
+        example: 'Cargo "Técnico de Mantenimiento": 85% de cumplimiento (verde). Cargo "Aprendiz": 15% de cumplimiento (rojo). Decides enviar recordatorios a los aprendices.',
       },
       {
         heading: 'Reporte de progreso individual',
-        body: 'Muestra el progreso de cada empleado: cuántos módulos ha completado, en qué cursos está trabajando, su porcentaje de avance y los exámenes rendidos.',
+        body: 'Muestra el progreso de cada empleado en una tabla: nombre, curso asignado, porcentaje de avance (con barra visual), estado (pendiente, en progreso, completado, vencido) y último acceso. Puedes filtrar por cargo, departamento o estado. Este reporte te permite ver exactamente en qué punto está cada persona y quién necesita atención.',
+        visual: 'progress-table',
+        example: 'Ves que Juan Pérez está al 80% de "Seguridad Industrial" (en progreso), María Gómez completó "Mantenimiento Preventivo" (100%), y Carlos Ruiz no ha empezado "Emergencias" (pendiente).',
       },
       {
         heading: 'Reporte de exámenes',
-        body: 'Estadísticas de todos los exámenes: total de intentos, tasa de aprobación, puntaje promedio, exámenes aprobados vs reprobados.',
+        body: 'Estadísticas de todos los exámenes: total de intentos, tasa de aprobación, puntaje promedio, exámenes aprobados vs reprobados. Te permite ver qué tan difíciles son tus exámenes. Si la tasa de aprobación de un examen es muy baja, revisa las preguntas: puede que estén mal redactadas o que el contenido del curso no prepare adecuadamente a los empleados.',
+        example: 'El examen de "Gas Lift Avanzado" tiene una tasa de aprobación de 40%. Revisas las preguntas y notas que 3 de ellas son ambiguas. Las reescribes y la tasa sube a 75%.',
       },
       {
-        heading: 'Exportación',
-        body: 'Los reportes pueden exportarse en formato Excel, PDF o CSV para compartir o archivar.',
+        heading: 'Reporte de feedback',
+        body: 'Consolida todas las calificaciones y comentarios de los empleados sobre los cursos completados. Muestra el promedio de estrellas por curso, cuántos lo recomendarían y la dificultad percibida. Este reporte complementa al módulo de Feedback pero con un enfoque más analítico: te permite comparar cursos entre sí.',
+        example: 'Comparas dos cursos: "Seguridad Industrial" tiene 4.5 estrellas y "Emergencias" tiene 3.2. Decides revisar y mejorar el contenido de "Emergencias".',
+      },
+      {
+        heading: 'Exportación de reportes',
+        body: 'Los reportes pueden exportarse en formato Excel, PDF o CSV para compartir o archivar. La exportación genera un archivo con todos los datos visibles en el reporte. Excel es útil para análisis posterior (filtrar, ordenar, hacer gráficos). PDF es útil para presentaciones o auditorías. CSV es útil para importar a otros sistemas.',
+        visual: 'export-buttons',
+        example: 'Exportas el reporte de cumplimiento por cargo en PDF para presentarlo en la reunión mensual de gerencia. También lo exportas en Excel para que el equipo de RRHH lo analice.',
+      },
+      {
+        heading: 'Cuándo revisar los reportes',
+        body: 'Recomendamos revisar los reportes con una frecuencia regular: (1) Semanalmente: reporte de progreso individual para detectar empleados estancados. (2) Mensualmente: reporte de cumplimiento por cargo para identificar cargos con problemas. (3) Trimestralmente: reporte de exámenes y feedback para evaluar la calidad general de los cursos. Establece esta rutina para que los datos no se acumulen sin acción.',
+        example: 'Cada viernes revisas el progreso individual. Detectas que 5 empleados llevan 2 semanas sin avanzar en ningún curso y les envías un recordatorio.',
       },
     ],
   },
@@ -224,16 +352,31 @@ export const docSections: DocSection[] = [
     summary: 'Ajustes generales del sistema: branding, parámetros de evaluación, notificaciones automáticas y seguridad.',
     sections: [
       {
+        heading: 'Categorías de configuración',
+        body: 'El módulo de Configuración se divide en tres categorías: General (parámetros globales del sistema), Branding (personalización visual) y Seguridad (políticas de acceso). Cada categoría contiene una lista de ajustes que puedes editar. Los cambios se aplican inmediatamente a todo el sistema.',
+        visual: 'settings-categories',
+        example: 'Para cambiar el umbral de aprobación de exámenes, vas a la categoría "General" y editas el valor del parámetro correspondiente.',
+      },
+      {
         heading: 'Configuración general',
-        body: 'Parámetros globales del sistema como el nombre de la organización, el umbral de aprobación de exámenes (por defecto 90%), y otros valores que afectan a todo el sistema.',
+        body: 'Parámetros globales del sistema como el nombre de la organización, el umbral de aprobación de exámenes (por defecto 90%), y otros valores que afectan a todo el sistema. El umbral de aprobación es el porcentaje mínimo que un empleado debe obtener en un examen para aprobarlo. Si lo cambias, afecta a todos los exámenes futuros (los ya realizados no se ven afectados).',
+        visual: 'branding-preview',
+        example: 'Tu organización decide que el umbral de aprobación sea 80% en lugar de 90%. Lo cambias en Configuración General y a partir de ese momento, los empleados solo necesitan 80% para aprobar.',
       },
       {
         heading: 'Branding',
-        body: 'Personaliza la apariencia del sistema: logos, colores y otros elementos visuales que se muestran a los empleados.',
+        body: 'Personaliza la apariencia del sistema: logos, colores y otros elementos visuales que se muestran a los empleados. Puedes cambiar el logo que aparece en la esquina superior izquierda y en la página de inicio de sesión. Un branding consistente refuerza la identidad de la organización y hace que la plataforma se sienta propia, no como una herramienta externa.',
+        example: 'Subes el logo de tu empresa para que aparezca en la pantalla de inicio de sesión y en el panel de cada empleado, dando una sensación de plataforma corporativa.',
       },
       {
         heading: 'Seguridad',
-        body: 'Configura políticas de contraseñas, expiración de sesiones y otros aspectos de seguridad del sistema.',
+        body: 'Configura políticas de contraseñas (longitud mínima, complejidad), expiración de sesiones y otros aspectos de seguridad del sistema. Una política de contraseñas robusta protege contra accesos no autorizados. La expiración de sesiones cierra automáticamente la sesión de un empleado que ha estado inactivo, evitando que alguien use su equipo sin permiso.',
+        example: 'Configuras que las contraseñas deben tener mínimo 8 caracteres y que las sesiones expiren tras 30 minutos de inactividad.',
+      },
+      {
+        heading: 'Ajustes públicos vs privados',
+        body: 'Algunos ajustes son públicos (visibles para todos los empleados, como el nombre de la organización) y otros son privados (solo visibles para administradores, como las políticas de seguridad). Cada ajuste tiene un indicador "Público" que puedes activar o desactivar. Ten cuidado al hacer un ajuste privado público: si contiene información sensible, no debe ser visible para los empleados.',
+        example: 'El "nombre de la organización" es un ajuste público (los empleados lo ven). La "política de contraseñas" es un ajuste privado (solo los administradores lo ven).',
       },
     ],
   },
@@ -245,12 +388,30 @@ export const docSections: DocSection[] = [
     sections: [
       {
         heading: '¿Qué se registra?',
-        body: 'Cada vez que un administrador crea, edita o elimina un elemento (curso, usuario, cargo, asignación, insignia, etc.), se genera un registro de auditoría que incluye: el usuario que realizó la acción, el tipo de acción (CREATE, UPDATE, DELETE), el tipo de entidad afectada, los valores anteriores y nuevos, la fecha y hora, y la dirección IP.',
+        body: 'Cada vez que un administrador crea, edita o elimina un elemento (curso, usuario, cargo, asignación, insignia, etc.), se genera un registro de auditoría automático. El registro incluye: el usuario que realizó la acción, el tipo de acción (CREATE, UPDATE, DELETE), el tipo de entidad afectada (curso, usuario, cargo, etc.), los valores anteriores y nuevos (para que puedas ver qué cambió exactamente), la fecha y hora, y la dirección IP desde donde se realizó.',
+        visual: 'audit-log-table',
         example: 'Registro: Usuario "Administrador del Sistema" creó el curso "Seguridad Industrial Básica" el 04/09/2026 desde la IP 192.168.1.1.',
       },
       {
+        heading: 'Tipos de acciones registradas',
+        body: 'El sistema registra tres tipos de acciones: CREATE (creación de un elemento nuevo, como un curso o un usuario), UPDATE (edición de un elemento existente, como cambiar el título de un curso o el cargo de un empleado) y DELETE (eliminación de un elemento). Cada acción tiene un color distinto en la tabla para que las identifiques rápidamente: verde para CREATE, amarillo para UPDATE y rojo para DELETE.',
+        visual: 'action-types',
+        example: 'Un administrador crea un curso (CREATE, verde), luego edita su descripción (UPDATE, amarillo), y finalmente lo elimina por error (DELETE, rojo). Los tres registros quedan en el log.',
+      },
+      {
         heading: '¿Para qué sirve?',
-        body: 'El registro de auditoría permite mantener trazabilidad de todos los cambios en el sistema, cumplir con requisitos de compliance, investigar incidentes y verificar que los cambios fueron autorizados.',
+        body: 'El registro de auditoría permite mantener trazabilidad de todos los cambios en el sistema, cumplir con requisitos de compliance, investigar incidentes y verificar que los cambios fueron autorizados. Si algo sale mal (un curso fue eliminado, un usuario fue desactivado, una asignación fue modificada), el log te dice quién lo hizo, cuándo y qué valores cambiaron. Es tu herramienta de investigación principal.',
+        example: 'Descubres que un curso fue eliminado. Revisas el log de auditoría y ves que "Admin Sistema" hizo un DELETE el 05/09 a las 14:30. Hablas con esa persona y descubres que fue un error.',
+      },
+      {
+        heading: 'Cómo leer el log',
+        body: 'El log se muestra en orden cronológico inverso (lo más reciente primero). Cada fila muestra el usuario, la acción, la entidad afectada y la fecha. Si necesitas más detalle, puedes expandir la fila para ver los valores anteriores y nuevos. Usa los filtros para buscar por tipo de acción, tipo de entidad, usuario o rango de fechas. Si buscas un cambio específico, filtra por fecha y por el tipo de entidad que crees que fue afectado.',
+        example: 'Alguien cambió el cargo de un empleado sin avisar. Filtras el log por entidad "Perfil" o "Usuario" en la fecha del cambio y ves que el administrador X hizo un UPDATE al cargo del empleado Y.',
+      },
+      {
+        heading: 'Retención del log',
+        body: 'El log de auditoría se conserva indefinidamente. No hay un límite de tiempo: cada acción queda registrada para siempre. Esto es importante para auditorías externas o investigaciones que pueden surgir meses o años después. Si el log crece mucho, no te preocupes: el sistema está diseñado para manejar grandes volúmenes de registros sin afectar el rendimiento.',
+        example: 'Seis meses después, una auditoría externa pide ver quién creó los cursos de seguridad. Buscas en el log por entidad "Curso" y fecha de creación, y obtienes la lista completa.',
       },
     ],
   },
@@ -297,7 +458,7 @@ export const docSectionsEN: DocSection[] = [
       },
       {
         heading: 'How average completion is calculated',
-        body: 'The "Average completion" percentage represents how advanced the entire organization is in its courses. It is calculated by dividing the modules marked as completed by the total modules assigned to all employees, and multiplying by 100. This number gives you a general idea of the learning progress across the whole company.',
+        body: 'The "Average completion" percentage represents how advanced the entire organization is in its assigned courses. It is calculated by averaging the progress percentage of each active assignment (excluding cancelled and exempted ones). Each assignment has a progress field that reflects how many modules of the course the employee has completed. This number gives you a general idea of the learning progress across the whole company.',
         visual: 'completion-bar',
         example: 'If across the organization there are 200 assigned modules and employees have completed 130, the calculation is: 130 ÷ 200 × 100 = 65%. The card will show "65%".',
       },

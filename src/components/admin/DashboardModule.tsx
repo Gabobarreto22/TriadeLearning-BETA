@@ -16,8 +16,9 @@ export function DashboardModule({ t, data, onNavigate }: {
 }) {
   const { courses, team, jobRoles, certificates, badges, notifications, feedback, examAttempts } = data;
   const activeUsers = team.filter((u) => u.is_active).length;
-  const totalProgress = data.moduleProgress.length > 0
-    ? Math.round((data.moduleProgress.filter((p) => p.completed).length / data.moduleProgress.length) * 100)
+  const activeAssignments = data.userCourseReqs.filter((r) => r.status !== 'cancelled' && r.status !== 'exempted');
+  const totalProgress = activeAssignments.length > 0
+    ? Math.round(activeAssignments.reduce((sum, r) => sum + (r.progress_percent || 0), 0) / activeAssignments.length)
     : 0;
   const passRate = examAttempts.length > 0
     ? Math.round((examAttempts.filter((a) => a.passed).length / examAttempts.length) * 100)
