@@ -834,18 +834,22 @@ function RequirementsTab({ t, jobRoles, departments, courses }: {
       </div>
       {!selectedRole ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noRoles}</h3></div> :
        roleCourses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3></div> :
-      <PaginatedList items={roleCourses}>{(pageCourses) => <div className="timeline">{pageCourses.map((c) => {
-        const assignment = c.assignments.find((a) => a.job_role_id === selectedRole.id);
-        return (
-          <div key={c.id} className="timeline-item">
-            <div className={`timeline-dot ${assignment?.is_mandatory ? 'current' : ''}`} />
-            <div className="timeline-content">
-              <strong>{c.title}</strong>
-              <small>{c.modules.length} {t.modulesLabel} · {assignment?.is_mandatory ? t.mandatory : t.optional} · {assignment?.priority ?? t.medium}</small>
+      <PaginatedList items={roleCourses}>{(pageCourses) => <div className="docs-mock-table">
+        <div className="docs-mock-table-header">
+          <span>{t.courseCol}</span><span>{t.mandatory}</span><span>{t.priority}</span><span>{t.deadlineDays}</span>
+        </div>
+        {pageCourses.map((c) => {
+          const assignment = c.assignments.find((a) => a.job_role_id === selectedRole.id);
+          return (
+            <div key={c.id} className="docs-mock-table-row">
+              <span>{c.title}</span>
+              <span className={`docs-mock-badge ${assignment?.is_mandatory ? '' : 'no'}`}>{assignment?.is_mandatory ? 'Sí' : 'No'}</span>
+              <span className={`docs-mock-priority ${assignment?.priority ?? 'medium'}`}>{t[assignment?.priority ?? 'medium']}</span>
+              <span>{assignment?.completion_deadline_days ?? '—'}</span>
             </div>
-          </div>
-        );
-      })}</div>}</PaginatedList>}
+          );
+        })}
+      </div>}</PaginatedList>}
     </div>
   );
 }
