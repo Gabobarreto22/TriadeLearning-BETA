@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, Clock3, Download, FileText, History, Plus, Settings, ShieldCheck, Star, Trash2, Users, X, Zap, User } from 'lucide-react';
+import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, CheckCircle, ChevronRight, Clock3, Download, FileText, History, Lock, Plus, Settings, ShieldCheck, Star, Trash2, Users, X, Zap, User, Mail, TrendingUp, Info, AlertTriangle, BellRing, XCircle, PlayCircle, Image, Presentation, FileCheck, Calendar, Eye, Filter, Palette, ArrowRight, ArrowDown, Lock as LockIcon } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
 import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications, createNotification, deleteNotification, fetchAllFeedback, fetchBadges, createBadge, deleteBadge, fetchUserBadges, fetchSystemSettings, updateSystemSetting, createSystemSetting, fetchAuditLogs } from '@/lib/data';
 import { getIcon } from '@/lib/icons';
@@ -35,53 +33,195 @@ export function DashboardModule({ t, data, onNavigate }: {
     { icon: Bell, value: String(notifications.length), label: t.totalNotifications, tone: 'g4' },
   ];
 
-  const quickLinks: { label: string; icon: typeof BookOpen; view: AdminSection }[] = [
-    { label: t.courses, icon: BookOpen, view: 'courses' },
-    { label: t.personnel, icon: Users, view: 'personnel' },
-    { label: t.certifications, icon: Award, view: 'certifications' },
-    { label: t.reports, icon: BarChart3, view: 'reports' },
-    { label: t.notifications, icon: Bell, view: 'notifications' },
-    { label: t.settings, icon: Settings, view: 'settings' },
+  const quickLinks: { label: string; icon: typeof BookOpen; view: AdminSection; tone: string }[] = [
+    { label: t.courses, icon: BookOpen, view: 'courses', tone: 'g1' },
+    { label: t.personnel, icon: Users, view: 'personnel', tone: 'g2' },
+    { label: t.certifications, icon: Award, view: 'certifications', tone: 'g3' },
+    { label: t.reports, icon: BarChart3, view: 'reports', tone: 'g4' },
+    { label: t.notifications, icon: Bell, view: 'notifications', tone: 'g1' },
+    { label: t.settings, icon: Settings, view: 'settings', tone: 'g2' },
   ];
+
+  const progressTone = totalProgress >= 70 ? 'green' : totalProgress >= 40 ? 'blue' : 'orange';
+  const passTone = passRate >= 70 ? 'green' : passRate >= 40 ? 'blue' : 'orange';
 
   return (
     <div className="page animate-in">
-      <div className="page-heading"><div><p className="eyebrow">CENTRO DE CONTROL</p><h1>{t.dashboard}</h1><p className="muted">{t.adminIntro}</p></div></div>
-      <section className="stats-grid">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">CENTRO DE CONTROL</p>
+          <h1>{t.dashboard}</h1>
+          <p className="muted">{t.adminIntro}</p>
+        </div>
+      </div>
+
+      {/* Stats grid — docs-mock-stat style */}
+      <section className="dash-stats-grid">
         {stats.map((s, i) => {
           const Icon = s.icon;
-          return <div key={i} className="stat-card"><div className={`stat-icon ${s.tone}`}><Icon size={18} /></div><div><strong>{s.value}</strong><span>{s.label}</span></div><span className="stat-trend">↗</span></div>;
+          return (
+            <div key={i} className="dash-stat-card">
+              <div className={`dash-stat-icon ${s.tone}`}>
+                <Icon size={18} />
+              </div>
+              <div className="dash-stat-body">
+                <strong>{s.value}</strong>
+                <span>{s.label}</span>
+              </div>
+            </div>
+          );
         })}
       </section>
-      <div className="admin-dashboard-stack">
-        <div className="section-card admin-card-primary">
-          <div className="section-title"><div><h2>{t.recentActivity}</h2><p className="muted">{t.statsOverview}</p></div></div>
-          <div className="quick-links-grid">
+
+      <div className="dash-stack">
+        {/* Quick access — docs-mock-link style */}
+        <div className="dash-article">
+          <div className="dash-article-header">
+            <div className="dash-article-icon">
+              <Zap size={20} />
+            </div>
+            <div>
+              <h2>{t.recentActivity}</h2>
+              <p className="muted">{t.statsOverview}</p>
+            </div>
+          </div>
+          <div className="dash-quick-grid">
             {quickLinks.map((ql) => {
               const Icon = ql.icon;
-              return <button key={ql.view} className="quick-link-card" onClick={() => onNavigate(ql.view)}><Icon size={22} /><strong>{ql.label}</strong><span>{t.viewAll}</span></button>;
+              return (
+                <button
+                  key={ql.view}
+                  className="dash-quick-card"
+                  onClick={() => onNavigate(ql.view)}
+                >
+                  <div className={`dash-quick-icon ${ql.tone}`}>
+                    <Icon size={20} />
+                  </div>
+                  <strong>{ql.label}</strong>
+                  <span className="dash-quick-arrow">
+                    {t.viewAll} <ChevronRight size={13} />
+                  </span>
+                </button>
+              );
             })}
           </div>
         </div>
-        <div className="admin-two-up">
-          <div className="section-card">
-            <div className="section-title"><div><h2>{t.courses}</h2><p className="muted">{courses.length} {t.totalCourses.toLowerCase()}</p></div><button className="text-button" onClick={() => onNavigate('courses')}>{t.viewAll}</button></div>
-            {courses.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noCourses}</p> :
-             <div className="admin-list-stack">{courses.slice(0, 4).map((c) => {
-               const Icon = getIcon(c.icon_name);
-               return <div key={c.id} className="admin-course-row"><div className={`course-icon ${c.accent}`}><Icon size={20} /></div><div><strong>{c.title}</strong><small>{c.modules.length} {t.modulesLabel} · {c.assignments.length} {t.assignedRole}s</small></div></div>;
-             })}</div>}
+
+        {/* Completion + Pass rate visual bars */}
+        <div className="dash-metrics-row">
+          <div className="dash-article">
+            <div className="dash-metric-header">
+              <div className="dash-metric-icon g1">
+                <BarChart3 size={18} />
+              </div>
+              <span>{t.completion}</span>
+              <strong>{totalProgress}%</strong>
+            </div>
+            <div className="dash-bar-track">
+              <div
+                className={`dash-bar-fill ${progressTone}`}
+                style={{ width: `${totalProgress}%` }}
+              />
+            </div>
+            <div className="dash-metric-detail">
+              <div className="dash-metric-item">
+                <Check size={13} />
+                <span>{activeAssignments.length} asignaciones activas</span>
+              </div>
+            </div>
           </div>
-          <div className="section-card">
-            <div className="section-title"><div><h2>{t.feedback}</h2><p className="muted">{feedback.length} {t.totalFeedback.toLowerCase()}</p></div><button className="text-button" onClick={() => onNavigate('feedback')}>{t.viewAll}</button></div>
-            {feedback.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noFeedback}</p> :
-             feedback.slice(0, 5).map((f) => (
-               <div key={f.id} className="admin-team-row">
-                 <div className="avatar avatar-small">{f.user_course_requirement?.user?.full_name?.slice(0, 2).toUpperCase() ?? '??'}</div>
-                 <div><strong>{f.user_course_requirement?.user?.full_name ?? '—'}</strong><small>{f.user_course_requirement?.course?.title ?? '—'}</small></div>
-                 <span className="rating-badge">{'★'.repeat(f.rating)}</span>
-               </div>
-             ))}
+
+          <div className="dash-article">
+            <div className="dash-metric-header">
+              <div className="dash-metric-icon g2">
+                <Check size={18} />
+              </div>
+              <span>{t.passRate}</span>
+              <strong>{passRate}%</strong>
+            </div>
+            <div className="dash-bar-track">
+              <div
+                className={`dash-bar-fill ${passTone}`}
+                style={{ width: `${passRate}%` }}
+              />
+            </div>
+            <div className="dash-metric-detail">
+              <div className="dash-metric-item">
+                <TrendingUp size={13} />
+                <span>{examAttempts.filter((a) => a.passed).length}/{examAttempts.length} exámenes aprobados</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Two-up: courses + feedback — docs-mock-row style */}
+        <div className="dash-two-up">
+          <div className="dash-article">
+            <div className="dash-article-header">
+              <div className="dash-article-icon">
+                <BookOpen size={20} />
+              </div>
+              <div>
+                <h2>{t.courses}</h2>
+                <p className="muted">{courses.length} {t.totalCourses.toLowerCase()}</p>
+              </div>
+              <button className="dash-view-all" onClick={() => onNavigate('courses')}>
+                {t.viewAll} <ChevronRight size={13} />
+              </button>
+            </div>
+            {courses.length === 0 ? (
+              <p className="muted dash-empty">{t.noCourses}</p>
+            ) : (
+              <div className="dash-list">
+                {courses.slice(0, 4).map((c) => {
+                  const Icon = getIcon(c.icon_name);
+                  return (
+                    <div key={c.id} className="dash-list-row">
+                      <div className={`dash-list-icon ${c.accent || 'blue'}`}>
+                        <Icon size={16} />
+                      </div>
+                      <div className="dash-list-body">
+                        <strong>{c.title}</strong>
+                        <small>{c.modules.length} {t.modulesLabel} · {c.assignments.length} {t.assignedRole}s</small>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="dash-article">
+            <div className="dash-article-header">
+              <div className="dash-article-icon">
+                <Star size={20} />
+              </div>
+              <div>
+                <h2>{t.feedback}</h2>
+                <p className="muted">{feedback.length} {t.totalFeedback.toLowerCase()}</p>
+              </div>
+              <button className="dash-view-all" onClick={() => onNavigate('feedback')}>
+                {t.viewAll} <ChevronRight size={13} />
+              </button>
+            </div>
+            {feedback.length === 0 ? (
+              <p className="muted dash-empty">{t.noFeedback}</p>
+            ) : (
+              <div className="dash-list">
+                {feedback.slice(0, 5).map((f) => (
+                  <div key={f.id} className="dash-list-row">
+                    <div className="dash-avatar">
+                      {f.user_course_requirement?.user?.full_name?.slice(0, 2).toUpperCase() ?? '??'}
+                    </div>
+                    <div className="dash-list-body">
+                      <strong>{f.user_course_requirement?.user?.full_name ?? '—'}</strong>
+                      <small>{f.user_course_requirement?.course?.title ?? '—'}</small>
+                    </div>
+                    <span className="dash-stars">{'★'.repeat(f.rating)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
