@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Briefcase, Building2, ChevronRight, Clock3, History, Plus, Settings, ShieldCheck, Trash2, Users, X, AlertCircle, BookOpen, Check } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building2, Clock3, History, Plus, Settings, ShieldCheck, Trash2, Users, X, AlertCircle, BookOpen, Check } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type Department, type CourseWithRelations, type UserJobRoleHistory } from '@/lib/supabase';
 import { uploadToImageKit } from '@/lib/imagekit';
 import {
@@ -813,7 +813,7 @@ function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
   courses: CourseWithRelations[];
   onRefresh: () => void;
 }) {
-  const [selectedRoleId, setSelectedRoleId] = useState('');
+  const [assignRoleId, setAssignRoleId] = useState('');
   const [showAssign, setShowAssign] = useState(false);
   const [courseId, setCourseId] = useState('');
   const [isMandatory, setIsMandatory] = useState(true);
@@ -826,14 +826,12 @@ function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const selectedRole = jobRoles.find((r) => r.id === selectedRoleId);
-  const assignedCourses = courses.filter((c) => c.assignments.some((a) => a.job_role_id === selectedRoleId));
-  const unassignedCourses = courses.filter((c) => !c.assignments.some((a) => a.job_role_id === selectedRoleId));
+  const unassignedCourses = courses.filter((c) => !c.assignments.some((a) => a.job_role_id === assignRoleId));
 
   const handleAssign = async () => {
-    if (!courseId || !selectedRoleId) { setError(t.selectCourse); return; }
+    if (!courseId || !assignRoleId) { setError(t.selectCourse); return; }
     setSaving(true);
-    const { error: err } = await assignCourseToRole(courseId, selectedRoleId, isMandatory, priority, deadlineDays ? parseInt(deadlineDays) : null, parseInt(orderIndex) || 0);
+    const { error: err } = await assignCourseToRole(courseId, assignRoleId, isMandatory, priority, deadlineDays ? parseInt(deadlineDays) : null, parseInt(orderIndex) || 0);
     if (err) { setError(err); setSaving(false); return; }
     setSaving(false); setCourseId(''); setDeadlineDays(''); setOrderIndex('0'); setError(null); setShowAssign(false);
     toast('Curso asignado', 'success'); onRefresh();
@@ -841,21 +839,9 @@ function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
 
   return (
     <div className="section-card">
-      <div className="section-title">
-        <div><h2>{t.personnelTabs.requirements}</h2><p className="muted">{t.assignedCourses}</p></div>
-        {selectedRoleId && <button className="primary-button" style={{ minHeight: 40, padding: '10px 14px', fontSize: 11 }} onClick={() => setShowAssign(true)}><Plus size={16} />{t.assignCourse}</button>}
-      </div>
-      <div className="editor-grid" style={{ marginBottom: 16 }}>
-        <div className="field-group">
-          <label>{t.jobRole}</label>
-          <select className="auth-input" value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)}>
-            <option value="">{t.selectRole}</option>
-            {jobRoles.map((r) => {
-              const dept = departments.find((d) => d.id === r.department_id)?.name;
-              return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
-            })}
-          </select>
-        </div>
+      <div className="docs-header">
+        <div className="docs-header-icon"><ShieldCheck size={20} /></div>
+        <div style={{ flex: 1 }}><h2>{t.personnelTabs.requirements}</h2><p className="muted">{t.assignedCourses}</p></div>
       </div>
 
       {showAssign && createPortal(<div className="modal-backdrop" onClick={() => setShowAssign(false)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
@@ -899,20 +885,31 @@ function RequirementsTab({ t, jobRoles, departments, courses, onRefresh }: {
         <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await removeAssignment(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Asignación eliminada', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
-      {!selectedRoleId ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.selectRole}</h3></div> :
-       assignedCourses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3></div> :
-      <PaginatedList items={assignedCourses}>{(pageCourses) => <div className="admin-list-stack">{pageCourses.map((c) => {
-         const assignment = c.assignments.find((a) => a.job_role_id === selectedRoleId);
-         return (
-           <div key={c.id} className="admin-course-row">
-             <div className="course-icon gray-2"><BookOpen size={20} /></div>
-             <div><strong>{c.title}</strong><small>{c.modules.length} {t.modulesLabel} · {assignment?.is_mandatory ? t.mandatory : t.optional} · {assignment?.priority ?? t.medium}</small></div>
-             <div className="admin-course-actions">
-               <button className="icon-button" onClick={() => assignment && setDeleteConfirm(assignment.id)}><Trash2 size={16} /></button>
-             </div>
-           </div>
-         );
-      })}</div>}</PaginatedList>}
+      {jobRoles.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noRoles}</h3></div> :
+      <div className="docs-sections">{jobRoles.map((role) => {
+        const dept = departments.find((d) => d.id === role.department_id)?.name;
+        const roleCourses = courses.filter((c) => c.assignments.some((a) => a.job_role_id === role.id));
+        return (
+          <article key={role.id} className="docs-article">
+            <div className="section-title" style={{ marginBottom: 12 }}>
+              <div><h3>{role.name}</h3>{dept && <p>{dept}</p>}</div>
+              <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={() => { setAssignRoleId(role.id); setShowAssign(true); }}><Plus size={16} />{t.assignCourse}</button>
+            </div>
+            {roleCourses.length === 0 ? <p className="muted">{t.noCourses}</p> : <div className="admin-list-stack">{roleCourses.map((c) => {
+              const assignment = c.assignments.find((a) => a.job_role_id === role.id);
+              return (
+                <div key={c.id} className="admin-course-row">
+                  <div className="course-icon gray-2"><BookOpen size={20} /></div>
+                  <div><strong>{c.title}</strong><small>{c.modules.length} {t.modulesLabel} · {assignment?.is_mandatory ? t.mandatory : t.optional} · {assignment?.priority ?? t.medium}</small></div>
+                  <div className="admin-course-actions">
+                    <button className="icon-button" onClick={() => assignment && setDeleteConfirm(assignment.id)}><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              );
+            })}</div>}
+          </article>
+        );
+      })}</div>}
     </div>
   );
 }

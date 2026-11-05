@@ -32,7 +32,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
   }, [courses, editingCourse?.id]);
 
   if (editingCourse) {
-    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} departments={departments} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={() => { onRefresh(); }} onLeaveGuardChange={onLeaveGuardChange} />;
+    return <CourseEditor t={t} course={editingCourse} jobRoles={jobRoles} departments={departments} allCourses={courses} profile={profile} onBack={() => setEditingCourse(null)} onSaved={(savedId) => { if (savedId) setEditingCourse({ id: savedId } as CourseWithRelations); onRefresh(); }} onLeaveGuardChange={onLeaveGuardChange} />;
   }
 
   return (
@@ -77,10 +77,11 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   allCourses: CourseWithRelations[];
   profile: Profile;
   onBack: () => void;
-  onSaved: () => void;
+  onSaved: (savedId?: string) => void;
   onLeaveGuardChange: (guard: (() => boolean) | null) => void;
 }) {
   const isNew = !course.id;
+  const [startedAsNew] = useState(isNew);
   const [tab, setTab] = useState<CourseTab>('info');
   const [title, setTitle] = useState(course.title ?? '');
   const [description, setDescription] = useState(course.description ?? '');
@@ -98,8 +99,22 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const [error, setError] = useState<string | null>(null);
   const [courseId, setCourseId] = useState(course.id ?? '');
   const courseImageRef = useRef<HTMLInputElement>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify({
+    title: course.title ?? '', description: course.description ?? '', category: course.category ?? '', duration: course.duration ?? '',
+    imageUrl: course.image_url ?? '', hasImageFile: false, iconName: course.icon_name ?? 'BookOpen', accent: course.accent ?? 'gray-1', estimatedHours: String(course.estimated_hours ?? 0),
+  }));
+  const currentSnapshot = JSON.stringify({ title, description, category, duration, imageUrl, hasImageFile: Boolean(imageFile), iconName, accent, estimatedHours });
+  const infoDirty = currentSnapshot !== savedSnapshot;
   const { toast } = useToast();
-  const validateRequiredExams = () => {
+
+  const canLeaveEditor = () => {
+    if (startedAsNew && !courseId) return true;
+    if (infoDirty) {
+      setTab('info');
+      toast('Guarda los cambios del curso antes de salir', 'error');
+      return false;
+    }
+    if (!startedAsNew) return true;
     const modulesWithoutExam = (course.modules ?? []).filter((module) => !(course.exam_questions ?? []).some((question) => question.module_id === module.id));
     const hasFinalExamQuestions = (course.exam_questions ?? []).some((question) => question.module_id === null);
     if (modulesWithoutExam.length === 0 && hasFinalExamQuestions) return true;
@@ -113,9 +128,9 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   };
 
   useEffect(() => {
-    onLeaveGuardChange(validateRequiredExams);
+    onLeaveGuardChange(canLeaveEditor);
     return () => onLeaveGuardChange(null);
-  }, [course.modules, course.exam_questions, tab, onLeaveGuardChange]);
+  }, [course.modules, course.exam_questions, infoDirty, courseId, startedAsNew, onLeaveGuardChange]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -159,30 +174,34 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
       setUploadingImage(false);
     }
     const courseData = { title, description, category, duration, image_url: finalImageUrl, accent, icon_name: iconName, estimated_hours: parseInt(estimatedHours) || 0 };
+    let savedId = courseId;
     if (courseId) {
       const { error: uErr } = await supabase.from('courses').update(courseData).eq('id', courseId);
       if (uErr) { setError(uErr.message); setSaving(false); return; }
     } else {
       const { data, error: cErr } = await supabase.from('courses').insert({ ...courseData, created_by: profile.id }).select().single();
       if (cErr || !data) { setError(cErr?.message ?? 'Error'); setSaving(false); return; }
+      savedId = data.id;
       setCourseId(data.id);
     }
+    setImageUrl(finalImageUrl); setImageFile(null); setImagePreview(null); setImageInputMode('url');
+    setSavedSnapshot(JSON.stringify({ title, description, category, duration, imageUrl: finalImageUrl, hasImageFile: false, iconName, accent, estimatedHours }));
     setSaving(false);
     toast(courseId ? 'Curso actualizado' : 'Curso creado', 'success');
-    onSaved();
+    onSaved(savedId);
   };
 
   return (
     <div className="page animate-in">
       <div className="page-heading">
         <div><p className="eyebrow">{isNew ? t.newCourse : t.editCourse}</p><h1>{t.courseEditor}</h1></div>
-        <button className="outline-button" onClick={() => { if (validateRequiredExams()) onBack(); }}><ArrowLeft size={18} />{t.backToAdmin}</button>
+        <button className="outline-button" onClick={() => { if (canLeaveEditor()) onBack(); }}><ArrowLeft size={18} />{t.backToAdmin}</button>
       </div>
       {error && <div className="auth-error" style={{ marginBottom: 16 }}><AlertCircle size={16} />{error}</div>}
       <div className="admin-tabs">
         {tabs.map((tabItem) => {
           const Icon = tabItem.icon;
-          return <button key={tabItem.key} className={tab === tabItem.key ? 'admin-tab active' : 'admin-tab'} onClick={() => setTab(tabItem.key)} disabled={isNew && tabItem.key !== 'info'}><Icon size={16} /> {tabItem.label}</button>;
+          return <button key={tabItem.key} className={tab === tabItem.key ? 'admin-tab active' : 'admin-tab'} onClick={() => setTab(tabItem.key)} disabled={!courseId && tabItem.key !== 'info'}><Icon size={16} /> {tabItem.label}</button>;
         })}
       </div>
       <div className="admin-tab-content">
@@ -795,7 +814,9 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
 
   return (
     <div className="editor-section">
-      <div className="section-title"><div><h2>{t.prerequisites}</h2><p className="muted">{prerequisites.length} {t.prerequisites.toLowerCase()}</p></div>
+      <div className="docs-header">
+        <div className="docs-header-icon"><Check size={20} /></div>
+        <div style={{ flex: 1 }}><h2>{t.prerequisites}</h2><p className="muted">{prerequisites.length} {t.prerequisites.toLowerCase()}</p></div>
         <button className="outline-button" onClick={() => setShowForm(true)}><Plus size={16} />{t.addPrerequisite}</button>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={() => setShowForm(false)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
@@ -832,12 +853,11 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
       </div></div>, document.body)}
 
       {prerequisites.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noPrerequisites}</p> :
-      <PaginatedList items={prerequisites}>{(pagePrerequisites) => <div className="admin-list-stack">{pagePrerequisites.map((p) => (
-         <div key={p.id} className="admin-course-row">
-           <div className="course-icon gray-1"><Check size={18} /></div>
-           <div className="course-row-info"><strong>{getCourseTitle(p.prerequisite_course_id)}</strong><small>{p.is_mandatory ? t.mandatory : t.optional}</small></div>
-           <div className="admin-course-actions"><button className="icon-button" onClick={() => setDeleteConfirm(p.id)}><Trash2 size={16} /></button></div>
-         </div>
+      <PaginatedList items={prerequisites}>{(pagePrerequisites) => <div className="docs-sections">{pagePrerequisites.map((p) => (
+         <article key={p.id} className="docs-article" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+           <div style={{ flex: 1, minWidth: 0 }}><h3>{getCourseTitle(p.prerequisite_course_id)}</h3><p>{p.is_mandatory ? t.mandatory : t.optional}</p></div>
+           <button className="icon-button" onClick={() => setDeleteConfirm(p.id)}><Trash2 size={16} /></button>
+         </article>
       ))}</div>}</PaginatedList>}
     </div>
   );

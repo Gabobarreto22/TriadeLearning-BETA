@@ -101,7 +101,7 @@ export const docSections: DocSection[] = [
     sections: [
       {
         heading: 'Pestaña Empleados',
-        body: 'Aquí ves y gestionas todos los empleados del sistema. Puedes crear nuevos usuarios con nombre, correo, contraseña, cargo y departamento. También puedes editar sus datos, cambiar su cargo (lo que genera un registro en el historial), activarlos o desactivarlos, y eliminarlos. La lista muestra el nombre, correo, cargo, departamento y estado (activo/inactivo) de cada empleado. Usa el buscador para encontrar rápidamente a una persona por su nombre o correo.',
+        body: 'Aquí ves y gestionas todos los empleados del sistema. Puedes crear nuevos usuarios con nombre, correo, contraseña, cargo y departamento. Al hacer clic en un empleado se abre un resumen tipo perfil con su foto, cargo, correo, cédula, teléfono, dirección y estado. Desde la lista también puedes cambiar su cargo; cada cambio queda registrado en el historial. Además puedes editar sus datos, activarlos o desactivarlos, y eliminarlos. La lista muestra el nombre, correo, cargo, departamento y estado (activo/inactivo) de cada empleado. Usa el buscador para encontrar rápidamente a una persona por su nombre o correo.',
         visual: 'employee-form',
         example: 'Para crear un empleado: haz clic en "Nuevo usuario", completa el formulario con nombre, correo y contraseña, selecciona su cargo y departamento, y guarda. El empleado podrá iniciar sesión inmediatamente.',
       },
@@ -118,9 +118,9 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Pestaña Cargos',
-        body: 'Los cargos definen qué cursos debe completar cada empleado. Cada cargo tiene nombre y descripción. Al asignar cursos a un cargo, todos los empleados con ese cargo recibieron automáticamente las asignaciones. Esto significa que si cambias las asignaciones de un cargo, el cambio se refleja inmediatamente en todos los empleados que tienen ese cargo.',
+        body: 'Aquí creas y administras los cargos de la empresa. Cada cargo tiene nombre y departamento, y la lista muestra cuántos cursos tiene asignados. Los cursos que debe completar cada cargo se gestionan en la pestaña Requisitos por cargo.',
         visual: 'role-assignment',
-        example: 'El cargo "Técnico de Mantenimiento" tiene asignados los cursos de Seguridad Industrial (prioridad alta), Mantenimiento Preventivo (prioridad media) y Emergencias (prioridad crítica).',
+        example: 'El cargo "Técnico de Mantenimiento" del departamento de Operaciones aparece en la lista con el número de cursos asignados, por ejemplo "3 cursos asignados". Para ver cuáles son, revisa la pestaña Requisitos por cargo.',
       },
       {
         heading: 'Pestaña Historial de cargos',
@@ -130,7 +130,7 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Pestaña Requisitos por cargo',
-        body: 'Muestra qué cursos están asignados a cada cargo y permite gestionar esas asignaciones: agregar cursos, quitarlos, definir prioridad (baja, media, alta, crítica), obligatoriedad (sí/no) y días límite de completación. Esta pestaña es el corazón del sistema de asignaciones: desde aquí controlas qué debe aprender cada cargo y con qué urgencia.',
+        body: 'Muestra, para cada cargo, los cursos que tiene asignados, con su prioridad, obligatoriedad y días límite. Desde cada cargo puedes agregar un curso o quitar una asignación existente. Esta pestaña no cambia el cargo de ningún empleado.',
         visual: 'requirements-table',
         example: 'Para el cargo "Técnico de Mantenimiento": Seguridad Industrial es obligatorio, prioridad alta, 30 días de plazo. Gas Lift Básico es opcional, prioridad baja, 90 días de plazo.',
       },
