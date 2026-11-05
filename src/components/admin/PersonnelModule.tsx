@@ -790,13 +790,12 @@ function HistoryTab({ t, team, jobRoles, departments }: {
       {loading ? <p className="muted">{t.loading}</p> :
        !selectedUserId ? <div className="empty-state"><History size={30} /><h3>{t.noHistory}</h3></div> :
        history.length === 0 ? <div className="empty-state"><History size={30} /><h3>{t.noHistory}</h3></div> :
-      <PaginatedList items={history}>{(pageHistory) => <div className="timeline">{pageHistory.map((h) => (
-        <div key={h.id} className="timeline-item">
-          <div className={`timeline-dot ${h.is_current ? 'current' : ''}`} />
-          <div className="timeline-content">
+      <PaginatedList items={history}>{(pageHistory) => <div className="docs-mock-timeline">{pageHistory.map((h) => (
+        <div key={h.id} className="docs-mock-timeline-item">
+          <div className={`docs-mock-timeline-dot ${h.is_current ? 'active' : ''}`} />
+          <div className="docs-mock-timeline-content">
             <strong>{getRoleName(h.job_role_id)}</strong>
-            <small>{h.start_date} → {h.end_date ?? t.currentRole}</small>
-            {h.reason && <p className="muted">{h.reason}</p>}
+            <small>{h.start_date} — {h.end_date ?? t.currentRole}{h.reason ? ` · ${h.reason}` : ''}</small>
           </div>
         </div>
       ))}</div>}</PaginatedList>}
