@@ -813,20 +813,15 @@ function RequirementsTab({ t, jobRoles, departments, courses }: {
 }) {
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const selectedRole = jobRoles.find((r) => r.id === selectedRoleId) ?? null;
-  const selectedDept = selectedRole ? departments.find((d) => d.id === selectedRole.department_id)?.name : undefined;
   const roleCourses = selectedRole
     ? courses.filter((c) => c.assignments.some((a) => a.job_role_id === selectedRole.id))
     : [];
 
   return (
     <div className="section-card">
-      <div className="docs-header">
-        <div className="docs-header-icon"><ShieldCheck size={20} /></div>
-        <div style={{ flex: 1 }}><h2>{t.personnelTabs.requirements}</h2><p className="muted">{t.assignedCourses}</p></div>
-      </div>
-
-      {jobRoles.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noRoles}</h3></div> : <>
-        <div className="field-group" style={{ marginBottom: 16 }}>
+      <div className="section-title"><div><h2>{t.personnelTabs.requirements}</h2><p className="muted">{t.assignedCourses}</p></div></div>
+      <div className="editor-grid" style={{ marginBottom: 16 }}>
+        <div className="field-group">
           <label>{t.jobRole}</label>
           <select className="auth-input" value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)}>
             <option value="">{t.selectRole}</option>
@@ -836,22 +831,21 @@ function RequirementsTab({ t, jobRoles, departments, courses }: {
             })}
           </select>
         </div>
-
-        {selectedRole && <article className="docs-article">
-          <div className="section-title" style={{ marginBottom: 12 }}>
-            <div><h3>{selectedRole.name}</h3>{selectedDept && <p>{selectedDept}</p>}</div>
+      </div>
+      {!selectedRole ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noRoles}</h3></div> :
+       roleCourses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3></div> :
+      <PaginatedList items={roleCourses}>{(pageCourses) => <div className="timeline">{pageCourses.map((c) => {
+        const assignment = c.assignments.find((a) => a.job_role_id === selectedRole.id);
+        return (
+          <div key={c.id} className="timeline-item">
+            <div className={`timeline-dot ${assignment?.is_mandatory ? 'current' : ''}`} />
+            <div className="timeline-content">
+              <strong>{c.title}</strong>
+              <small>{c.modules.length} {t.modulesLabel} · {assignment?.is_mandatory ? t.mandatory : t.optional} · {assignment?.priority ?? t.medium}</small>
+            </div>
           </div>
-          {roleCourses.length === 0 ? <p className="muted">{t.noCourses}</p> : <div className="admin-list-stack">{roleCourses.map((c) => {
-            const assignment = c.assignments.find((a) => a.job_role_id === selectedRole.id);
-            return (
-              <div key={c.id} className="admin-course-row">
-                <div className="course-icon gray-2"><BookOpen size={20} /></div>
-                <div><strong>{c.title}</strong><small>{c.modules.length} {t.modulesLabel} · {assignment?.is_mandatory ? t.mandatory : t.optional} · {assignment?.priority ?? t.medium}</small></div>
-              </div>
-            );
-          })}</div>}
-        </article>}
-      </>}
+        );
+      })}</div>}</PaginatedList>}
     </div>
   );
 }
