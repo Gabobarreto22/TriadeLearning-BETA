@@ -495,30 +495,48 @@ export const docSectionsEN: DocSection[] = [
     sections: [
       {
         heading: 'Employees tab',
-        body: 'Here you view and manage all employees in the system. You can create new users with name, email, password, role and department. You can also edit their data, change their role (which generates a history entry), activate or deactivate them, and delete them.',
+        body: 'Here you view and manage all employees in the system. You can create new users with name, email, password, role and department. You can also edit their data, change their role (which generates a history entry), activate or deactivate them, and delete them. The list shows the name, email, role, department and status (active/inactive) of each employee. Use the search to quickly find a person by name or email.',
+        visual: 'employee-form',
         example: 'To create an employee: click "New user", fill in the form with name, email and password, select their role and department, and save. The employee can sign in immediately.',
       },
       {
         heading: 'Admins tab',
-        body: 'Admins have full access to the admin panel. You can create new admins with the same fields as an employee, but assigning them the administrator role.',
+        body: 'Admins have full access to the admin panel. You can create new admins with the same fields as an employee, but assigning them the administrator role. Be careful: an admin can create, edit and delete courses, users, roles, badges and system settings. Only create admins for people who genuinely need this access.',
+        example: 'You create an admin for the training manager, who needs to manage courses and personnel. You assign them the "Administrator" role instead of "Employee".',
       },
       {
         heading: 'Departments tab',
-        body: 'Departments group roles and people. Each department has a name, a code and a description. You can create, edit and delete departments.',
+        body: 'Departments group roles and people. Each department has a name, a short code and a description. You can create, edit and delete departments. Departments help you organize the company structure and filter employees when managing assignments or reports.',
+        visual: 'department-list',
         example: 'Department "Operations" with code "OPS" groups roles related to maintenance and production.',
       },
       {
         heading: 'Roles tab',
-        body: 'Roles define which courses each employee must complete. Each role has a name and description. When you assign courses to a role, all employees with that role automatically receive the assignments.',
-        example: 'The role "Maintenance Technician" has assigned courses on Industrial Safety, Preventive Maintenance and Emergencies.',
+        body: 'Roles define which courses each employee must complete. Each role has a name and description. When you assign courses to a role, all employees with that role automatically receive the assignments. This means that if you change a role\'s assignments, the change is reflected immediately for all employees who have that role.',
+        visual: 'role-assignment',
+        example: 'The role "Maintenance Technician" has assigned courses on Industrial Safety (high priority), Preventive Maintenance (medium priority) and Emergencies (critical priority).',
       },
       {
-        heading: 'History tab',
-        body: 'Shows the role change history for each employee: start date, end date, previous role and reason for the change. This allows tracing each person\'s trajectory in the organization.',
+        heading: 'Role history tab',
+        body: 'Shows the role change history for each employee: start date, end date, previous role and reason for the change. Every time you change an employee\'s role from the Employees tab, a history entry is automatically generated. This allows tracing each person\'s trajectory in the organization and maintaining an auditable record.',
+        visual: 'history-timeline',
+        example: 'An employee joined as "Apprentice" on 03/01/2025, was promoted to "Junior Operator" on 06/15/2025, and then to "Maintenance Technician" on 01/01/2026. The history shows all three stages with dates and reasons.',
       },
       {
         heading: 'Requirements by role tab',
-        body: 'Shows which courses are assigned to each role and lets you manage those assignments: add courses, remove them, define priority, mandatory status and completion deadline days.',
+        body: 'Shows which courses are assigned to each role and lets you manage those assignments: add courses, remove them, define priority (low, medium, high, critical), mandatory status (yes/no) and completion deadline days. This tab is the heart of the assignment system: from here you control what each role must learn and with what urgency.',
+        visual: 'requirements-table',
+        example: 'For the role "Maintenance Technician": Industrial Safety is mandatory, high priority, 30-day deadline. Basic Gas Lift is optional, low priority, 90-day deadline.',
+      },
+      {
+        heading: 'Activating and deactivating employees',
+        body: 'An inactive employee cannot sign in, but their data and progress are preserved. This is useful when someone leaves the organization temporarily (leave, extended vacation) and you will reactivate them later. If you delete an employee, their data is permanently erased, including progress, certificates and badges. Use deletion with caution.',
+        example: 'An employee takes a 3-month leave. Instead of deleting them, you deactivate them. When they return, you reactivate them and all their progress is intact.',
+      },
+      {
+        heading: 'Best practices for personnel management',
+        body: 'Recommendations: (1) Create departments before roles, and roles before employees. (2) Assign courses to roles, not individual employees, so the system scales automatically. (3) Use the Requirements by role tab for mass assignment management instead of assigning course by course. (4) Review role history periodically to verify trajectories are up to date.',
+        example: 'Before onboarding 20 new employees, you create the "Production" department, then the "Operator" role, assign 3 courses to it, and then create the 20 employees with that role. All 20 automatically receive the 3 courses.',
       },
     ],
   },
@@ -530,17 +548,31 @@ export const docSectionsEN: DocSection[] = [
     sections: [
       {
         heading: 'Creating a course',
-        body: 'Click "New course" to open the editor. Fill in the title, description, category, duration, image URL, icon and accent color. The course is saved and then you can add content in the editor tabs.',
+        body: 'Click "New course" to open the editor. Fill in the title, description, category, duration, image URL, icon and accent color. The accent color is used in the employee catalog to visually identify the course. The icon appears on the course card and in the player sidebar. The course is saved and then you can add content in the editor tabs.',
+        visual: 'course-editor-tabs',
         example: 'Course "Basic Industrial Safety", category "Safety", duration "2 hours", icon "shield", accent color "blue".',
+      },
+      {
+        heading: 'Information tab',
+        body: 'Here you edit the basic course data: title, description, category, estimated duration, cover image URL, icon and accent color. The cover image is shown in the employee catalog. If you do not set an image URL, the course uses a default image. The description appears below the title in the catalog.',
+        example: 'You set an image of a hard hat as the cover for "Basic Industrial Safety" so employees can identify it quickly.',
       },
       {
         heading: 'Modules tab (with resources)',
         body: 'Each course can have multiple modules in sequential order. Available module types are: text (reading), image/infographic, video (YouTube, Vimeo or uploaded file), PDF and PowerPoint presentation. Each module has a title, duration and content. Resources (downloadable files like PDFs, presentations or links) are added directly inside each module they belong to, they no longer exist as a separate tab. Modules unlock sequentially: the employee must complete one to access the next.',
+        visual: 'module-types',
         example: 'A course can have: 1) Text module "Introduction" with an attached PDF "Quick guide", 2) Video module "Demo" with a downloadable PowerPoint presentation, 3) PDF module "Procedures manual".',
       },
       {
+        heading: 'Module order',
+        body: 'Modules are automatically numbered in the order you create them. You can reorder them by changing their position in the list. Order matters because modules unlock sequentially: the employee must complete module 1 to access module 2, and so on. Make sure the order makes pedagogical sense: basics first, then intermediate, and advanced last.',
+        example: 'In a Safety course, the correct order would be: 1) Basic concepts (text), 2) PPE usage (video), 3) Procedures (PDF), 4) Case studies (infographic).',
+      },
+      {
         heading: 'Exams tab',
-        body: 'Create multiple-choice questions to assess knowledge. Each question has a statement, options (one per line), the correct answer index, an explanation, difficulty level and points. Questions can be associated with the whole course or a specific module.',
+        body: 'Create multiple-choice questions to assess knowledge. Each question has a statement, options (one per line), the correct answer index, an explanation shown after answering, difficulty level (easy, medium, hard) and points. Questions can be associated with the whole course or a specific module. Module questions are presented at the end of each module; course questions are presented in the final approval test.',
+        visual: 'exam-question-form',
+        example: 'Question: "What does PPE stand for?" with 3 options, correct index 0, difficulty easy, 10 points.',
       },
       {
         heading: 'How does the correct answer index work?',
@@ -549,12 +581,15 @@ export const docSectionsEN: DocSection[] = [
       },
       {
         heading: 'Assignments tab',
-        body: 'Assign the course to one or more roles. Define whether it is mandatory, the priority (low, medium, high, critical) and the deadline days for completion. All employees with that role will receive the assignment automatically.',
+        body: 'Assign the course to one or more roles. Define whether it is mandatory (the employee must complete it) or optional, the priority (low, medium, high, critical) and the deadline days for completion. All employees with that role will receive the assignment automatically the moment you save. If there are already employees with that role, they will see the course appear in their catalog immediately.',
+        visual: 'assignment-form',
         example: 'Assign "Industrial Safety" to the role "Maintenance Technician" as mandatory, high priority, 30 days deadline.',
       },
       {
         heading: 'Prerequisites tab',
-        body: 'Define which courses must be completed before accessing this one. Prerequisites can be mandatory (the course does not unlock until they are completed) or optional.',
+        body: 'Define which courses must be completed before accessing this one. Prerequisites can be mandatory (the course does not unlock until they are completed) or optional. This lets you create structured learning paths: an employee cannot jump to an advanced course without first passing the basics. The system automatically blocks access to the course until mandatory prerequisites are met.',
+        visual: 'prerequisite-chain',
+        example: 'The course "Advanced Gas Lift" has "Preventive Maintenance" as a mandatory prerequisite. A new employee cannot open "Advanced Gas Lift" until they have passed "Preventive Maintenance".',
       },
     ],
   },
@@ -565,13 +600,31 @@ export const docSectionsEN: DocSection[] = [
     summary: 'View certificates issued for course completion and role certifications of employees.',
     sections: [
       {
-        heading: 'Course certificates',
-        body: 'When an employee completes a course and passes the final exam with at least 90%, a certificate is automatically generated with a unique number, issue date and expiry date. Here you can see all issued certificates, who they belong to and which course they completed.',
-        example: 'Certificate TRIADE-SEG101-2026-001 issued to "Test Employee" for completing "Basic Industrial Safety".',
+        heading: 'What are course certificates?',
+        body: 'When an employee completes a course and passes the final exam with at least 90%, a certificate is automatically generated with a unique number, issue date and expiry date. The certificate includes the employee name, the completed course title, the certificate number (format TRIADE-XXX-YYYY-NNN) and the dates. Here you can see all issued certificates, who they belong to and which course they completed.',
+        visual: 'certificate-card',
+        example: 'Certificate TRIADE-SEG101-2026-001 issued to "Test Employee" for completing "Basic Industrial Safety" on 09/15/2026.',
+      },
+      {
+        heading: 'Certificate number',
+        body: 'Each certificate has a unique number generated automatically in the format TRIADE-[course code]-[year]-[sequence]. This number is immutable and serves to verify the certificate\'s authenticity. If you need to verify that a certificate presented by an employee is valid, you can search by its number in this section.',
+        example: 'An employee presents a certificate with number TRIADE-SEG101-2026-001. You search for it in the system and confirm it was issued on 09/15/2026.',
       },
       {
         heading: 'Role certifications',
-        body: 'A role certification validates that an employee has completed all required courses for their position. It shows the certification date, expiry date and whether it is valid or expired.',
+        body: 'A role certification validates that an employee has completed all required courses for their position. Unlike a course certificate (which is issued per approved course), a role certification is obtained when the employee completes ALL courses assigned to their role. It shows the certification date, expiry date and whether it is valid (green) or expired (red).',
+        visual: 'role-cert-badge',
+        example: 'The role "Maintenance Technician" requires 3 courses. John Smith completes all 3 and gets the role certification. Mary Johnson has 2 of 3, so her certification is expired.',
+      },
+      {
+        heading: 'Validity and expiry',
+        body: 'Both course certificates and role certifications have an expiry date. When a certificate is about to expire, the system automatically sends a notification to the employee. Expired certifications appear in red. If an employee changes roles, their previous role certifications may become obsolete and they will need to complete the new required courses.',
+        example: 'Carlos\'s role certification expires on 12/01/2026. In November, the system sends him a notification about the upcoming expiry so he can prepare.',
+      },
+      {
+        heading: 'How to use this section',
+        body: 'This section is read-only: you cannot create certificates manually, as they are generated automatically when the condition is met (passing the final exam with 90%). Use this screen to: (1) verify certificates are being issued correctly, (2) search certificates by employee or number, (3) identify employees with certifications about to expire, and (4) export certificate lists for audits.',
+        example: 'Before an external audit, you export the list of course certificates issued in the last quarter to prove that personnel is trained.',
       },
     ],
   },
@@ -583,12 +636,30 @@ export const docSectionsEN: DocSection[] = [
     sections: [
       {
         heading: 'What is Feedback?',
-        body: 'After completing a course, employees can leave a 1 to 5 star rating, a written comment, whether they would recommend the course, whether the time was adequate and the perceived difficulty level. All this information is centralized here.',
+        body: 'After passing the final test of a course, employees can leave a 1 to 5 star rating, a written comment, whether they would recommend the course (yes or no), whether the time was adequate (yes or no) and the perceived difficulty level (very easy, easy, medium, hard, very hard). All this information is centralized here and lets you evaluate course quality from the perspective of those who took them.',
+        visual: 'feedback-form',
         example: 'An employee rates "Preventive Maintenance" with 4 stars, comments "Very useful", marks that they would recommend it and that the difficulty was medium.',
       },
       {
+        heading: 'Rating breakdown',
+        body: 'At the top of the section you will see a breakdown of how many ratings there are at each level (5★, 4★, 3★, 2★, 1★) with visual bars, and the overall average. This breakdown tells you at a glance whether your courses are well received. A high average (4-5 stars) indicates satisfaction; a low average (1-3 stars) indicates something needs improvement.',
+        visual: 'rating-breakdown',
+        example: 'The course "Industrial Safety" has 12 ratings of 5★, 5 of 4★, 2 of 3★, 1 of 2★ and 0 of 1★. Average: 4.4 stars. Well-evaluated course.',
+      },
+      {
+        heading: 'How to interpret comments',
+        body: 'Written comments are the most valuable source of qualitative information. Read each comment carefully: those saying "very useful" or "well explained" indicate course strengths. Those saying "too long", "confusing" or "needs examples" indicate areas for improvement. Group comments by theme to identify patterns: if several employees say a module is confusing, it is a clear signal that the module needs to be rewritten.',
+        example: 'Three employees comment that the "Emergency procedures" module is confusing. You review the module and discover the instructions are in the wrong order. You reorganize it and feedback improves.',
+      },
+      {
+        heading: 'Difficulty and time indicators',
+        body: 'Besides stars, feedback includes two key indicators: (1) Perceived difficulty: if many mark "very hard", the course may need more support material or prerequisites. If they mark "very easy", it may be too basic. (2) Adequate time: if they mark that time was not adequate, review the estimated course duration or the number of modules.',
+        example: '80% of employees mark "Advanced Gas Lift" as "very hard". You decide to add a refresher module on basic concepts at the beginning of the course.',
+      },
+      {
         heading: 'How to use this information',
-        body: 'Feedback lets you identify courses that need improvement (low ratings), courses that are too difficult (high difficulty) or time issues (inadequate time). The average rating is shown at the top.',
+        body: 'Feedback lets you identify courses that need improvement (low ratings), courses that are too difficult (high difficulty) or time issues (inadequate time). The average rating is shown at the top. We recommend reviewing feedback weekly and prioritizing improvements for the worst-rated courses. Also celebrate well-evaluated courses: share results with instructors or content creators.',
+        example: 'You review weekly feedback and notice "Emergencies" dropped from 4.5 to 3.2 stars. You read the comments and discover a video no longer loads. You replace it and feedback recovers.',
       },
     ],
   },
@@ -599,13 +670,31 @@ export const docSectionsEN: DocSection[] = [
     summary: 'Send notifications to employees: course reminders, expiry notices, achievement congratulations.',
     sections: [
       {
-        heading: 'Creating a notification',
-        body: 'You can create manual notifications to send to any employee. Define the type (information, warning, success, error, reminder), the title, the message and the recipient. The notification appears in the employee panel.',
+        heading: 'Notification types',
+        body: 'The system handles 5 notification types, each with a distinct icon and color so the employee can quickly identify its importance: Information (blue, general notices), Warning (yellow, important alerts), Success (green, completed achievements), Error (red, detected problems) and Reminder (purple, pending deadlines). Choose the right type so the employee prioritizes correctly.',
+        visual: 'notification-types',
+        example: 'You use "Reminder" to warn about a pending course, "Success" to congratulate on a certificate earned, "Warning" for a course expiring soon.',
+      },
+      {
+        heading: 'Creating a manual notification',
+        body: 'You can create manual notifications to send to any employee. Define the type, title, message and recipient. The notification appears in the employee panel immediately. The title should be short and clear (50 characters recommended max). The message can be longer and should include all necessary information for the employee to know what to do.',
+        visual: 'notification-form',
         example: 'Notification type "reminder" with title "Pending course" and message "You have 15 days to complete the Emergencies course".',
       },
       {
         heading: 'Automatic notifications',
-        body: 'The system generates notifications automatically when an employee completes a course, earns a certificate, or when a course is about to expire. These notifications do not need to be created manually.',
+        body: 'The system generates notifications automatically when an employee completes a course, earns a certificate, earns a badge, or when a course is about to expire. These notifications do not need to be created manually. Automatic notifications appear in the employee panel just like manual ones, but with the "Success" or "Reminder" type as appropriate.',
+        example: 'An employee passes the "Industrial Safety" exam with 92%. The system automatically sends them a "Success" notification with the title "Congratulations! You passed".',
+      },
+      {
+        heading: 'Managing sent notifications',
+        body: 'In this section you can see all sent notifications, both manual and automatic. For each notification you see the recipient, type, title, status (read or unread) and send date. You can delete notifications if they were sent by mistake or contain incorrect information. This removes the notification from the employee panel.',
+        example: 'You sent a notification with the wrong title. You find it in the list, delete it and create a new one with the correct title.',
+      },
+      {
+        heading: 'Best practices',
+        body: 'Do not overwhelm employees with too many notifications. Use priorities: (1) Deadline reminders: send 15 days before the deadline. (2) Congratulations: send immediately after the achievement. (3) General notices: group them and send once a week if possible. If an employee receives 10 notifications a day, they will stop reading them. Moderation is key to keeping notifications effective.',
+        example: 'Instead of sending 5 individual notifications about pending courses, you wait until the end of the week and send a single "Reminder" notification per employee listing all their pending courses.',
       },
     ],
   },
@@ -617,20 +706,36 @@ export const docSectionsEN: DocSection[] = [
     sections: [
       {
         heading: 'Compliance by role report',
-        body: 'Shows what percentage of employees in each role have completed their assigned courses. Useful for identifying roles with low compliance and taking action.',
-        example: 'Role "Maintenance Technician": 1 of 3 courses completed on average, 33% compliance.',
+        body: 'Shows what percentage of employees in each role have completed their assigned courses. Each role appears with a progress bar indicating the compliance level. Useful for identifying roles with low compliance and taking action, such as sending reminders or adjusting assignments. Colors indicate the level: green (high compliance), yellow (medium), red (low).',
+        visual: 'compliance-chart',
+        example: 'Role "Maintenance Technician": 85% compliance (green). Role "Apprentice": 15% compliance (red). You decide to send reminders to the apprentices.',
       },
       {
         heading: 'Individual progress report',
-        body: 'Shows the progress of each employee: how many modules they have completed, which courses they are working on, their progress percentage and exams taken.',
+        body: 'Shows the progress of each employee in a table: name, assigned course, progress percentage (with visual bar), status (pending, in progress, completed, overdue) and last access. You can filter by role, department or status. This report lets you see exactly where each person is and who needs attention.',
+        visual: 'progress-table',
+        example: 'You see John Smith is at 80% of "Industrial Safety" (in progress), Mary Johnson completed "Preventive Maintenance" (100%), and Carlos Ruiz has not started "Emergencies" (pending).',
       },
       {
         heading: 'Exam report',
-        body: 'Statistics for all exams: total attempts, pass rate, average score, passed vs failed exams.',
+        body: 'Statistics for all exams: total attempts, pass rate, average score, passed vs failed exams. Lets you see how difficult your exams are. If the pass rate of an exam is very low, review the questions: they may be poorly written or the course content may not adequately prepare employees.',
+        example: 'The "Advanced Gas Lift" exam has a 40% pass rate. You review the questions and notice 3 are ambiguous. You rewrite them and the rate rises to 75%.',
       },
       {
-        heading: 'Export',
-        body: 'Reports can be exported in Excel, PDF or CSV format to share or archive.',
+        heading: 'Feedback report',
+        body: 'Consolidates all ratings and comments from employees about completed courses. Shows the average stars per course, how many would recommend it and the perceived difficulty. This report complements the Feedback module but with a more analytical approach: it lets you compare courses against each other.',
+        example: 'You compare two courses: "Industrial Safety" has 4.5 stars and "Emergencies" has 3.2. You decide to review and improve the content of "Emergencies".',
+      },
+      {
+        heading: 'Report export',
+        body: 'Reports can be exported in Excel, PDF or CSV format to share or archive. The export generates a file with all the data visible in the report. Excel is useful for further analysis (filtering, sorting, charting). PDF is useful for presentations or audits. CSV is useful for importing into other systems.',
+        visual: 'export-buttons',
+        example: 'You export the compliance by role report in PDF for the monthly management meeting. You also export it in Excel for the HR team to analyze.',
+      },
+      {
+        heading: 'When to review reports',
+        body: 'We recommend reviewing reports on a regular schedule: (1) Weekly: individual progress report to detect stalled employees. (2) Monthly: compliance by role report to identify problematic roles. (3) Quarterly: exam and feedback reports to evaluate overall course quality. Establish this routine so data does not pile up without action.',
+        example: 'Every Friday you review individual progress. You detect 5 employees who have not advanced in any course for 2 weeks and send them a reminder.',
       },
     ],
   },
@@ -641,16 +746,31 @@ export const docSectionsEN: DocSection[] = [
     summary: 'General system settings: branding, evaluation parameters, automatic notifications and security.',
     sections: [
       {
+        heading: 'Settings categories',
+        body: 'The Settings module is divided into three categories: General (global system parameters), Branding (visual customization) and Security (access policies). Each category contains a list of settings you can edit. Changes apply immediately to the entire system.',
+        visual: 'settings-categories',
+        example: 'To change the exam pass threshold, go to the "General" category and edit the corresponding parameter value.',
+      },
+      {
         heading: 'General settings',
-        body: 'Global system parameters such as the organization name, the exam pass threshold (default 90%), and other values that affect the entire system.',
+        body: 'Global system parameters such as the organization name, the exam pass threshold (default 90%), and other values that affect the entire system. The pass threshold is the minimum percentage an employee must score on an exam to pass. If you change it, it affects all future exams (past ones are not affected).',
+        visual: 'branding-preview',
+        example: 'Your organization decides the pass threshold should be 80% instead of 90%. You change it in General Settings and from that moment, employees only need 80% to pass.',
       },
       {
         heading: 'Branding',
-        body: 'Customize the system appearance: logos, colors and other visual elements shown to employees.',
+        body: 'Customize the system appearance: logos, colors and other visual elements shown to employees. You can change the logo that appears in the top left corner and on the login page. Consistent branding reinforces the organization\'s identity and makes the platform feel like your own, not an external tool.',
+        example: 'You upload your company logo so it appears on the login screen and in each employee\'s panel, giving a corporate platform feel.',
       },
       {
         heading: 'Security',
-        body: 'Configure password policies, session expiration and other system security aspects.',
+        body: 'Configure password policies (minimum length, complexity), session expiration and other system security aspects. A robust password policy protects against unauthorized access. Session expiration automatically logs out an employee who has been inactive, preventing someone from using their device without permission.',
+        example: 'You configure passwords to require a minimum of 8 characters and sessions to expire after 30 minutes of inactivity.',
+      },
+      {
+        heading: 'Public vs private settings',
+        body: 'Some settings are public (visible to all employees, like the organization name) and others are private (only visible to admins, like security policies). Each setting has a "Public" indicator you can toggle. Be careful making a private setting public: if it contains sensitive information, it should not be visible to employees.',
+        example: 'The "organization name" is a public setting (employees see it). The "password policy" is a private setting (only admins see it).',
       },
     ],
   },
@@ -662,12 +782,30 @@ export const docSectionsEN: DocSection[] = [
     sections: [
       {
         heading: 'What is logged?',
-        body: 'Every time an admin creates, edits or deletes an item (course, user, role, assignment, badge, etc.), an audit log entry is generated that includes: the user who performed the action, the action type (CREATE, UPDATE, DELETE), the affected entity type, the old and new values, the date and time, and the IP address.',
+        body: 'Every time an admin creates, edits or deletes an item (course, user, role, assignment, badge, etc.), an automatic audit log entry is generated. The entry includes: the user who performed the action, the action type (CREATE, UPDATE, DELETE), the affected entity type (course, user, role, etc.), the old and new values (so you can see exactly what changed), the date and time, and the IP address from where it was done.',
+        visual: 'audit-log-table',
         example: 'Entry: User "System Administrator" created the course "Basic Industrial Safety" on 09/04/2026 from IP 192.168.1.1.',
       },
       {
+        heading: 'Types of logged actions',
+        body: 'The system records three action types: CREATE (creating a new item, like a course or user), UPDATE (editing an existing item, like changing a course title or an employee\'s role) and DELETE (deleting an item). Each action has a distinct color in the table so you can identify them quickly: green for CREATE, yellow for UPDATE and red for DELETE.',
+        visual: 'action-types',
+        example: 'An admin creates a course (CREATE, green), then edits its description (UPDATE, yellow), and finally deletes it by mistake (DELETE, red). All three entries remain in the log.',
+      },
+      {
         heading: 'What is it for?',
-        body: 'The audit log maintains traceability of all system changes, meets compliance requirements, investigates incidents and verifies that changes were authorized.',
+        body: 'The audit log maintains traceability of all system changes, meets compliance requirements, investigates incidents and verifies that changes were authorized. If something goes wrong (a course was deleted, a user was deactivated, an assignment was modified), the log tells you who did it, when and what values changed. It is your primary investigation tool.',
+        example: 'You discover a course was deleted. You check the audit log and see that "Admin System" did a DELETE on 09/05 at 2:30 PM. You talk to that person and discover it was a mistake.',
+      },
+      {
+        heading: 'How to read the log',
+        body: 'The log is shown in reverse chronological order (most recent first). Each row shows the user, action, affected entity and date. If you need more detail, you can expand the row to see old and new values. Use the filters to search by action type, entity type, user or date range. If you are looking for a specific change, filter by date and the entity type you think was affected.',
+        example: 'Someone changed an employee\'s role without notice. You filter the log by entity "Profile" or "User" on the date of the change and see that admin X did an UPDATE to employee Y\'s role.',
+      },
+      {
+        heading: 'Log retention',
+        body: 'The audit log is retained indefinitely. There is no time limit: every action is recorded forever. This is important for external audits or investigations that may arise months or years later. If the log grows large, do not worry: the system is designed to handle large volumes of records without affecting performance.',
+        example: 'Six months later, an external audit asks to see who created the safety courses. You search the log by entity "Course" and creation date and get the complete list.',
       },
     ],
   },
