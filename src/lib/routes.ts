@@ -6,7 +6,6 @@ export const adminPaths = {
   feedback: '/calificaciones',
   notifications: '/notificaciones',
   reports: '/reportes',
-  settings: '/configuracion',
   audit: '/auditoria',
   documentation: '/documentacion',
 } as const;

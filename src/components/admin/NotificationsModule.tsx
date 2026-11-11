@@ -9,10 +9,14 @@ import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 
+type Recipients = 'user' | 'role';
+
 export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; data: AdminData; onRefresh: () => void }) {
-  const { notifications, team } = data;
+  const { notifications, team, jobRoles } = data;
   const [showForm, setShowForm] = useState(false);
+  const [recipients, setRecipients] = useState<Recipients>('user');
   const [userId, setUserId] = useState('');
+  const [roleId, setRoleId] = useState('');
   const [type, setType] = useState<'info' | 'warning' | 'success' | 'error' | 'reminder'>('info');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -22,14 +26,19 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const resetForm = () => { setUserId(''); setType('info'); setTitle(''); setMessage(''); setError(null); setShowForm(false); };
+  const resetForm = () => { setRecipients('user'); setUserId(''); setRoleId(''); setType('info'); setTitle(''); setMessage(''); setError(null); setShowForm(false); };
+
+  const roleMembers = team.filter((u) => u.job_role_id === roleId);
+  const targets: Profile[] = recipients === 'role' ? roleMembers : team.filter((u) => u.id === userId);
 
   const handleCreate = async () => {
-    if (!userId || !title || !message) { setError(t.user + ' / ' + t.title + ' / ' + t.message); return; }
+    if (!title || !message) { setError(t.title + ' / ' + t.message); return; }
+    if (targets.length === 0) { setError(recipients === 'role' ? t.selectRole : t.user); return; }
     setSaving(true);
-    const { error: err } = await createNotification({ user_id: userId, type, title, message });
-    if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); resetForm(); toast('Notificación enviada', 'success'); onRefresh();
+    const results = await Promise.all(targets.map((u) => createNotification({ user_id: u.id, type, title, message })));
+    const failed = results.find((r) => r.error);
+    if (failed?.error) { setError(failed.error); setSaving(false); return; }
+    setSaving(false); resetForm(); toast(targets.length > 1 ? `Notificación enviada a ${targets.length} personas` : 'Notificación enviada', 'success'); onRefresh();
   };
 
   const typeIcon = (tp: string) => tp === 'warning' ? <AlertCircle size={14} /> : tp === 'success' ? <Check size={14} /> : tp === 'error' ? <AlertCircle size={14} /> : tp === 'reminder' ? <Clock3 size={14} /> : <Bell size={14} />;
@@ -45,12 +54,28 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
           <h2>{t.newNotification}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group field-group-full"><label>{t.user}</label>
-              <select className="auth-input" value={userId} onChange={(e) => setUserId(e.target.value)}>
-                <option value="">—</option>
-                {team.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-              </select>
+            <div className="field-group field-group-full"><label>Destinatario</label>
+              <div className="segmented-control">
+                <button type="button" className={recipients === 'user' ? 'active' : ''} onClick={() => setRecipients('user')}><User size={14} />Persona</button>
+                <button type="button" className={recipients === 'role' ? 'active' : ''} onClick={() => setRecipients('role')}><Users size={14} />Cargo</button>
+              </div>
             </div>
+            {recipients === 'user' ? (
+              <div className="field-group field-group-full"><label>{t.user}</label>
+                <select className="auth-input" value={userId} onChange={(e) => setUserId(e.target.value)}>
+                  <option value="">—</option>
+                  {team.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div className="field-group field-group-full"><label>{t.jobRole}</label>
+                <select className="auth-input" value={roleId} onChange={(e) => setRoleId(e.target.value)}>
+                  <option value="">—</option>
+                  {jobRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+                {roleId && <small className="muted">{roleMembers.length} {roleMembers.length === 1 ? 'persona recibirá' : 'personas recibirán'} esta notificación</small>}
+              </div>
+            )}
             <div className="field-group"><label>{t.type}</label>
               <select className="auth-input" value={type} onChange={(e) => setType(e.target.value as any)}>
                 <option value="info">{t.info}</option><option value="warning">{t.warning}</option>

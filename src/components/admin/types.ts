@@ -1,4 +1,4 @@
-import { type Profile, type JobRole, type Department, type UserJobRoleHistory, type Course, type CourseWithRelations, type CourseAssignment, type UserCourseRequirement, type ModuleProgress, type ExamAttempt, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog } from '@/lib/supabase';
+import { type Profile, type JobRole, type Department, type UserJobRoleHistory, type Course, type CourseWithRelations, type CourseAssignment, type UserCourseRequirement, type ModuleProgress, type ExamAttempt, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type AuditLog } from '@/lib/supabase';
 
 export type AdminData = {
   courses: CourseWithRelations[];
@@ -14,7 +14,6 @@ export type AdminData = {
   feedback: (CourseFeedback & { user_course_requirement?: UserCourseRequirement & { user?: Profile; course?: Course } })[];
   badges: Badge[];
   userBadges: (UserBadge & { user?: Profile; badge?: Badge })[];
-  settings: SystemSetting[];
   auditLogs: (AuditLog & { user?: Profile })[];
 };
 
@@ -29,7 +28,6 @@ export type AdminView =
   | 'gamification'
   | 'notifications'
   | 'reports'
-  | 'settings'
   | 'audit'
   | 'documentation';
 
@@ -43,7 +41,6 @@ export type AdminStrings = {
   gamification: string;
   notifications: string;
   reports: string;
-  settings: string;
   audit: string;
   documentation: string;
   newCourse: string;
@@ -88,7 +85,6 @@ export type AdminStrings = {
   noFeedback: string;
   noBadges: string;
   noNotifications: string;
-  noSettings: string;
   noAudit: string;
   jobRole: string;
   jobRoleCol: string;
@@ -163,7 +159,6 @@ export type AdminStrings = {
   saveDepartment: string;
   saveBadge: string;
   saveNotification: string;
-  saveSetting: string;
   editUser: string;
   editAdmin: string;
   editRole: string;
@@ -233,7 +228,6 @@ export type AdminStrings = {
   gamificationDesc: string;
   notificationsDesc: string;
   reportsDesc: string;
-  settingsDesc: string;
   certificationsDesc: string;
   exportExcel: string;
   exportPdf: string;

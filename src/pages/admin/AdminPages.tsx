@@ -5,7 +5,6 @@ import { CertificationsModule } from '@/components/admin/CertificationsModule';
 import { FeedbackModule } from '@/components/admin/FeedbackModule';
 import { NotificationsModule } from '@/components/admin/NotificationsModule';
 import { ReportsModule } from '@/components/admin/ReportsModule';
-import { SettingsModule } from '@/components/admin/SettingsModule';
 import { AuditModule } from '@/components/admin/AuditModule';
 import { DocumentationModule } from '@/components/docs/DocumentationModule';
 import { docSectionsByLanguage, docsLabels } from '@/lib/docs';
@@ -53,12 +52,6 @@ export function AdminReportsPage() {
   const { language } = usePreferences();
   const { data } = useAdminContext();
   return <ReportsModule t={adminStringsByLanguage[language]} data={data} />;
-}
-
-export function AdminSettingsPage() {
-  const { language } = usePreferences();
-  const { data, refreshAll } = useAdminContext();
-  return <SettingsModule t={adminStringsByLanguage[language]} data={data} onRefresh={refreshAll} />;
 }
 
 export function AdminAuditPage() {

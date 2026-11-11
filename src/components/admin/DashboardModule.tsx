@@ -39,7 +39,6 @@ export function DashboardModule({ t, data, onNavigate }: {
     { label: t.certifications, icon: Award, view: 'certifications', tone: 'g3' },
     { label: t.reports, icon: BarChart3, view: 'reports', tone: 'g4' },
     { label: t.notifications, icon: Bell, view: 'notifications', tone: 'g1' },
-    { label: t.settings, icon: Settings, view: 'settings', tone: 'g2' },
   ];
 
   const progressTone = totalProgress >= 70 ? 'green' : totalProgress >= 40 ? 'blue' : 'orange';

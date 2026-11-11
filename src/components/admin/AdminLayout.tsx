@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Award, BarChart3, Bell, BookOpen, FileText, History, LayoutDashboard, Settings, Star, Users } from 'lucide-react';
+import { Award, BarChart3, Bell, BookOpen, FileText, History, LayoutDashboard, Star, Users } from 'lucide-react';
 import { adminStringsByLanguage } from '@/components/admin/strings';
 import type { AdminData } from '@/components/admin/types';
 import { HelpButton } from '@/components/docs/HelpButton';
@@ -11,7 +11,7 @@ import {
   fetchAllCourses, fetchAllProfiles, fetchJobRoles, fetchDepartments,
   fetchUserCourseRequirements, fetchAllModuleProgress, fetchAllExamAttempts,
   fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications,
-  fetchAllFeedback, fetchBadges, fetchUserBadges, fetchSystemSettings, fetchAuditLogs,
+  fetchAllFeedback, fetchBadges, fetchUserBadges, fetchAuditLogs,
 } from '@/lib/data';
 import { usePreferences } from '@/lib/preferences';
 import { adminPaths, type AdminSection } from '@/lib/routes';
@@ -44,17 +44,17 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     const [
       courses, team, jobRoles, departments, userCourseReqs,
       moduleProgress, examAttempts, certificates, roleCertifications,
-      notifications, feedback, badges, userBadges, settings, auditLogs,
+      notifications, feedback, badges, userBadges, auditLogs,
     ] = await Promise.all([
       fetchAllCourses(), fetchAllProfiles(), fetchJobRoles(), fetchDepartments(),
       fetchUserCourseRequirements(), fetchAllModuleProgress(), fetchAllExamAttempts(),
       fetchAllCertificates(), fetchRoleCertifications(), fetchAllNotifications(),
-      fetchAllFeedback(), fetchBadges(), fetchUserBadges(), fetchSystemSettings(), fetchAuditLogs(),
+      fetchAllFeedback(), fetchBadges(), fetchUserBadges(), fetchAuditLogs(),
     ]);
     setData({
       courses, team: team as Profile[], jobRoles, departments,
       userCourseReqs, moduleProgress, examAttempts, certificates,
-      roleCertifications, notifications, feedback, badges, userBadges, settings, auditLogs,
+      roleCertifications, notifications, feedback, badges, userBadges, auditLogs,
     });
   };
 
@@ -89,7 +89,6 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     { key: 'feedback', label: at.feedback, icon: Star },
     { key: 'notifications', label: at.notifications, icon: Bell },
     { key: 'reports', label: at.reports, icon: BarChart3 },
-    { key: 'settings', label: at.settings, icon: Settings },
     { key: 'audit', label: at.audit, icon: History },
     { key: 'documentation', label: at.documentation, icon: FileText },
   ];

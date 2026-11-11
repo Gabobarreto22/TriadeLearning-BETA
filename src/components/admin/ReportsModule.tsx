@@ -58,10 +58,54 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = () => {
+    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] as string);
+    const summaryRows = reportCards.map((r) => `<tr><td>${escapeHtml(r.title)}</td><td class="num">${r.count}</td></tr>`).join('');
+    const employeeHtml = selectedEmployee ? `
+      <h2>${escapeHtml(selectedEmployee.full_name)}</h2>
+      <h3>Cursos realizados (${completedCourses.length})</h3>
+      <ul>${completedCourses.map((req) => `<li>${escapeHtml(req.course?.title ?? 'Curso sin nombre')}${req.completed_at ? ` - ${new Date(req.completed_at).toLocaleDateString()}` : ''}</li>`).join('') || '<li>Sin cursos realizados</li>'}</ul>
+      <h3>Intentos fallidos (${employeeAttempts.reduce((total, item) => total + item.failedAttempts.length, 0)})</h3>
+      <ul>${employeeAttempts.filter((item) => item.failedAttempts.length > 0).map((item) => `<li>${escapeHtml(item.courseTitle)} - ${item.failedAttempts.length} intento(s)</li>`).join('') || '<li>Sin intentos fallidos</li>'}</ul>` : '';
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte ${new Date().toISOString().slice(0, 10)}</title>
+      <style>
+        body{font-family:Arial,sans-serif;color:#0f172a;padding:32px;font-size:13px}
+        h1{font-size:22px;margin:0 0 4px}
+        h2{font-size:17px;margin:28px 0 8px}
+        h3{font-size:14px;margin:18px 0 6px}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        th,td{border-bottom:1px solid #e2e8f0;padding:8px 6px;text-align:left}
+        td.num{text-align:right;font-weight:700}
+        ul{margin:0;padding-left:18px}
+        li{margin:4px 0}
+        .muted{color:#64748b}
+      </style></head><body>
+      <h1>Reporte de capacitación</h1>
+      <p class="muted">Generado el ${new Date().toLocaleDateString()}</p>
+      <table><thead><tr><th>Indicador</th><th class="num">Total</th></tr></thead><tbody>${summaryRows}</tbody></table>
+      ${employeeHtml}
+    </body></html>`;
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.width = '0';
+    frame.style.height = '0';
+    frame.style.border = '0';
+    document.body.appendChild(frame);
+    const frameDoc = frame.contentWindow?.document;
+    if (!frameDoc || !frame.contentWindow) { frame.remove(); return; }
+    frameDoc.open();
+    frameDoc.write(html);
+    frameDoc.close();
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+    setTimeout(() => frame.remove(), 1000);
+  };
+
   return (
     <div className="page animate-in">
       <div className="page-heading"><div><p className="eyebrow">REPORTES</p><h1>{t.reports}</h1><p className="muted">{t.reportsDesc}</p></div>
         <div className="report-export-buttons">
+          <button className="outline-button" onClick={exportPdf}><Download size={16} />{t.exportPdf}</button>
           <button className="outline-button" onClick={() => exportData('excel')}><Download size={16} />{t.exportExcel}</button>
           <button className="outline-button" onClick={() => exportData('csv')}><Download size={16} />{t.exportCsv}</button>
         </div>

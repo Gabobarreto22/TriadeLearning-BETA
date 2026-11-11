@@ -361,18 +361,6 @@ function VisualExample({ kind }: { kind: DocVisual }) {
         </div>
       );
 
-    // ===== SETTINGS =====
-    case 'settings-categories':
-      return (
-        <div className="docs-visual">
-          <div className="docs-visual-label">Categorías de configuración</div>
-          <div className="docs-mock-settings-cats">
-            <div className="docs-mock-settings-cat active"><Settings size={18} /><strong>General</strong><span>Parámetros globales</span></div>
-            <div className="docs-mock-settings-cat"><Palette size={18} /><strong>Branding</strong><span>Logos y colores</span></div>
-            <div className="docs-mock-settings-cat"><Lock size={18} /><strong>Seguridad</strong><span>Contraseñas y sesiones</span></div>
-          </div>
-        </div>
-      );
     case 'branding-preview':
       return (
         <div className="docs-visual">

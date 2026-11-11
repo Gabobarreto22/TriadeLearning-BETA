@@ -629,6 +629,10 @@ html.dark .form-actions-row .primary-button:active{background:#ffffff !important
 .report-export-buttons{display:flex;gap:10px;margin-bottom:20px}
 .report-export-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:10px 16px;border-radius:10px;font:600 12px 'Manrope';cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s,border-color .15s;width:fit-content}
 .report-export-btn:hover{border-color:var(--primary);color:var(--primary)}
+.segmented-control{display:inline-flex;gap:4px;padding:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;width:fit-content}
+.segmented-control button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--muted);padding:8px 14px;border-radius:9px;font:600 12px 'Manrope';cursor:pointer;transition:background .15s,color .15s}
+.segmented-control button:hover{color:var(--text)}
+.segmented-control button.active{background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(15,23,42,.12)}
 
 /* STATUS BADGE */
 .status-badge{font:700 10px 'Manrope';padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em;display:inline-flex;align-items:center;gap:4px}

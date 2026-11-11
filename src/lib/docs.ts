@@ -26,7 +26,6 @@ export type DocVisual =
   | 'compliance-chart'
   | 'progress-table'
   | 'export-buttons'
-  | 'settings-categories'
   | 'branding-preview'
   | 'audit-log-table'
   | 'action-types';
@@ -70,7 +69,7 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Accesos rápidos',
-        body: 'Debajo de las estadísticas encontrarás una cuadrícula de botones grandes para ir directamente a cada módulo: Cursos, Personal, Certificaciones, Reportes, Notificaciones y Configuración. Cada botón muestra el ícono del módulo y su nombre. Al hacer clic en cualquiera, navegas directamente a esa sección sin tener que usar el menú lateral.',
+        body: 'Debajo de las estadísticas encontrarás una cuadrícula de botones grandes para ir directamente a cada módulo: Cursos, Personal, Certificaciones, Reportes y Notificaciones. Cada botón muestra el ícono del módulo y su nombre. Al hacer clic en cualquiera, navegas directamente a esa sección sin tener que usar el menú lateral.',
         visual: 'quick-links',
         example: 'Si necesitas crear un usuario nuevo, en lugar de buscar en el menú lateral, puedes hacer clic en "Personal" desde los accesos rápidos y llegar directamente al módulo de gestión de personal.',
       },
@@ -107,7 +106,7 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Pestaña Administradores',
-        body: 'Los administradores tienen acceso completo al panel de administración. Puedes crear nuevos administradores con los mismos campos que un empleado, pero asignándoles el rol de administrador. Ten precaución: un administrador puede crear, editar y eliminar cursos, usuarios, cargos, insignias y configuraciones del sistema. Solo crea administradores para personas que realmente necesitan este acceso.',
+        body: 'Los administradores tienen acceso completo al panel de administración. Puedes crear nuevos administradores con los mismos campos que un empleado, pero asignándoles el rol de administrador. Ten precaución: un administrador puede crear, editar y eliminar cursos, usuarios, cargos e insignias. Solo crea administradores para personas que realmente necesitan este acceso.',
         example: 'Creas un administrador para el jefe de capacitación, quien necesita gestionar cursos y personal. Le asignas el rol "Administrador" en lugar de "Empleado".',
       },
       {
@@ -346,41 +345,6 @@ export const docSections: DocSection[] = [
     ],
   },
   {
-    id: 'settings',
-    title: 'Configuración',
-    icon: 'Settings',
-    summary: 'Ajustes generales del sistema: branding, parámetros de evaluación, notificaciones automáticas y seguridad.',
-    sections: [
-      {
-        heading: 'Categorías de configuración',
-        body: 'El módulo de Configuración se divide en tres categorías: General (parámetros globales del sistema), Branding (personalización visual) y Seguridad (políticas de acceso). Cada categoría contiene una lista de ajustes que puedes editar. Los cambios se aplican inmediatamente a todo el sistema.',
-        visual: 'settings-categories',
-        example: 'Para cambiar el umbral de aprobación de exámenes, vas a la categoría "General" y editas el valor del parámetro correspondiente.',
-      },
-      {
-        heading: 'Configuración general',
-        body: 'Parámetros globales del sistema como el nombre de la organización, el umbral de aprobación de exámenes (por defecto 90%), y otros valores que afectan a todo el sistema. El umbral de aprobación es el porcentaje mínimo que un empleado debe obtener en un examen para aprobarlo. Si lo cambias, afecta a todos los exámenes futuros (los ya realizados no se ven afectados).',
-        visual: 'branding-preview',
-        example: 'Tu organización decide que el umbral de aprobación sea 80% en lugar de 90%. Lo cambias en Configuración General y a partir de ese momento, los empleados solo necesitan 80% para aprobar.',
-      },
-      {
-        heading: 'Branding',
-        body: 'Personaliza la apariencia del sistema: logos, colores y otros elementos visuales que se muestran a los empleados. Puedes cambiar el logo que aparece en la esquina superior izquierda y en la página de inicio de sesión. Un branding consistente refuerza la identidad de la organización y hace que la plataforma se sienta propia, no como una herramienta externa.',
-        example: 'Subes el logo de tu empresa para que aparezca en la pantalla de inicio de sesión y en el panel de cada empleado, dando una sensación de plataforma corporativa.',
-      },
-      {
-        heading: 'Seguridad',
-        body: 'Configura políticas de contraseñas (longitud mínima, complejidad), expiración de sesiones y otros aspectos de seguridad del sistema. Una política de contraseñas robusta protege contra accesos no autorizados. La expiración de sesiones cierra automáticamente la sesión de un empleado que ha estado inactivo, evitando que alguien use su equipo sin permiso.',
-        example: 'Configuras que las contraseñas deben tener mínimo 8 caracteres y que las sesiones expiren tras 30 minutos de inactividad.',
-      },
-      {
-        heading: 'Ajustes públicos vs privados',
-        body: 'Algunos ajustes son públicos (visibles para todos los empleados, como el nombre de la organización) y otros son privados (solo visibles para administradores, como las políticas de seguridad). Cada ajuste tiene un indicador "Público" que puedes activar o desactivar. Ten cuidado al hacer un ajuste privado público: si contiene información sensible, no debe ser visible para los empleados.',
-        example: 'El "nombre de la organización" es un ajuste público (los empleados lo ven). La "política de contraseñas" es un ajuste privado (solo los administradores lo ven).',
-      },
-    ],
-  },
-  {
     id: 'audit',
     title: 'Auditoría',
     icon: 'History',
@@ -464,7 +428,7 @@ export const docSectionsEN: DocSection[] = [
       },
       {
         heading: 'Quick access',
-        body: 'Below the statistics you will find a grid of large buttons to go directly to each module: Courses, Personnel, Certifications, Reports, Notifications and Settings. Each button shows the module icon and its name. Clicking any of them navigates you directly to that section without having to use the sidebar menu.',
+        body: 'Below the statistics you will find a grid of large buttons to go directly to each module: Courses, Personnel, Certifications, Reports and Notifications. Each button shows the module icon and its name. Clicking any of them navigates you directly to that section without having to use the sidebar menu.',
         visual: 'quick-links',
         example: 'If you need to create a new user, instead of looking in the sidebar, you can click "Personnel" from the quick access and go directly to the personnel management module.',
       },
@@ -501,7 +465,7 @@ export const docSectionsEN: DocSection[] = [
       },
       {
         heading: 'Admins tab',
-        body: 'Admins have full access to the admin panel. You can create new admins with the same fields as an employee, but assigning them the administrator role. Be careful: an admin can create, edit and delete courses, users, roles, badges and system settings. Only create admins for people who genuinely need this access.',
+        body: 'Admins have full access to the admin panel. You can create new admins with the same fields as an employee, but assigning them the administrator role. Be careful: an admin can create, edit and delete courses, users, roles and badges. Only create admins for people who genuinely need this access.',
         example: 'You create an admin for the training manager, who needs to manage courses and personnel. You assign them the "Administrator" role instead of "Employee".',
       },
       {
@@ -736,41 +700,6 @@ export const docSectionsEN: DocSection[] = [
         heading: 'When to review reports',
         body: 'We recommend reviewing reports on a regular schedule: (1) Weekly: individual progress report to detect stalled employees. (2) Monthly: compliance by role report to identify problematic roles. (3) Quarterly: exam and feedback reports to evaluate overall course quality. Establish this routine so data does not pile up without action.',
         example: 'Every Friday you review individual progress. You detect 5 employees who have not advanced in any course for 2 weeks and send them a reminder.',
-      },
-    ],
-  },
-  {
-    id: 'settings',
-    title: 'Settings',
-    icon: 'Settings',
-    summary: 'General system settings: branding, evaluation parameters, automatic notifications and security.',
-    sections: [
-      {
-        heading: 'Settings categories',
-        body: 'The Settings module is divided into three categories: General (global system parameters), Branding (visual customization) and Security (access policies). Each category contains a list of settings you can edit. Changes apply immediately to the entire system.',
-        visual: 'settings-categories',
-        example: 'To change the exam pass threshold, go to the "General" category and edit the corresponding parameter value.',
-      },
-      {
-        heading: 'General settings',
-        body: 'Global system parameters such as the organization name, the exam pass threshold (default 90%), and other values that affect the entire system. The pass threshold is the minimum percentage an employee must score on an exam to pass. If you change it, it affects all future exams (past ones are not affected).',
-        visual: 'branding-preview',
-        example: 'Your organization decides the pass threshold should be 80% instead of 90%. You change it in General Settings and from that moment, employees only need 80% to pass.',
-      },
-      {
-        heading: 'Branding',
-        body: 'Customize the system appearance: logos, colors and other visual elements shown to employees. You can change the logo that appears in the top left corner and on the login page. Consistent branding reinforces the organization\'s identity and makes the platform feel like your own, not an external tool.',
-        example: 'You upload your company logo so it appears on the login screen and in each employee\'s panel, giving a corporate platform feel.',
-      },
-      {
-        heading: 'Security',
-        body: 'Configure password policies (minimum length, complexity), session expiration and other system security aspects. A robust password policy protects against unauthorized access. Session expiration automatically logs out an employee who has been inactive, preventing someone from using their device without permission.',
-        example: 'You configure passwords to require a minimum of 8 characters and sessions to expire after 30 minutes of inactivity.',
-      },
-      {
-        heading: 'Public vs private settings',
-        body: 'Some settings are public (visible to all employees, like the organization name) and others are private (only visible to admins, like security policies). Each setting has a "Public" indicator you can toggle. Be careful making a private setting public: if it contains sensitive information, it should not be visible to employees.',
-        example: 'The "organization name" is a public setting (employees see it). The "password policy" is a private setting (only admins see it).',
       },
     ],
   },
