@@ -10,6 +10,7 @@ import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 
 type Recipients = 'user' | 'role';
+type NotificationType = 'info' | 'warning' | 'success' | 'error' | 'reminder';
 
 export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; data: AdminData; onRefresh: () => void }) {
   const { notifications, team, jobRoles } = data;
@@ -17,7 +18,7 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const [recipients, setRecipients] = useState<Recipients>('user');
   const [userId, setUserId] = useState('');
   const [roleId, setRoleId] = useState('');
-  const [type, setType] = useState<'info' | 'warning' | 'success' | 'error' | 'reminder'>('info');
+  const [type, setType] = useState<NotificationType>('info');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -30,6 +31,13 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
 
   const roleMembers = team.filter((u) => u.job_role_id === roleId);
   const targets: Profile[] = recipients === 'role' ? roleMembers : team.filter((u) => u.id === userId);
+  const notificationTypes: { value: NotificationType; label: string; icon: JSX.Element }[] = [
+    { value: 'info', label: t.info, icon: <Bell size={14} /> },
+    { value: 'success', label: t.success, icon: <Check size={14} /> },
+    { value: 'warning', label: t.warning, icon: <AlertCircle size={14} /> },
+    { value: 'error', label: t.error, icon: <AlertCircle size={14} /> },
+    { value: 'reminder', label: t.reminder, icon: <Clock3 size={14} /> },
+  ];
 
   const handleCreate = async () => {
     if (!title || !message) { setError(t.title + ' / ' + t.message); return; }
@@ -76,11 +84,12 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
                 {roleId && <small className="muted">{roleMembers.length} {roleMembers.length === 1 ? 'persona recibirá' : 'personas recibirán'} esta notificación</small>}
               </div>
             )}
-            <div className="field-group"><label>{t.type}</label>
-              <select className="auth-input" value={type} onChange={(e) => setType(e.target.value as any)}>
-                <option value="info">{t.info}</option><option value="warning">{t.warning}</option>
-                <option value="success">{t.success}</option><option value="error">{t.error}</option><option value="reminder">{t.reminder}</option>
-              </select>
+            <div className="field-group field-group-full"><label>{t.type}</label>
+              <div className="segmented-control notification-type-control">
+                {notificationTypes.map((option) => (
+                  <button key={option.value} type="button" className={type === option.value ? 'active' : ''} onClick={() => setType(option.value)}>{option.icon}{option.label}</button>
+                ))}
+              </div>
             </div>
             <div className="field-group field-group-full"><label>{t.title}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div className="field-group field-group-full"><label>{t.message}</label><textarea className="auth-input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} /></div>
