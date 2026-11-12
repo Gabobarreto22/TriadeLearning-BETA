@@ -1136,3 +1136,14 @@ html.dark .docs-example{border-left-color:var(--ink)}
 .report-dropdown-item{display:block;width:100%;text-align:left;border:0;background:none;color:var(--text);font:600 12px 'Manrope',sans-serif;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .12s}
 .report-dropdown-item:hover{background:var(--card-hover)}
 html.dark .report-dropdown-menu{background:var(--surface-2);border-color:var(--line);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.report-trigger,.courses-new-button{height:48px;min-height:48px;box-sizing:border-box}
+.report-trigger{min-width:174px;justify-content:center}
+.courses-new-button{min-width:134px;justify-content:center}
+.course-report-modal{max-width:560px}
+.course-report-options{display:grid;gap:8px;max-height:360px;overflow:auto;padding:2px}
+.course-report-option{display:flex;align-items:center;gap:12px;width:100%;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease}
+.course-report-option:hover{background:var(--card-hover);border-color:var(--accent);transform:translateY(-1px)}
+.course-report-option>span:nth-child(2){display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.course-report-option strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.course-report-option small{font-size:11px;color:var(--muted)}
+.course-report-arrow{transform:rotate(180deg);color:var(--muted);flex:none}

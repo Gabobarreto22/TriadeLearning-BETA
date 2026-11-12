@@ -23,6 +23,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
   onLeaveGuardChange: (guard: (() => boolean) | null) => void;
 }) {
   const [editingCourse, setEditingCourse] = useState<CourseWithRelations | null>(null);
+  const [courseReportOpen, setCourseReportOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
@@ -53,19 +54,38 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
         allCoursesRef.find((co) => co.id === p.prerequisite_course_id)?.title ?? '—'
       ),
     }));
-    let singleCourseId: string | undefined;
     if (scope === 'single') {
-      const titles = courses.map((c) => c.title);
-      const chosen = prompt('Curso: ' + titles.slice(0, 20).join(', '), titles[0] ?? '');
-      if (!chosen) return;
-      const course = courses.find((c) => c.title === chosen);
-      if (!course) return;
-      singleCourseId = course.id;
+      setCourseReportOpen(true);
+      return;
     }
-    exportCoursesReport({ courses: mapped, singleCourseId });
+    exportCoursesReport({ courses: mapped });
   };
 
   const allCoursesRef = courses;
+  const createCourseReport = (courseId: string) => {
+    const selectedCourse = courses.find((course) => course.id === courseId);
+    if (!selectedCourse) return;
+    const selected = courses.filter((course) => course.id === selectedCourse.id).map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      category: c.category,
+      duration: c.duration,
+      estimated_hours: c.estimated_hours,
+      moduleName: (c.modules ?? [])[0]?.title ?? '—',
+      moduleType: (c.modules ?? [])[0]?.type ?? '—',
+      moduleDuration: (c.modules ?? [])[0]?.duration ?? null,
+      assignments: (c.assignments ?? []).map((a) => ({
+        roleName: jobRoles.find((r) => r.id === a.job_role_id)?.name ?? '—',
+        mandatory: a.is_mandatory,
+        priority: a.priority,
+        deadlineDays: a.completion_deadline_days,
+      })),
+      prerequisites: (c.prerequisites ?? []).map((p) => allCoursesRef.find((co) => co.id === p.prerequisite_course_id)?.title ?? '—'),
+    }));
+    setCourseReportOpen(false);
+    exportCoursesReport({ courses: selected });
+  };
 
   useEffect(() => {
     if (!editingCourse?.id) return;
@@ -83,7 +103,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
         <div><p className="eyebrow">GESTIÓN DE CURSOS</p><h1>{t.courses}</h1><p className="muted">{courses.length} {t.totalCourses.toLowerCase()}</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <ReportDropdown label={t.reportCourses} options={coursesReportOpts} onSelect={handleCourseReport} />
-          <button className="primary-button" onClick={() => setEditingCourse({} as CourseWithRelations)}><Plus size={18} />{t.newCourse}</button>
+          <button className="primary-button courses-new-button" onClick={() => setEditingCourse({} as CourseWithRelations)}><Plus size={18} />{t.newCourse}</button>
         </div>
       </div>
       <div className="section-card">
@@ -103,6 +123,24 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
             );
           })}</div>}</PaginatedList>}
       </div>
+      {courseReportOpen && createPortal(<div className="modal-backdrop" onClick={() => setCourseReportOpen(false)}><div className="course-modal course-report-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={() => setCourseReportOpen(false)}><X size={19} /></button>
+        <div className="modal-body">
+          <p className="eyebrow">{t.reportCourses}</p>
+          <h2>{t.reportSingleCourse}</h2>
+          <p className="muted">Selecciona el curso que quieres incluir en el reporte.</p>
+          <div className="course-report-options">
+            {courses.length === 0 ? <p className="muted">{t.noCourses}</p> : courses.map((course) => (
+              <button key={course.id} className="course-report-option" onClick={() => createCourseReport(course.id)}>
+                <span className={`course-icon ${course.accent}`}><BookOpen size={18} /></span>
+                <span><strong>{course.title}</strong><small>{course.category || 'Curso'} · {course.modules.length} {t.modulesLabel}</small></span>
+                <ArrowLeft size={16} className="course-report-arrow" />
+              </button>
+            ))}
+          </div>
+          <div className="form-actions-row"><button className="outline-button" onClick={() => setCourseReportOpen(false)}>{t.cancel}</button></div>
+        </div>
+      </div></div>, document.body)}
       {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteConfirm}</h2>

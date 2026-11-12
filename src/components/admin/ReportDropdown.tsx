@@ -30,7 +30,7 @@ export function ReportDropdown({
   return (
     <div className="report-dropdown" ref={ref}>
       <button
-        className="outline-button"
+        className="outline-button report-trigger"
         style={{ minHeight: 36, padding: '8px 12px', fontSize: 12, gap: 6 }}
         onClick={() => setOpen((v) => !v)}
       >
