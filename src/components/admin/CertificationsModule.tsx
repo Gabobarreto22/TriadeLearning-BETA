@@ -5,6 +5,8 @@ import { PaginatedList } from '../PaginatedList';
 import { FilterSelect } from './FilterSelect';
 import { CertificatePreview } from '@/components/employee/LearningModals';
 import { usePreferences } from '@/lib/preferences';
+import { ReportDropdown } from './ReportDropdown';
+import { exportCertificationsReport } from '@/lib/pdfReport';
 
 type CertificateItem = AdminData['certificates'][number];
 
@@ -47,9 +49,62 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
   const certHasFilters = Boolean(certWorkerId || certCourseId);
   const roleHasFilters = Boolean(roleWorkerId || roleStatus);
 
+  const certReportOpts = [
+    { value: 'general', label: t.reportGeneral },
+    { value: 'byCourse', label: t.reportByCourse },
+    { value: 'byWorker', label: t.reportByWorker },
+  ];
+
+  const handleCertReport = (scope: string) => {
+    const mapCert = (c: typeof certificates[number]) => ({
+      certificate_number: c.certificate_number,
+      userName: c.user_course_requirement?.user?.full_name ?? '—',
+      courseTitle: c.user_course_requirement?.course?.title ?? '—',
+      issue_date: c.issue_date,
+      expiry_date: c.expiry_date,
+    });
+    const mapRoleCert = (rc: typeof roleCertifications[number]) => ({
+      userName: rc.user?.full_name ?? '—',
+      roleName: rc.job_role?.name ?? '—',
+      certified_at: rc.certified_at,
+      is_valid: rc.is_valid,
+    });
+    let filterLabel: string | undefined;
+    let certs = certificates;
+    let roleCerts = roleCertifications;
+    if (scope === 'byCourse') {
+      const courses = certCourseOptions;
+      if (courses.length === 0) return;
+      const chosen = prompt('Curso: ' + courses.map((c) => c.label).slice(0, 20).join(', '), courses[0]?.label ?? '');
+      if (!chosen) return;
+      const course = courses.find((c) => c.label === chosen);
+      if (!course) return;
+      certs = certificates.filter((c) => c.user_course_requirement?.course?.id === course.value);
+      filterLabel = chosen;
+    } else if (scope === 'byWorker') {
+      const workers = certWorkerOptions;
+      if (workers.length === 0) return;
+      const chosen = prompt('Trabajador: ' + workers.map((w) => w.label).slice(0, 20).join(', '), workers[0]?.label ?? '');
+      if (!chosen) return;
+      const worker = workers.find((w) => w.label === chosen);
+      if (!worker) return;
+      certs = certificates.filter((c) => c.user_course_requirement?.user?.id === worker.value);
+      roleCerts = roleCertifications.filter((rc) => rc.user_id === worker.value);
+      filterLabel = chosen;
+    }
+    exportCertificationsReport({
+      certificates: certs.map(mapCert),
+      roleCerts: roleCerts.map(mapRoleCert),
+      scope: scope as 'general' | 'byCourse' | 'byWorker',
+      filterLabel,
+    });
+  };
+
   return (
     <div className="page animate-in">
-      <div className="page-heading"><div><p className="eyebrow">CERTIFICACIONES</p><h1>{t.certifications}</h1><p className="muted">{t.certificationsDesc}</p></div></div>
+      <div className="page-heading"><div><p className="eyebrow">CERTIFICACIONES</p><h1>{t.certifications}</h1><p className="muted">{t.certificationsDesc}</p></div>
+        <ReportDropdown label={t.reportCertifications} options={certReportOpts} onSelect={handleCertReport} />
+      </div>
       <div className="admin-two-up">
         <div className="section-card">
           <div className="section-title">

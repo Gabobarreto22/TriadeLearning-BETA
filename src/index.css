@@ -1129,3 +1129,10 @@ html.dark .docs-example{border-left-color:var(--ink)}
 .feedback-course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
 @media (max-width:900px){.feedback-course-grid{grid-template-columns:1fr}}
 @media (max-width:720px){.feedback-filter-row{grid-template-columns:1fr}}
+
+/* REPORT DROPDOWN */
+.report-dropdown{position:relative;display:inline-block}
+.report-dropdown-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:220px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.16);z-index:50;padding:6px;animation:tooltip-in .15s ease}
+.report-dropdown-item{display:block;width:100%;text-align:left;border:0;background:none;color:var(--text);font:600 12px 'Manrope',sans-serif;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .12s}
+.report-dropdown-item:hover{background:var(--card-hover)}
+html.dark .report-dropdown-menu{background:var(--surface-2);border-color:var(--line);box-shadow:0 12px 32px rgba(0,0,0,.4)}

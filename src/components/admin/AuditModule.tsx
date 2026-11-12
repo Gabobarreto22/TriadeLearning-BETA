@@ -8,6 +8,8 @@ import type { AdminSection } from '@/lib/routes';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
+import { ReportDropdown } from './ReportDropdown';
+import { exportAuditReport } from '@/lib/pdfReport';
 
 export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
   const [auditLogs, setAuditLogs] = useState(data.auditLogs);
@@ -20,9 +22,24 @@ export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
     return () => { active = false; };
   }, []);
 
+  const handleReport = () => {
+    exportAuditReport({
+      logs: auditLogs.map((l) => ({
+        action: l.action,
+        entity_type: l.entity_type,
+        userName: l.user?.full_name ?? 'Sistema',
+        ip_address: l.ip_address,
+        created_at: l.created_at,
+        changesSummary: l.new_values ? Object.entries(l.new_values).slice(0, 3).map(([k, v]) => `${k}: ${String(v)}`).join(', ') : null,
+      })),
+    });
+  };
+
   return (
     <div className="page animate-in">
-      <div className="page-heading"><div><p className="eyebrow">AUDITORÍA</p><h1>{t.audit}</h1><p className="muted">{t.auditDesc}</p></div></div>
+      <div className="page-heading"><div><p className="eyebrow">AUDITORÍA</p><h1>{t.audit}</h1><p className="muted">{t.auditDesc}</p></div>
+        <ReportDropdown label={t.reportAudit} options={[{ value: 'general', label: t.reportGeneral }]} onSelect={handleReport} />
+      </div>
       <div className="section-card">
         {auditLogs.length === 0 ? <div className="empty-state"><History size={30} /><h3>{t.noAudit}</h3></div> :
          <PaginatedList items={auditLogs}>{(pageAuditLogs) => <div className="admin-list-stack">{pageAuditLogs.map((log) => {

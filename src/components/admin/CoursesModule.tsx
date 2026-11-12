@@ -8,6 +8,8 @@ import { useToast } from '@/lib/toast';
 import { uploadToImageKit, deleteFromImageKit, detectResourceType, type ResourceType } from '@/lib/imagekit';
 import type { AdminStrings } from './types';
 import { PaginatedList } from '../PaginatedList';
+import { ReportDropdown } from './ReportDropdown';
+import { exportCoursesReport } from '@/lib/pdfReport';
 
 type CourseTab = 'info' | 'modules' | 'exams' | 'assignments' | 'prerequisites';
 
@@ -25,6 +27,46 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
+  const coursesReportOpts = [
+    { value: 'all', label: t.reportGeneral },
+    { value: 'single', label: t.reportSingleCourse },
+  ];
+
+  const handleCourseReport = (scope: string) => {
+    const mapped = courses.map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      category: c.category,
+      duration: c.duration,
+      estimated_hours: c.estimated_hours,
+      moduleName: (c.modules ?? [])[0]?.title ?? '—',
+      moduleType: (c.modules ?? [])[0]?.type ?? '—',
+      moduleDuration: (c.modules ?? [])[0]?.duration ?? null,
+      assignments: (c.assignments ?? []).map((a) => ({
+        roleName: jobRoles.find((r) => r.id === a.job_role_id)?.name ?? '—',
+        mandatory: a.is_mandatory,
+        priority: a.priority,
+        deadlineDays: a.completion_deadline_days,
+      })),
+      prerequisites: (c.prerequisites ?? []).map((p) =>
+        allCoursesRef.find((co) => co.id === p.prerequisite_course_id)?.title ?? '—'
+      ),
+    }));
+    let singleCourseId: string | undefined;
+    if (scope === 'single') {
+      const titles = courses.map((c) => c.title);
+      const chosen = prompt('Curso: ' + titles.slice(0, 20).join(', '), titles[0] ?? '');
+      if (!chosen) return;
+      const course = courses.find((c) => c.title === chosen);
+      if (!course) return;
+      singleCourseId = course.id;
+    }
+    exportCoursesReport({ courses: mapped, singleCourseId });
+  };
+
+  const allCoursesRef = courses;
+
   useEffect(() => {
     if (!editingCourse?.id) return;
     const latest = courses.find((course) => course.id === editingCourse.id);
@@ -39,7 +81,10 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
     <div className="page animate-in">
       <div className="page-heading">
         <div><p className="eyebrow">GESTIÓN DE CURSOS</p><h1>{t.courses}</h1><p className="muted">{courses.length} {t.totalCourses.toLowerCase()}</p></div>
-        <button className="primary-button" onClick={() => setEditingCourse({} as CourseWithRelations)}><Plus size={18} />{t.newCourse}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ReportDropdown label={t.reportCourses} options={coursesReportOpts} onSelect={handleCourseReport} />
+          <button className="primary-button" onClick={() => setEditingCourse({} as CourseWithRelations)}><Plus size={18} />{t.newCourse}</button>
+        </div>
       </div>
       <div className="section-card">
         {courses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3>

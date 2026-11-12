@@ -8,6 +8,8 @@ import type { AdminSection } from '@/lib/routes';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
+import { ReportDropdown } from './ReportDropdown';
+import { exportNotificationsReport } from '@/lib/pdfReport';
 
 type Recipients = 'user' | 'role';
 type NotificationType = 'info' | 'warning' | 'success' | 'error' | 'reminder';
@@ -51,10 +53,59 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
 
   const typeIcon = (tp: string) => tp === 'warning' ? <AlertCircle size={14} /> : tp === 'success' ? <Check size={14} /> : tp === 'error' ? <AlertCircle size={14} /> : tp === 'reminder' ? <Clock3 size={14} /> : <Bell size={14} />;
 
+  const notifReportOpts = [
+    { value: 'general', label: t.reportGeneral },
+    { value: 'byType', label: t.reportByType },
+    { value: 'byRole', label: t.reportByRole },
+    { value: 'byWorker', label: t.reportByWorker },
+  ];
+
+  const handleNotifReport = (scope: string) => {
+    const mapNotif = (n: typeof notifications[number]) => ({
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      userName: n.user?.full_name ?? '—',
+      is_read: n.is_read,
+      created_at: n.sent_at ?? n.created_at ?? '',
+    });
+    let filterLabel: string | undefined;
+    let scoped = notifications;
+    if (scope === 'byType') {
+      const types = Array.from(new Set(notifications.map((n) => n.type)));
+      const chosen = types.length > 0 ? prompt('Tipo: ' + types.join(', '), types[0]) : null;
+      if (!chosen) return;
+      scoped = notifications.filter((n) => n.type === chosen);
+      filterLabel = chosen;
+    } else if (scope === 'byRole') {
+      const roles = jobRoles.map((r) => r.name);
+      const chosen = roles.length > 0 ? prompt('Cargo: ' + roles.join(', '), roles[0]) : null;
+      if (!chosen) return;
+      const role = jobRoles.find((r) => r.name === chosen);
+      scoped = notifications.filter((n) => role && team.find((u) => u.id === n.user_id)?.job_role_id === role.id);
+      filterLabel = chosen;
+    } else if (scope === 'byWorker') {
+      const workers = team.map((u) => u.full_name);
+      const chosen = workers.length > 0 ? prompt('Trabajador: ' + workers.slice(0, 20).join(', '), workers[0]) : null;
+      if (!chosen) return;
+      const worker = team.find((u) => u.full_name === chosen);
+      scoped = notifications.filter((n) => worker && n.user_id === worker.id);
+      filterLabel = chosen;
+    }
+    exportNotificationsReport({
+      notifications: scoped.map(mapNotif),
+      scope: scope as 'general' | 'byType' | 'byRole' | 'byWorker',
+      filterLabel,
+    });
+  };
+
   return (
     <div className="page animate-in">
       <div className="page-heading"><div><p className="eyebrow">NOTIFICACIONES</p><h1>{t.notifications}</h1><p className="muted">{t.notificationsDesc}</p></div>
-        <button className="primary-button" onClick={() => setShowForm(true)}><Plus size={18} />{t.newNotification}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ReportDropdown label={t.reportNotifications} options={notifReportOpts} onSelect={handleNotifReport} />
+          <button className="primary-button" onClick={() => setShowForm(true)}><Plus size={18} />{t.newNotification}</button>
+        </div>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={resetForm}><X size={19} /></button>

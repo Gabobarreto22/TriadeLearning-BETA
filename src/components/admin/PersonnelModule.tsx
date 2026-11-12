@@ -13,6 +13,8 @@ import {
 import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
 import { PaginatedList } from '../PaginatedList';
+import { ReportDropdown } from './ReportDropdown';
+import { exportPersonnelReport } from '@/lib/pdfReport';
 
 function UserPhotoField({ value, uploading, onChange, onClear }: {
   value: string | null;
@@ -67,6 +69,95 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
     { key: 'requirements', label: t.personnelTabs.requirements, icon: BookOpen },
   ];
 
+  const personnelReportOpts = [
+    { value: 'all', label: t.reportAll },
+    { value: 'employees', label: t.reportEmployees },
+    { value: 'admins', label: t.reportAdmins },
+    { value: 'departments', label: t.reportDepartments },
+    { value: 'roles', label: t.reportRoles },
+    { value: 'history', label: t.reportHistory },
+    { value: 'requirements', label: t.reportRequirements },
+  ];
+
+  const getDeptName = (roleId: string | null) => {
+    const role = jobRoles.find((r) => r.id === roleId);
+    if (!role?.department_id) return '';
+    return departments.find((d) => d.id === role.department_id)?.name ?? '';
+  };
+  const getRoleName = (roleId: string | null) => {
+    const role = jobRoles.find((r) => r.id === roleId);
+    return role?.name ?? '';
+  };
+
+  const handlePersonnelReport = async (scope: string) => {
+    const employees = team.filter((m) => m.role === 'employee').map((e) => ({
+      full_name: e.full_name,
+      email: e.email,
+      cedula: e.cedula,
+      telefono: e.telefono,
+      is_active: e.is_active,
+      jobRoleName: getRoleName(e.job_role_id),
+      deptName: getDeptName(e.job_role_id),
+    }));
+    const admins = team.filter((m) => m.role === 'admin').map((a) => ({
+      full_name: a.full_name,
+      email: a.email,
+      is_active: a.is_active,
+    }));
+    const depts = departments.map((d) => ({
+      name: d.name,
+      code: d.code,
+      description: d.description,
+      is_active: d.is_active,
+    }));
+    const roles = jobRoles.map((r) => ({
+      name: r.name,
+      description: r.description,
+      deptName: departments.find((d) => d.id === r.department_id)?.name ?? '',
+      courseCount: courses.reduce((acc, c) => acc + c.assignments.filter((a) => a.job_role_id === r.id).length, 0),
+      is_active: r.is_active,
+    }));
+
+    let history: { userName: string; roleName: string; startDate: string; endDate: string | null; reason: string | null }[] | undefined;
+    if (scope === 'history') {
+      const chosen = prompt('Trabajador (nombre):', team[0]?.full_name ?? '');
+      if (!chosen) return;
+      const worker = team.find((u) => u.full_name === chosen);
+      if (!worker) return;
+      const data = await fetchUserJobRoleHistory(worker.id);
+      history = data.map((h) => ({
+        userName: worker.full_name,
+        roleName: jobRoles.find((r) => r.id === h.job_role_id)?.name ?? '—',
+        startDate: h.start_date,
+        endDate: h.end_date,
+        reason: h.reason,
+      }));
+    }
+
+    let requirements: { roleName: string; courses: { title: string; mandatory: boolean; priority: string; deadlineDays: number | null }[] }[] | undefined;
+    if (scope === 'requirements') {
+      requirements = jobRoles.map((role) => ({
+        roleName: role.name,
+        courses: courses
+          .filter((c) => c.assignments.some((a) => a.job_role_id === role.id))
+          .map((c) => {
+            const a = c.assignments.find((asg) => asg.job_role_id === role.id);
+            return { title: c.title, mandatory: a?.is_mandatory ?? false, priority: a?.priority ?? 'medium', deadlineDays: a?.completion_deadline_days ?? null };
+          }),
+      }));
+    }
+
+    exportPersonnelReport({
+      employees,
+      admins,
+      departments: depts,
+      jobRoles: roles,
+      scope: scope as 'all' | 'employees' | 'admins' | 'departments' | 'roles' | 'history' | 'requirements',
+      history,
+      requirements,
+    });
+  };
+
   return (
     <div className="page animate-in">
       <div className="page-heading">
@@ -75,6 +166,7 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
           <h1>{t.personnel}</h1>
           <p className="muted">{team.length} {t.users} · {jobRoles.length} {t.jobRole.toLowerCase()}s · {departments.length} {t.department.toLowerCase()}s</p>
         </div>
+        <ReportDropdown label={t.reportPersonnel} options={personnelReportOpts} onSelect={handlePersonnelReport} />
       </div>
       <div className="admin-tabs">
         {tabs.map((tabItem) => {

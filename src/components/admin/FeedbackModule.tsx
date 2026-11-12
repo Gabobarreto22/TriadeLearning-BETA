@@ -4,6 +4,8 @@ import { Star, X } from 'lucide-react';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { FilterSelect } from './FilterSelect';
+import { ReportDropdown } from './ReportDropdown';
+import { exportFeedbackReport } from '@/lib/pdfReport';
 
 type FeedbackItem = AdminData['feedback'][number];
 type CourseGroup = { id: string; title: string; all: FeedbackItem[] };
@@ -61,10 +63,57 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
   const hasFilters = Boolean(workerId || courseId || rating);
   const clearFilters = () => { setWorkerId(''); setCourseId(''); setRating(''); };
 
+  const feedbackReportOpts = [
+    { value: 'general', label: t.reportGeneral },
+    { value: 'byCourse', label: t.reportByCourse },
+    { value: 'byWorker', label: t.reportByWorker },
+  ];
+
+  const handleFeedbackReport = (scope: string) => {
+    const mapFeedback = (f: typeof feedback[number]) => ({
+      userName: f.user_course_requirement?.user?.full_name ?? '—',
+      courseTitle: f.user_course_requirement?.course?.title ?? '—',
+      rating: f.rating,
+      difficulty: f.difficulty_level,
+      wouldRecommend: f.would_recommend,
+      timeAdequate: f.time_commitment_adequate,
+      comment: f.feedback_text,
+    });
+    let scoped = feedback;
+    let filterLabel: string | undefined;
+    if (scope === 'byCourse') {
+      const courses = courseOptions;
+      if (courses.length === 0) return;
+      const chosen = prompt('Curso: ' + courses.map((c) => c.label).slice(0, 20).join(', '), courses[0]?.label ?? '');
+      if (!chosen) return;
+      const course = courses.find((c) => c.label === chosen);
+      if (!course) return;
+      scoped = feedback.filter((f) => f.user_course_requirement?.course?.id === course.value);
+      filterLabel = chosen;
+    } else if (scope === 'byWorker') {
+      const workers = workerOptions;
+      if (workers.length === 0) return;
+      const chosen = prompt('Trabajador: ' + workers.map((w) => w.label).slice(0, 20).join(', '), workers[0]?.label ?? '');
+      if (!chosen) return;
+      const worker = workers.find((w) => w.label === chosen);
+      if (!worker) return;
+      scoped = feedback.filter((f) => f.user_course_requirement?.user?.id === worker.value);
+      filterLabel = chosen;
+    }
+    exportFeedbackReport({
+      feedback: scoped.map(mapFeedback),
+      scope: scope as 'general' | 'byCourse' | 'byWorker',
+      filterLabel,
+    });
+  };
+
   return (
     <div className="page animate-in">
       <div className="page-heading"><div><p className="eyebrow">FEEDBACK</p><h1>{t.feedback}</h1><p className="muted">{t.feedbackDesc}</p></div>
-        <div className="stat-card" style={{ minWidth: 120 }}><div className="stat-icon g3"><Star size={18} /></div><div><strong>{avgRating}</strong><span>{t.rating}</span></div></div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <ReportDropdown label={t.reportFeedback} options={feedbackReportOpts} onSelect={handleFeedbackReport} />
+          <div className="stat-card" style={{ minWidth: 120 }}><div className="stat-icon g3"><Star size={18} /></div><div><strong>{avgRating}</strong><span>{t.rating}</span></div></div>
+        </div>
       </div>
       <div className="section-card">
         <div className="section-title">
