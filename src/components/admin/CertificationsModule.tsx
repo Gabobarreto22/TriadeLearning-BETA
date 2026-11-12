@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Award, ShieldCheck, X } from 'lucide-react';
+import { Award, FileText, ShieldCheck, X } from 'lucide-react';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { FilterSelect } from './FilterSelect';
+import { CertificatePreview } from '@/components/employee/LearningModals';
+import { usePreferences } from '@/lib/preferences';
+
+type CertificateItem = AdminData['certificates'][number];
 
 export function CertificationsModule({ t, data }: { t: AdminStrings; data: AdminData }) {
   const { certificates, roleCertifications } = data;
+  const { t: copyT } = usePreferences();
+  const [previewCert, setPreviewCert] = useState<CertificateItem | null>(null);
   const [certWorkerId, setCertWorkerId] = useState('');
   const [certCourseId, setCertCourseId] = useState('');
   const [roleWorkerId, setRoleWorkerId] = useState('');
@@ -59,6 +65,7 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
              <div key={c.id} className="admin-course-row">
                <div className="course-icon gray-3"><Award size={20} /></div>
                <div><strong>{c.certificate_number}</strong><small>{c.user_course_requirement?.user?.full_name ?? '—'} · {c.user_course_requirement?.course?.title ?? '—'}</small></div>
+               <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={() => setPreviewCert(c)}><FileText size={16} />Ver certificado</button>
                <span className="status-badge active">{c.issue_date}</span>
              </div>
            ))}</div>}</PaginatedList>}
@@ -82,6 +89,7 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
            ))}</div>}</PaginatedList>}
         </div>
       </div>
+      {previewCert && <CertificatePreview t={copyT} cert={{ title: previewCert.user_course_requirement?.course?.title ?? '—', id: previewCert.certificate_number, date: previewCert.issue_date }} profileName={previewCert.user_course_requirement?.user?.full_name ?? '—'} onClose={() => setPreviewCert(null)} />}
     </div>
   );
 }
