@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Star, X } from 'lucide-react';
 import type { AdminStrings, AdminData } from './types';
+import { PaginatedList } from '../PaginatedList';
 import { FilterSelect } from './FilterSelect';
 
 type FeedbackItem = AdminData['feedback'][number];
@@ -13,7 +15,7 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
   const [workerId, setWorkerId] = useState('');
   const [courseId, setCourseId] = useState('');
   const [rating, setRating] = useState('');
-  const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
+  const [openCourseId, setOpenCourseId] = useState<string | null>(null);
 
 
   const workerOptions = Array.from(new Map(
@@ -55,17 +57,9 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
     }))
     .filter((group) => !hasDetailFilter || group.matches.length > 0);
 
+  const openGroup = visibleGroups.find((g) => g.id === openCourseId) ?? null;
   const hasFilters = Boolean(workerId || courseId || rating);
   const clearFilters = () => { setWorkerId(''); setCourseId(''); setRating(''); };
-
-  const toggleCourse = (id: string) => {
-    setExpandedCourses((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   return (
     <div className="page animate-in">
@@ -84,7 +78,6 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
         </div>
         {visibleGroups.length === 0 ? <div className="empty-state"><Star size={30} /><h3>{t.noFeedback}</h3></div> :
          <div className="feedback-course-grid">{visibleGroups.map((group) => {
-           const isOpen = hasDetailFilter || expandedCourses.has(group.id);
            return (
              <article key={group.id} className="docs-article">
                <div className="docs-header" style={{ marginBottom: 16 }}>
@@ -93,18 +86,26 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
                </div>
                <p className="eyebrow">Desglose de calificaciones</p>
                <RatingBreakdown t={t} items={group.all} />
-               {!hasDetailFilter && (
-                 <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={() => toggleCourse(group.id)}>
-                   {isOpen ? 'Ocultar calificaciones' : `Ver calificaciones (${group.matches.length})`}
-                 </button>
-               )}
-               {isOpen && <div className="admin-list-stack" style={{ marginTop: 16 }}>{group.matches.map((f) => (
-                 <FeedbackEntry key={f.id} t={t} feedback={f} />
-               ))}</div>}
+               <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={() => setOpenCourseId(group.id)}>
+                 Ver calificaciones ({group.matches.length})
+               </button>
              </article>
            );
          })}</div>}
       </div>
+      {openGroup && createPortal(<div className="modal-backdrop" onClick={() => setOpenCourseId(null)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={() => setOpenCourseId(null)}><X size={19} /></button>
+        <div className="modal-body">
+          <p className="eyebrow">Calificaciones</p>
+          <h2>{openGroup.title}</h2>
+          <p className="muted">{openGroup.matches.length} de {openGroup.all.length} calificaciones</p>
+          <div style={{ marginTop: 16 }}>
+            <PaginatedList items={openGroup.matches}>{(pageItems) => <div className="admin-list-stack">{pageItems.map((f) => (
+              <FeedbackEntry key={f.id} t={t} feedback={f} />
+            ))}</div>}</PaginatedList>
+          </div>
+        </div>
+      </div></div>, document.body)}
     </div>
   );
 }
