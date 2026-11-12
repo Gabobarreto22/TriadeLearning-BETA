@@ -15,7 +15,6 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
   const [rating, setRating] = useState('');
   const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
 
-  const avgRating = feedback.length > 0 ? (feedback.reduce((acc, f) => acc + f.rating, 0) / feedback.length).toFixed(1) : '0';
 
   const workerOptions = Array.from(new Map(
     feedback.flatMap((f) => f.user_course_requirement?.user ? [[f.user_course_requirement.user.id, f.user_course_requirement.user.full_name] as const] : [])
@@ -26,6 +25,13 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
   )).map(([value, label]) => ({ value, label }));
 
   const ratingOptions = [5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${'★'.repeat(n)} ${n} ${n === 1 ? 'estrella' : 'estrellas'}` }));
+
+  const filteredFeedback = feedback.filter((f) =>
+    (!workerId || f.user_course_requirement?.user?.id === workerId) &&
+    (!courseId || f.user_course_requirement?.course?.id === courseId) &&
+    (!rating || String(f.rating) === rating)
+  );
+  const avgRating = filteredFeedback.length > 0 ? (filteredFeedback.reduce((acc, f) => acc + f.rating, 0) / filteredFeedback.length).toFixed(1) : '0';
 
   const courseGroups = Array.from(
     feedback.reduce((groups, f) => {
@@ -71,13 +77,13 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
           <div><h2>{t.feedback}</h2><p className="muted">{visibleGroups.length} cursos con calificaciones</p></div>
           {hasFilters && <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={clearFilters}><X size={16} />Limpiar filtros</button>}
         </div>
-        <div className="editor-grid" style={{ marginBottom: 16 }}>
+        <div className="feedback-filter-row">
           <FilterSelect label="Trabajador" value={workerId} onChange={setWorkerId} placeholder="Todos los trabajadores" options={workerOptions} />
           <FilterSelect label="Curso" value={courseId} onChange={setCourseId} placeholder="Todos los cursos" options={courseOptions} />
           <FilterSelect label="Calificación" value={rating} onChange={setRating} placeholder="Todas las calificaciones" options={ratingOptions} />
         </div>
         {visibleGroups.length === 0 ? <div className="empty-state"><Star size={30} /><h3>{t.noFeedback}</h3></div> :
-         <div className="docs-sections">{visibleGroups.map((group) => {
+         <div className="feedback-course-grid">{visibleGroups.map((group) => {
            const isOpen = hasDetailFilter || expandedCourses.has(group.id);
            return (
              <article key={group.id} className="docs-article">
