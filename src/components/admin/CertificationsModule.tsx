@@ -6,7 +6,10 @@ import { FilterSelect } from './FilterSelect';
 import { CertificatePreview } from '@/components/employee/LearningModals';
 import { usePreferences } from '@/lib/preferences';
 import { ReportDropdown } from './ReportDropdown';
+import { SelectionModal } from './SelectionModal';
 import { exportCertificationsReport } from '@/lib/pdfReport';
+
+type CertScope = 'general' | 'byCourse' | 'byWorker';
 
 type CertificateItem = AdminData['certificates'][number];
 
@@ -18,6 +21,7 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
   const [certCourseId, setCertCourseId] = useState('');
   const [roleWorkerId, setRoleWorkerId] = useState('');
   const [roleStatus, setRoleStatus] = useState('');
+  const [reportPicker, setReportPicker] = useState<Exclude<CertScope, 'general'> | null>(null);
 
   const certWorkerOptions = Array.from(new Map(
     certificates.flatMap((c) => c.user_course_requirement?.user ? [[c.user_course_requirement.user.id, c.user_course_requirement.user.full_name] as const] : [])
@@ -55,7 +59,7 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
     { value: 'byWorker', label: t.reportByWorker },
   ];
 
-  const handleCertReport = (scope: string) => {
+  const exportCertReport = (scope: CertScope, chosenId = '') => {
     const mapCert = (c: typeof certificates[number]) => ({
       certificate_number: c.certificate_number,
       userName: c.user_course_requirement?.user?.full_name ?? '—',
@@ -73,31 +77,28 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
     let certs = certificates;
     let roleCerts = roleCertifications;
     if (scope === 'byCourse') {
-      const courses = certCourseOptions;
-      if (courses.length === 0) return;
-      const chosen = prompt('Curso: ' + courses.map((c) => c.label).slice(0, 20).join(', '), courses[0]?.label ?? '');
-      if (!chosen) return;
-      const course = courses.find((c) => c.label === chosen);
+      const course = certCourseOptions.find((c) => c.value === chosenId);
       if (!course) return;
       certs = certificates.filter((c) => c.user_course_requirement?.course?.id === course.value);
-      filterLabel = chosen;
+      filterLabel = course.label;
     } else if (scope === 'byWorker') {
-      const workers = certWorkerOptions;
-      if (workers.length === 0) return;
-      const chosen = prompt('Trabajador: ' + workers.map((w) => w.label).slice(0, 20).join(', '), workers[0]?.label ?? '');
-      if (!chosen) return;
-      const worker = workers.find((w) => w.label === chosen);
+      const worker = certWorkerOptions.find((w) => w.value === chosenId);
       if (!worker) return;
       certs = certificates.filter((c) => c.user_course_requirement?.user?.id === worker.value);
       roleCerts = roleCertifications.filter((rc) => rc.user_id === worker.value);
-      filterLabel = chosen;
+      filterLabel = worker.label;
     }
     exportCertificationsReport({
       certificates: certs.map(mapCert),
       roleCerts: roleCerts.map(mapRoleCert),
-      scope: scope as 'general' | 'byCourse' | 'byWorker',
+      scope,
       filterLabel,
     });
+  };
+
+  const handleCertReport = (scope: string) => {
+    if (scope === 'general') exportCertReport('general');
+    else setReportPicker(scope as Exclude<CertScope, 'general'>);
   };
 
   return (
@@ -144,6 +145,17 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
            ))}</div>}</PaginatedList>}
         </div>
       </div>
+      {reportPicker && (
+        <SelectionModal
+          eyebrow={t.reportCertifications}
+          title={reportPicker === 'byCourse' ? 'Seleccionar curso' : 'Seleccionar trabajador'}
+          options={reportPicker === 'byCourse' ? certCourseOptions : certWorkerOptions}
+          selectedValue=""
+          searchPlaceholder={reportPicker === 'byCourse' ? 'Buscar curso' : 'Buscar trabajador'}
+          onSelect={(value) => { setReportPicker(null); exportCertReport(reportPicker, value); }}
+          onClose={() => setReportPicker(null)}
+        />
+      )}
       {previewCert && <CertificatePreview t={copyT} cert={{ title: previewCert.user_course_requirement?.course?.title ?? '—', id: previewCert.certificate_number, date: previewCert.issue_date }} profileName={previewCert.user_course_requirement?.user?.full_name ?? '—'} onClose={() => setPreviewCert(null)} />}
     </div>
   );

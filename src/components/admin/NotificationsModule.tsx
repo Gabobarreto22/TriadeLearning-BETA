@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, Clock3, Download, FileText, History, Plus, Settings, ShieldCheck, Star, Trash2, Users, X, Zap, User } from 'lucide-react';
+import { AlertCircle, Bell, Check, ChevronDown, Clock3, Plus, Trash2, Users, X, User } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
 import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications, createNotification, deleteNotification, fetchAllFeedback, fetchBadges, createBadge, deleteBadge, fetchUserBadges, fetchSystemSettings, updateSystemSetting, createSystemSetting, fetchAuditLogs } from '@/lib/data';
 import { getIcon } from '@/lib/icons';
@@ -9,6 +9,7 @@ import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { ReportDropdown } from './ReportDropdown';
+import { SelectionModal } from './SelectionModal';
 import { exportNotificationsReport } from '@/lib/pdfReport';
 
 type Recipients = 'user' | 'role';
@@ -27,9 +28,11 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [formPicker, setFormPicker] = useState<'user' | 'role' | 'type' | null>(null);
+  const [reportPicker, setReportPicker] = useState<'byType' | 'byRole' | 'byWorker' | null>(null);
   const { toast } = useToast();
 
-  const resetForm = () => { setRecipients('user'); setUserId(''); setRoleId(''); setType('info'); setTitle(''); setMessage(''); setError(null); setShowForm(false); };
+  const resetForm = () => { setRecipients('user'); setUserId(''); setRoleId(''); setType('info'); setTitle(''); setMessage(''); setError(null); setFormPicker(null); setShowForm(false); };
 
   const roleMembers = team.filter((u) => u.job_role_id === roleId);
   const targets: Profile[] = recipients === 'role' ? roleMembers : team.filter((u) => u.id === userId);
@@ -60,43 +63,43 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
     { value: 'byWorker', label: t.reportByWorker },
   ];
 
-  const handleNotifReport = (scope: string) => {
+  const exportNotifScope = (scope: 'general' | 'byType' | 'byRole' | 'byWorker', chosenId = '') => {
     const mapNotif = (n: typeof notifications[number]) => ({
       title: n.title,
       message: n.message,
       type: n.type,
       userName: n.user?.full_name ?? '—',
       is_read: n.is_read,
-      created_at: n.sent_at ?? n.created_at ?? '',
+      created_at: n.sent_at,
     });
     let filterLabel: string | undefined;
     let scoped = notifications;
     if (scope === 'byType') {
-      const types = Array.from(new Set(notifications.map((n) => n.type)));
-      const chosen = types.length > 0 ? prompt('Tipo: ' + types.join(', '), types[0]) : null;
-      if (!chosen) return;
-      scoped = notifications.filter((n) => n.type === chosen);
-      filterLabel = chosen;
+      const option = notificationTypes.find((o) => o.value === chosenId);
+      if (!option) return;
+      scoped = notifications.filter((n) => n.type === option.value);
+      filterLabel = option.label;
     } else if (scope === 'byRole') {
-      const roles = jobRoles.map((r) => r.name);
-      const chosen = roles.length > 0 ? prompt('Cargo: ' + roles.join(', '), roles[0]) : null;
-      if (!chosen) return;
-      const role = jobRoles.find((r) => r.name === chosen);
-      scoped = notifications.filter((n) => role && team.find((u) => u.id === n.user_id)?.job_role_id === role.id);
-      filterLabel = chosen;
+      const role = jobRoles.find((r) => r.id === chosenId);
+      if (!role) return;
+      scoped = notifications.filter((n) => team.find((u) => u.id === n.user_id)?.job_role_id === role.id);
+      filterLabel = role.name;
     } else if (scope === 'byWorker') {
-      const workers = team.map((u) => u.full_name);
-      const chosen = workers.length > 0 ? prompt('Trabajador: ' + workers.slice(0, 20).join(', '), workers[0]) : null;
-      if (!chosen) return;
-      const worker = team.find((u) => u.full_name === chosen);
-      scoped = notifications.filter((n) => worker && n.user_id === worker.id);
-      filterLabel = chosen;
+      const worker = team.find((u) => u.id === chosenId);
+      if (!worker) return;
+      scoped = notifications.filter((n) => n.user_id === worker.id);
+      filterLabel = worker.full_name;
     }
     exportNotificationsReport({
       notifications: scoped.map(mapNotif),
-      scope: scope as 'general' | 'byType' | 'byRole' | 'byWorker',
+      scope,
       filterLabel,
     });
+  };
+
+  const handleNotifReport = (scope: string) => {
+    if (scope === 'general') exportNotifScope('general');
+    else setReportPicker(scope as 'byType' | 'byRole' | 'byWorker');
   };
 
   return (
@@ -121,26 +124,25 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
             </div>
             {recipients === 'user' ? (
               <div className="field-group field-group-full"><label>{t.user}</label>
-                <select className="auth-input" value={userId} onChange={(e) => setUserId(e.target.value)}>
-                  <option value="">—</option>
-                  {team.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                </select>
+                <button type="button" className="selection-trigger" onClick={() => setFormPicker('user')}>
+                  <span>{team.find((u) => u.id === userId)?.full_name ?? 'Seleccionar trabajador'}</span>
+                  <User size={16} />
+                </button>
               </div>
             ) : (
               <div className="field-group field-group-full"><label>{t.jobRole}</label>
-                <select className="auth-input" value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-                  <option value="">—</option>
-                  {jobRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
+                <button type="button" className="selection-trigger" onClick={() => setFormPicker('role')}>
+                  <span>{jobRoles.find((r) => r.id === roleId)?.name ?? 'Seleccionar cargo'}</span>
+                  <Users size={16} />
+                </button>
                 {roleId && <small className="muted">{roleMembers.length} {roleMembers.length === 1 ? 'persona recibirá' : 'personas recibirán'} esta notificación</small>}
               </div>
             )}
             <div className="field-group field-group-full"><label>{t.type}</label>
-              <div className="segmented-control notification-type-control">
-                {notificationTypes.map((option) => (
-                  <button key={option.value} type="button" className={type === option.value ? 'active' : ''} onClick={() => setType(option.value)}>{option.icon}{option.label}</button>
-                ))}
-              </div>
+              <button type="button" className="selection-trigger" onClick={() => setFormPicker('type')}>
+                <span className="notification-type-current">{notificationTypes.find((o) => o.value === type)?.icon}{notificationTypes.find((o) => o.value === type)?.label}</span>
+                <ChevronDown size={16} />
+              </button>
             </div>
             <div className="field-group field-group-full"><label>{t.title}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div className="field-group field-group-full"><label>{t.message}</label><textarea className="auth-input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} /></div>
@@ -151,6 +153,42 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
           </div>
         </div>
       </div></div>, document.body)}
+
+      {formPicker && (
+        <SelectionModal
+          eyebrow={t.newNotification}
+          title={formPicker === 'user' ? 'Seleccionar trabajador' : formPicker === 'role' ? 'Seleccionar cargo' : 'Seleccionar tipo'}
+          options={formPicker === 'user'
+            ? team.map((u) => ({ value: u.id, label: u.full_name }))
+            : formPicker === 'role'
+              ? jobRoles.map((r) => ({ value: r.id, label: r.name, hint: `${team.filter((u) => u.job_role_id === r.id).length} personas` }))
+              : notificationTypes}
+          selectedValue={formPicker === 'user' ? userId : formPicker === 'role' ? roleId : type}
+          searchPlaceholder={formPicker === 'type' ? 'Buscar tipo' : formPicker === 'role' ? 'Buscar cargo' : 'Buscar trabajador'}
+          onSelect={(value) => {
+            if (formPicker === 'user') setUserId(value);
+            else if (formPicker === 'role') setRoleId(value);
+            else setType(value as NotificationType);
+            setFormPicker(null);
+          }}
+          onClose={() => setFormPicker(null)}
+        />
+      )}
+      {reportPicker && (
+        <SelectionModal
+          eyebrow={t.reportNotifications}
+          title={reportPicker === 'byType' ? 'Seleccionar tipo' : reportPicker === 'byRole' ? 'Seleccionar cargo' : 'Seleccionar trabajador'}
+          options={reportPicker === 'byType'
+            ? notificationTypes.filter((o) => notifications.some((n) => n.type === o.value))
+            : reportPicker === 'byRole'
+              ? jobRoles.map((r) => ({ value: r.id, label: r.name }))
+              : team.map((u) => ({ value: u.id, label: u.full_name }))}
+          selectedValue=""
+          searchPlaceholder={reportPicker === 'byType' ? 'Buscar tipo' : reportPicker === 'byRole' ? 'Buscar cargo' : 'Buscar trabajador'}
+          onSelect={(value) => { setReportPicker(null); exportNotifScope(reportPicker, value); }}
+          onClose={() => setReportPicker(null)}
+        />
+      )}
 
       {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
         <div className="exit-warning-icon"><Trash2 size={40} /></div>

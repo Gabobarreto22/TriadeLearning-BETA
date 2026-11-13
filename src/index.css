@@ -635,6 +635,22 @@ html.dark .form-actions-row .primary-button:active{background:#ffffff !important
 .segmented-control button.active{background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(15,23,42,.12)}
 .notification-type-control{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));width:100%}
 .notification-type-control button{justify-content:center;padding:10px 12px}
+.selection-modal{max-width:520px}
+.selection-search{position:relative;margin:16px 0 12px}
+.selection-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.selection-search input{padding-left:38px}
+.selection-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto}
+.selection-option{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:12px 14px;border-radius:12px;cursor:pointer;transition:background .15s,border-color .15s}
+.selection-option:hover{background:var(--surface-2);border-color:var(--primary)}
+.selection-option.active{border-color:var(--primary);background:var(--surface-2)}
+.selection-option svg{flex-shrink:0;color:var(--muted)}
+.selection-option.active>svg:last-child{color:var(--primary)}
+.selection-option-copy{display:flex;flex-direction:column;flex:1;min-width:0}
+.selection-option-copy small{color:var(--muted);font-size:12px}
+.selection-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:12px 14px;border-radius:12px;cursor:pointer;font:600 14px 'Manrope';text-align:left;transition:border-color .15s}
+.selection-trigger:hover{border-color:var(--primary)}
+.selection-trigger small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+.notification-type-current{display:flex;align-items:center;gap:8px}
 
 /* STATUS BADGE */
 .status-badge{font:700 10px 'Manrope';padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em;display:inline-flex;align-items:center;gap:4px}

@@ -5,6 +5,7 @@ import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { FilterSelect } from './FilterSelect';
 import { ReportDropdown } from './ReportDropdown';
+import { SelectionModal } from './SelectionModal';
 import { exportFeedbackReport } from '@/lib/pdfReport';
 
 type FeedbackItem = AdminData['feedback'][number];
@@ -18,6 +19,7 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
   const [courseId, setCourseId] = useState('');
   const [rating, setRating] = useState('');
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
+  const [reportPicker, setReportPicker] = useState<'byCourse' | 'byWorker' | null>(null);
 
 
   const workerOptions = Array.from(new Map(
@@ -69,7 +71,7 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
     { value: 'byWorker', label: t.reportByWorker },
   ];
 
-  const handleFeedbackReport = (scope: string) => {
+  const exportFeedbackScope = (scope: 'general' | 'byCourse' | 'byWorker', chosenId = '') => {
     const mapFeedback = (f: typeof feedback[number]) => ({
       userName: f.user_course_requirement?.user?.full_name ?? '—',
       courseTitle: f.user_course_requirement?.course?.title ?? '—',
@@ -82,29 +84,26 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
     let scoped = feedback;
     let filterLabel: string | undefined;
     if (scope === 'byCourse') {
-      const courses = courseOptions;
-      if (courses.length === 0) return;
-      const chosen = prompt('Curso: ' + courses.map((c) => c.label).slice(0, 20).join(', '), courses[0]?.label ?? '');
-      if (!chosen) return;
-      const course = courses.find((c) => c.label === chosen);
+      const course = courseOptions.find((c) => c.value === chosenId);
       if (!course) return;
       scoped = feedback.filter((f) => f.user_course_requirement?.course?.id === course.value);
-      filterLabel = chosen;
+      filterLabel = course.label;
     } else if (scope === 'byWorker') {
-      const workers = workerOptions;
-      if (workers.length === 0) return;
-      const chosen = prompt('Trabajador: ' + workers.map((w) => w.label).slice(0, 20).join(', '), workers[0]?.label ?? '');
-      if (!chosen) return;
-      const worker = workers.find((w) => w.label === chosen);
+      const worker = workerOptions.find((w) => w.value === chosenId);
       if (!worker) return;
       scoped = feedback.filter((f) => f.user_course_requirement?.user?.id === worker.value);
-      filterLabel = chosen;
+      filterLabel = worker.label;
     }
     exportFeedbackReport({
       feedback: scoped.map(mapFeedback),
-      scope: scope as 'general' | 'byCourse' | 'byWorker',
+      scope,
       filterLabel,
     });
+  };
+
+  const handleFeedbackReport = (scope: string) => {
+    if (scope === 'general') exportFeedbackScope('general');
+    else setReportPicker(scope as 'byCourse' | 'byWorker');
   };
 
   return (
@@ -142,6 +141,17 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
            );
          })}</div>}
       </div>
+      {reportPicker && (
+        <SelectionModal
+          eyebrow={t.reportFeedback}
+          title={reportPicker === 'byCourse' ? 'Seleccionar curso' : 'Seleccionar trabajador'}
+          options={reportPicker === 'byCourse' ? courseOptions : workerOptions}
+          selectedValue=""
+          searchPlaceholder={reportPicker === 'byCourse' ? 'Buscar curso' : 'Buscar trabajador'}
+          onSelect={(value) => { setReportPicker(null); exportFeedbackScope(reportPicker, value); }}
+          onClose={() => setReportPicker(null)}
+        />
+      )}
       {openGroup && createPortal(<div className="modal-backdrop" onClick={() => setOpenCourseId(null)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setOpenCourseId(null)}><X size={19} /></button>
         <div className="modal-body">

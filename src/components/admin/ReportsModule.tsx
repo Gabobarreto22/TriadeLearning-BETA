@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { AlertCircle, FileText } from 'lucide-react';
+import { AlertCircle, FileText, Users } from 'lucide-react';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { ReportDropdown } from './ReportDropdown';
+import { SelectionModal } from './SelectionModal';
 import { exportExamResultsReport } from '@/lib/pdfReport';
 
 export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData }) {
   const { courses, team, examAttempts, userCourseReqs } = data;
   const employeeUsers = team.filter((user) => user.role === 'employee');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
-  const [reportMode, setReportMode] = useState<'all' | 'worker'>('all');
+  const [workerPickerOpen, setWorkerPickerOpen] = useState(false);
+  const [reportPickerOpen, setReportPickerOpen] = useState(false);
 
   const allAttempts = examAttempts.map((a) => {
     const req = userCourseReqs.find((r) => r.id === a.user_course_requirement_id);
@@ -75,15 +77,8 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
     { value: 'byWorker', label: t.reportByWorker },
   ];
 
-  const handleExamReport = (scope: string) => {
-    if (scope === 'general') {
-      exportExamResultsReport({ attempts: allAttempts, scope: 'general' });
-    } else {
-      const names = employeeUsers.map((u) => u.full_name);
-      if (names.length === 0) return;
-      const chosen = prompt(t.reportByWorker + ': ' + names.slice(0, 20).join(', '), names[0] ?? '');
-      if (!chosen) return;
-      const worker = employeeUsers.find((u) => u.full_name === chosen);
+  const exportWorkerReport = (workerId: string) => {
+      const worker = employeeUsers.find((u) => u.id === workerId);
       if (!worker) return;
       const attempts = examAttempts
         .filter((a) => {
@@ -101,8 +96,12 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
             attempted_at: a.completed_at ?? a.created_at,
           };
         });
-      exportExamResultsReport({ attempts, scope: 'byWorker', filterLabel: chosen });
-    }
+      exportExamResultsReport({ attempts, scope: 'byWorker', filterLabel: worker.full_name });
+  };
+
+  const handleExamReport = (scope: string) => {
+    if (scope === 'general') exportExamResultsReport({ attempts: allAttempts, scope: 'general' });
+    else setReportPickerOpen(true);
   };
 
   return (
@@ -111,6 +110,29 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
         <div><p className="eyebrow">REPORTES</p><h1>{t.examResults}</h1><p className="muted">{t.reportsDesc}</p></div>
         <ReportDropdown label={t.reportExamResults} options={examReportOpts} onSelect={handleExamReport} />
       </div>
+
+      {reportPickerOpen && (
+        <SelectionModal
+          eyebrow={t.reportExamResults}
+          title="Seleccionar trabajador"
+          options={employeeUsers.map((u) => ({ value: u.id, label: u.full_name }))}
+          selectedValue=""
+          searchPlaceholder="Buscar trabajador"
+          onSelect={(value) => { setReportPickerOpen(false); exportWorkerReport(value); }}
+          onClose={() => setReportPickerOpen(false)}
+        />
+      )}
+      {workerPickerOpen && (
+        <SelectionModal
+          eyebrow={t.user}
+          title="Seleccionar trabajador"
+          options={[{ value: '', label: t.allWorkers }, ...employeeUsers.map((u) => ({ value: u.id, label: u.full_name }))]}
+          selectedValue={selectedEmployeeId}
+          searchPlaceholder="Buscar trabajador"
+          onSelect={(value) => { setSelectedEmployeeId(value); setWorkerPickerOpen(false); }}
+          onClose={() => setWorkerPickerOpen(false)}
+        />
+      )}
 
       <div className="section-card">
         <div className="section-title">
@@ -124,12 +146,10 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
           <div style={{ display: 'grid', gap: 18 }}>
             <div className="field-group field-group-full">
               <label>{t.user}</label>
-              <select className="auth-input" value={selectedEmployeeId} onChange={(e) => { setSelectedEmployeeId(e.target.value); setReportMode(e.target.value ? 'worker' : 'all'); }}>
-                <option value="">{t.allWorkers}</option>
-                {employeeUsers.map((user) => (
-                  <option key={user.id} value={user.id}>{user.full_name}</option>
-                ))}
-              </select>
+              <button type="button" className="selection-trigger" onClick={() => setWorkerPickerOpen(true)}>
+                <span>{selectedEmployee?.full_name ?? t.allWorkers}</span>
+                <Users size={16} />
+              </button>
             </div>
 
             {!selectedEmployeeId ? (
