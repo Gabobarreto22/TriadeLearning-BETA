@@ -43,12 +43,16 @@ const BASE_STYLE = `
   ul{margin:8px 0;padding-left:18px}
   li{margin:4px 0;font-size:12px}
   .footer{margin-top:40px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
-  @media print{body{padding:20px}}
+  .toolbar{position:sticky;top:0;display:flex;justify-content:flex-end;gap:8px;margin:-40px -40px 24px;padding:12px 40px;background:#ffffff;border-bottom:1px solid #e2e8f0}
+  .toolbar button{font:600 13px 'Segoe UI',Arial,sans-serif;padding:8px 16px;border-radius:8px;border:1px solid #1e293b;background:#1e293b;color:#ffffff;cursor:pointer}
+  .toolbar button:hover{background:#0f172a}
+  @media print{body{padding:20px}.toolbar{display:none}}
 `;
 
 function buildHtml(title: string, subtitle: string, bodyContent: string): string {
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
   <style>${BASE_STYLE}</style></head><body>
+  <div class="toolbar"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
   <div class="header">
     <div>
       <div class="header-logo">TRIADE</div>
@@ -65,23 +69,15 @@ function buildHtml(title: string, subtitle: string, bodyContent: string): string
   </body></html>`;
 }
 
-function printHtml(html: string) {
-  const frame = document.createElement('iframe');
-  frame.style.position = 'fixed';
-  frame.style.width = '0';
-  frame.style.height = '0';
-  frame.style.border = '0';
-  document.body.appendChild(frame);
-  const frameDoc = frame.contentWindow?.document;
-  if (!frameDoc || !frame.contentWindow) { frame.remove(); return; }
-  frameDoc.open();
-  frameDoc.write(html);
-  frameDoc.close();
-  frame.contentWindow.focus();
-  setTimeout(() => {
-    frame.contentWindow?.print();
-    setTimeout(() => frame.remove(), 1000);
-  }, 300);
+function openReportPreview(html: string) {
+  const win = window.open('', '_blank');
+  if (!win) {
+    window.alert('Permite las ventanas emergentes para ver el reporte.');
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
 
 function table(headers: string[], rows: (string)[][]): string {
@@ -165,7 +161,7 @@ export function exportPersonnelReport(opts: {
     });
   }
 
-  printHtml(buildHtml(title, 'Gestión de Personal', body));
+  openReportPreview(buildHtml(title, 'Gestión de Personal', body));
 }
 
 export function exportCoursesReport(opts: {
@@ -187,7 +183,7 @@ export function exportCoursesReport(opts: {
     body += section('Asignaciones', table(['Cargo', 'Obligatorio', 'Prioridad', 'Días límite'],
       c.assignments.map((a) => [escapeHtml(a.roleName), a.mandatory ? badge('Sí', 'green') : badge('No', 'gray'), escapeHtml(a.priority), a.deadlineDays ? String(a.deadlineDays) : '—'])));
     if (c.prerequisites.length > 0) body += section('Prerrequisitos', `<ul>${c.prerequisites.map((p) => `<li>${escapeHtml(p)}</li>`).join('')}</ul>`);
-    printHtml(buildHtml(`Reporte de Curso: ${c.title}`, 'Gestión de Cursos', body));
+    openReportPreview(buildHtml(`Reporte de Curso: ${c.title}`, 'Gestión de Cursos', body));
     return;
   }
 
@@ -199,7 +195,7 @@ export function exportCoursesReport(opts: {
   ]) + section('Listado de Cursos', table(['Título', 'Categoría', 'Duración', 'Horas', 'Módulos', 'Asignaciones'],
     opts.courses.map((c) => [escapeHtml(c.title), escapeHtml(c.category), escapeHtml(c.duration), String(c.estimated_hours ?? 0), '1', String(c.assignments.length)])));
 
-  printHtml(buildHtml('Reporte General de Cursos', 'Gestión de Cursos', body));
+  openReportPreview(buildHtml('Reporte General de Cursos', 'Gestión de Cursos', body));
 }
 
 export function exportCertificationsReport(opts: {
@@ -231,7 +227,7 @@ export function exportCertificationsReport(opts: {
   body += section('Certificaciones de Cargo', table(['Trabajador', 'Cargo', 'Certificado el', 'Estado'],
     opts.roleCerts.map((r) => [escapeHtml(r.userName), escapeHtml(r.roleName), formatDate(r.certified_at), r.is_valid ? badge('Vigente', 'green') : badge('Expirado', 'red')])));
 
-  printHtml(buildHtml(titleMap[scope] ?? 'Reporte de Certificaciones', 'Certificaciones', body));
+  openReportPreview(buildHtml(titleMap[scope] ?? 'Reporte de Certificaciones', 'Certificaciones', body));
 }
 
 export function exportFeedbackReport(opts: {
@@ -268,7 +264,7 @@ export function exportFeedbackReport(opts: {
       escapeHtml(f.comment?.slice(0, 60)),
     ])));
 
-  printHtml(buildHtml(titleMap[scope] ?? 'Reporte de Feedback', 'Feedback', body));
+  openReportPreview(buildHtml(titleMap[scope] ?? 'Reporte de Feedback', 'Feedback', body));
 }
 
 export function exportNotificationsReport(opts: {
@@ -298,7 +294,7 @@ export function exportNotificationsReport(opts: {
   body += section('Notificaciones', table(['Título', 'Tipo', 'Destinatario', 'Estado', 'Fecha', 'Mensaje'],
     opts.notifications.map((n) => [escapeHtml(n.title), badge(n.type, n.type === 'success' ? 'green' : n.type === 'error' ? 'red' : n.type === 'warning' ? 'yellow' : 'blue'), escapeHtml(n.userName), n.is_read ? badge('Leída', 'green') : badge('No leída', 'gray'), formatDate(n.created_at), escapeHtml(n.message?.slice(0, 50))])));
 
-  printHtml(buildHtml(titleMap[scope] ?? 'Reporte de Notificaciones', 'Notificaciones', body));
+  openReportPreview(buildHtml(titleMap[scope] ?? 'Reporte de Notificaciones', 'Notificaciones', body));
 }
 
 export function exportExamResultsReport(opts: {
@@ -326,7 +322,7 @@ export function exportExamResultsReport(opts: {
   body += section('Resultados de Exámenes', table(['Trabajador', 'Curso', 'Puntaje', 'Resultado', 'Fecha'],
     opts.attempts.map((a) => [escapeHtml(a.userName), escapeHtml(a.courseTitle), a.score !== null ? `${a.score}%` : '—', a.passed ? badge('Aprobado', 'green') : badge('Reprobado', 'red'), formatDate(a.attempted_at)])));
 
-  printHtml(buildHtml(title, 'Resultados de Exámenes', body));
+  openReportPreview(buildHtml(title, 'Resultados de Exámenes', body));
 }
 
 export function exportAuditReport(opts: {
@@ -340,5 +336,5 @@ export function exportAuditReport(opts: {
   ]) + section('Registro de Auditoría', table(['Acción', 'Entidad', 'Usuario', 'IP', 'Fecha', 'Cambios'],
     opts.logs.map((l) => [badge(l.action, l.action === 'CREATE' ? 'green' : l.action === 'UPDATE' ? 'yellow' : 'red'), escapeHtml(l.entity_type), escapeHtml(l.userName), escapeHtml(l.ip_address), formatDate(l.created_at), escapeHtml(l.changesSummary?.slice(0, 50))])));
 
-  printHtml(buildHtml('Reporte General de Auditoría', 'Auditoría del Sistema', body));
+  openReportPreview(buildHtml('Reporte General de Auditoría', 'Auditoría del Sistema', body));
 }
