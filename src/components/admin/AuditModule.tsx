@@ -9,10 +9,12 @@ import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { ReportDropdown } from './ReportDropdown';
+import { SearchBar, filterByText } from './SearchBar';
 import { exportAuditReport } from '@/lib/pdfReport';
 
 export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
   const [auditLogs, setAuditLogs] = useState(data.auditLogs);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -41,8 +43,9 @@ export function AuditModule({ t, data }: { t: AdminStrings; data: AdminData }) {
         <ReportDropdown label={t.reportAudit} options={[{ value: 'general', label: t.reportGeneral }]} onSelect={handleReport} />
       </div>
       <div className="section-card">
+        {auditLogs.length > 0 && <SearchBar value={search} onChange={setSearch} placeholder={`${t.search} ${t.audit.toLowerCase()}...`} />}
         {auditLogs.length === 0 ? <div className="empty-state"><History size={30} /><h3>{t.noAudit}</h3></div> :
-         <PaginatedList items={auditLogs}>{(pageAuditLogs) => <div className="admin-list-stack">{pageAuditLogs.map((log) => {
+         <PaginatedList items={filterByText(auditLogs, search, (log) => [log.action, log.entity_type, log.user?.full_name, log.ip_address])}>{(pageAuditLogs) => <div className="admin-list-stack">{pageAuditLogs.map((log) => {
            const date = new Date(log.created_at);
            const dateStr = date.toLocaleDateString();
            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

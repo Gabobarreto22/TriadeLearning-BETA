@@ -14,6 +14,8 @@ import { useToast } from '@/lib/toast';
 import type { AdminStrings } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { ReportDropdown } from './ReportDropdown';
+import { SelectionModal } from './SelectionModal';
+import { SearchBar, filterByText } from './SearchBar';
 import { exportPersonnelReport } from '@/lib/pdfReport';
 
 function UserPhotoField({ value, uploading, onChange, onClear }: {
@@ -79,6 +81,8 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
     { value: 'requirements', label: t.reportRequirements },
   ];
 
+  const [search, setSearch] = useState('');
+  const normalizedSearch = search.trim().toLowerCase();
   const getDeptName = (roleId: string | null) => {
     const role = jobRoles.find((r) => r.id === roleId);
     if (!role?.department_id) return '';
@@ -88,6 +92,10 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
     const role = jobRoles.find((r) => r.id === roleId);
     return role?.name ?? '';
   };
+  const employeesList = filterByText(team.filter((m) => m.role === 'employee'), normalizedSearch, (m) => [m.full_name, m.email, m.cedula]);
+  const adminsList = filterByText(team.filter((m) => m.role === 'admin'), normalizedSearch, (m) => [m.full_name, m.email]);
+  const departmentsList = filterByText(departments, normalizedSearch, (d) => [d.name, d.code, d.description]);
+  const rolesList = filterByText(jobRoles, normalizedSearch, (r) => [r.name, r.description, getDeptName(r.department_id)]);
 
   const handlePersonnelReport = async (scope: string) => {
     const employees = team.filter((m) => m.role === 'employee').map((e) => ({
@@ -179,10 +187,11 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
         })}
       </div>
       <div className="admin-tab-content">
-        {tab === 'employees' && <EmployeesTab t={t} team={team.filter((m) => m.role === 'employee')} jobRoles={jobRoles} departments={departments} onRefresh={onRefresh} />}
-        {tab === 'admins' && <AdminsTab t={t} team={team.filter((m) => m.role === 'admin')} onRefresh={onRefresh} />}
-        {tab === 'departments' && <DepartmentsTab t={t} departments={departments} onRefresh={onRefresh} />}
-        {tab === 'roles' && <RolesTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} onRefresh={onRefresh} />}
+        {tab !== 'history' && tab !== 'requirements' && <SearchBar value={search} onChange={setSearch} placeholder={`${t.search}...`} style={{ marginBottom: 16 }} />}
+        {tab === 'employees' && <EmployeesTab t={t} team={employeesList} totalCount={team.filter((m) => m.role === 'employee').length} jobRoles={jobRoles} departments={departments} onRefresh={onRefresh} />}
+        {tab === 'admins' && <AdminsTab t={t} team={adminsList} totalCount={team.filter((m) => m.role === 'admin').length} onRefresh={onRefresh} />}
+        {tab === 'departments' && <DepartmentsTab t={t} departments={departmentsList} totalCount={departments.length} onRefresh={onRefresh} />}
+        {tab === 'roles' && <RolesTab t={t} jobRoles={rolesList} totalCount={jobRoles.length} departments={departments} courses={courses} onRefresh={onRefresh} />}
         {tab === 'history' && <HistoryTab t={t} team={team} jobRoles={jobRoles} departments={departments} />}
         {tab === 'requirements' && <RequirementsTab t={t} jobRoles={jobRoles} departments={departments} courses={courses} />}
       </div>
@@ -191,9 +200,10 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
 }
 
 // ===================== EMPLOYEES TAB =====================
-function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
+function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }: {
   t: AdminStrings;
   team: Profile[];
+  totalCount: number;
   jobRoles: JobRole[];
   departments: Department[];
   onRefresh: () => void;
@@ -343,7 +353,7 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
   return (
     <div className="section-card">
       <div className="section-title">
-        <div><h2>{t.personnelTabs.employees}</h2><p className="muted">{team.length} {t.teamMembers.toLowerCase()}</p></div>
+        <div><h2>{t.personnelTabs.employees}</h2><p className="muted">{team.length} de {totalCount} {t.teamMembers.toLowerCase()}</p></div>
         <button className="primary-button" style={{ minHeight: 40, padding: '10px 14px', fontSize: 11 }} onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.newUser}</button>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
@@ -539,9 +549,10 @@ function EmployeesTab({ t, team, jobRoles, departments, onRefresh }: {
 }
 
 // ===================== ADMINS TAB =====================
-function AdminsTab({ t, team, onRefresh }: {
+function AdminsTab({ t, team, totalCount, onRefresh }: {
   t: AdminStrings;
   team: Profile[];
+  totalCount: number;
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -614,7 +625,7 @@ function AdminsTab({ t, team, onRefresh }: {
   return (
     <div className="section-card">
       <div className="section-title">
-        <div><h2>{t.personnelTabs.admins}</h2><p className="muted">{team.length} {t.adminsLower}</p></div>
+        <div><h2>{t.personnelTabs.admins}</h2><p className="muted">{team.length} de {totalCount} {t.adminsLower}</p></div>
         <button className="primary-button" style={{ minHeight: 40, padding: '10px 14px', fontSize: 11 }} onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.newAdmin}</button>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
@@ -677,9 +688,10 @@ function AdminsTab({ t, team, onRefresh }: {
 }
 
 // ===================== DEPARTMENTS TAB =====================
-function DepartmentsTab({ t, departments, onRefresh }: {
+function DepartmentsTab({ t, departments, totalCount, onRefresh }: {
   t: AdminStrings;
   departments: Department[];
+  totalCount: number;
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -711,7 +723,7 @@ function DepartmentsTab({ t, departments, onRefresh }: {
   return (
     <div className="section-card">
       <div className="section-title">
-        <div><h2>{t.personnelTabs.departments}</h2><p className="muted">{departments.length} {t.department.toLowerCase()}s</p></div>
+        <div><h2>{t.personnelTabs.departments}</h2><p className="muted">{departments.length} de {totalCount} {t.department.toLowerCase()}s</p></div>
         <button className="primary-button" style={{ minHeight: 40, padding: '10px 14px', fontSize: 11 }} onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.newDepartment}</button>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
@@ -755,9 +767,10 @@ function DepartmentsTab({ t, departments, onRefresh }: {
 }
 
 // ===================== ROLES TAB =====================
-function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
+function RolesTab({ t, jobRoles, totalCount, departments, courses, onRefresh }: {
   t: AdminStrings;
   jobRoles: JobRole[];
+  totalCount: number;
   departments: Department[];
   courses: CourseWithRelations[];
   onRefresh: () => void;
@@ -794,7 +807,7 @@ function RolesTab({ t, jobRoles, departments, courses, onRefresh }: {
   return (
     <div className="section-card">
       <div className="section-title">
-        <div><h2>{t.personnelTabs.roles}</h2><p className="muted">{jobRoles.length} {t.totalRolesLower}</p></div>
+        <div><h2>{t.personnelTabs.roles}</h2><p className="muted">{jobRoles.length} de {totalCount} {t.totalRolesLower}</p></div>
         <button className="primary-button" style={{ minHeight: 40, padding: '10px 14px', fontSize: 11 }} onClick={() => { resetForm(); setShowForm(true); }}><Plus size={16} />{t.newRole}</button>
       </div>
       {showForm && createPortal(<div className="modal-backdrop" onClick={resetForm}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
@@ -851,6 +864,7 @@ function HistoryTab({ t, team, jobRoles, departments }: {
   departments: Department[];
 }) {
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [history, setHistory] = useState<(UserJobRoleHistory & { job_role?: JobRole })[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -871,14 +885,25 @@ function HistoryTab({ t, team, jobRoles, departments }: {
     <div className="section-card">
       <div className="section-title"><div><h2>{t.history}</h2><p className="muted">{t.personnelTabs.history}</p></div></div>
       <div className="editor-grid" style={{ marginBottom: 16 }}>
-        <div className="field-group">
+        <div className="field-group field-group-full">
           <label>{t.user}</label>
-          <select className="auth-input" value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)}>
-            <option value="">{t.selectRole}</option>
-            {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-          </select>
+          <button type="button" className="selection-trigger" onClick={() => setUserPickerOpen(true)}>
+            <span>{team.find((m) => m.id === selectedUserId)?.full_name ?? t.selectRole}</span>
+            <Users size={16} />
+          </button>
         </div>
       </div>
+      {userPickerOpen && (
+        <SelectionModal
+          eyebrow={t.history}
+          title="Seleccionar trabajador"
+          options={team.map((m) => ({ value: m.id, label: m.full_name, hint: getRoleName(m.job_role_id || '') }))}
+          selectedValue={selectedUserId}
+          searchPlaceholder="Buscar trabajador"
+          onSelect={(value) => { setSelectedUserId(value); setUserPickerOpen(false); }}
+          onClose={() => setUserPickerOpen(false)}
+        />
+      )}
       {loading ? <p className="muted">{t.loading}</p> :
        !selectedUserId ? <div className="empty-state"><History size={30} /><h3>{t.noHistory}</h3></div> :
        history.length === 0 ? <div className="empty-state"><History size={30} /><h3>{t.noHistory}</h3></div> :
@@ -903,6 +928,7 @@ function RequirementsTab({ t, jobRoles, departments, courses }: {
   courses: CourseWithRelations[];
 }) {
   const [selectedRoleId, setSelectedRoleId] = useState('');
+  const [rolePickerOpen, setRolePickerOpen] = useState(false);
   const selectedRole = jobRoles.find((r) => r.id === selectedRoleId) ?? null;
   const roleCourses = selectedRole
     ? courses.filter((c) => c.assignments.some((a) => a.job_role_id === selectedRole.id))
@@ -912,17 +938,28 @@ function RequirementsTab({ t, jobRoles, departments, courses }: {
     <div className="section-card">
       <div className="section-title"><div><h2>{t.personnelTabs.requirements}</h2><p className="muted">{t.assignedCourses}</p></div></div>
       <div className="editor-grid" style={{ marginBottom: 16 }}>
-        <div className="field-group">
+        <div className="field-group field-group-full">
           <label>{t.jobRole}</label>
-          <select className="auth-input" value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)}>
-            <option value="">{t.selectRole}</option>
-            {jobRoles.map((r) => {
-              const dept = departments.find((d) => d.id === r.department_id)?.name;
-              return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
-            })}
-          </select>
+          <button type="button" className="selection-trigger" onClick={() => setRolePickerOpen(true)}>
+            <span>{selectedRole ? (departments.find((d) => d.id === selectedRole.department_id)?.name ? `${selectedRole.name} · ${departments.find((d) => d.id === selectedRole.department_id)?.name}` : selectedRole.name) : t.selectRole}</span>
+            <BookOpen size={16} />
+          </button>
         </div>
       </div>
+      {rolePickerOpen && (
+        <SelectionModal
+          eyebrow={t.personnelTabs.requirements}
+          title="Seleccionar cargo"
+          options={jobRoles.map((r) => {
+            const dept = departments.find((d) => d.id === r.department_id)?.name;
+            return { value: r.id, label: r.name, hint: dept };
+          })}
+          selectedValue={selectedRoleId}
+          searchPlaceholder="Buscar cargo"
+          onSelect={(value) => { setSelectedRoleId(value); setRolePickerOpen(false); }}
+          onClose={() => setRolePickerOpen(false)}
+        />
+      )}
       {!selectedRole ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noRoles}</h3></div> :
        roleCourses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3></div> :
       <PaginatedList items={roleCourses}>{(pageCourses) => <div className="docs-mock-table">

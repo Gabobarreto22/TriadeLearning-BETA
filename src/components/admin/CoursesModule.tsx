@@ -9,6 +9,7 @@ import { uploadToImageKit, deleteFromImageKit, detectResourceType, type Resource
 import type { AdminStrings } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { ReportDropdown } from './ReportDropdown';
+import { SearchBar, filterByText } from './SearchBar';
 import { exportCoursesReport } from '@/lib/pdfReport';
 
 type CourseTab = 'info' | 'modules' | 'exams' | 'assignments' | 'prerequisites';
@@ -23,6 +24,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
   onLeaveGuardChange: (guard: (() => boolean) | null) => void;
 }) {
   const [editingCourse, setEditingCourse] = useState<CourseWithRelations | null>(null);
+  const [search, setSearch] = useState('');
   const [courseReportOpen, setCourseReportOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -101,15 +103,16 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
     <div className="page animate-in">
       <div className="page-heading">
         <div><p className="eyebrow">GESTIÓN DE CURSOS</p><h1>{t.courses}</h1><p className="muted">{courses.length} {t.totalCourses.toLowerCase()}</p></div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <ReportDropdown label={t.reportCourses} options={coursesReportOpts} onSelect={handleCourseReport} />
           <button className="primary-button courses-new-button" onClick={() => setEditingCourse({} as CourseWithRelations)}><Plus size={18} />{t.newCourse}</button>
         </div>
       </div>
       <div className="section-card">
+        {courses.length > 0 && <SearchBar value={search} onChange={setSearch} placeholder={`${t.search} ${t.courses.toLowerCase()}...`} />}
         {courses.length === 0 ? <div className="empty-state"><BookOpen size={30} /><h3>{t.noCourses}</h3>
           <button className="primary-button" onClick={() => setEditingCourse({} as CourseWithRelations)} style={{ marginTop: 16 }}><Plus size={18} />{t.newCourse}</button></div> :
-          <PaginatedList items={courses}>{(pageCourses) => <div className="admin-list-stack">{pageCourses.map((c) => {
+          <PaginatedList items={filterByText(courses, search, (c) => [c.title, c.category])}>{(pageCourses) => <div className="admin-list-stack">{pageCourses.map((c) => {
             const Icon = getIcon(c.icon_name);
             return (
               <div key={c.id} className="admin-course-row">

@@ -10,6 +10,7 @@ import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { ReportDropdown } from './ReportDropdown';
 import { SelectionModal } from './SelectionModal';
+import { SearchBar, filterByText } from './SearchBar';
 import { exportNotificationsReport } from '@/lib/pdfReport';
 
 type Recipients = 'user' | 'role';
@@ -30,6 +31,7 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const [deleting, setDeleting] = useState(false);
   const [formPicker, setFormPicker] = useState<'user' | 'role' | 'type' | null>(null);
   const [reportPicker, setReportPicker] = useState<'byType' | 'byRole' | 'byWorker' | null>(null);
+  const [search, setSearch] = useState('');
   const { toast } = useToast();
 
   const resetForm = () => { setRecipients('user'); setUserId(''); setRoleId(''); setType('info'); setTitle(''); setMessage(''); setError(null); setFormPicker(null); setShowForm(false); };
@@ -198,8 +200,9 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
       </div></div>, document.body)}
 
       <div className="section-card">
+        {notifications.length > 0 && <SearchBar value={search} onChange={setSearch} placeholder={`${t.search} ${t.notifications.toLowerCase()}...`} />}
         {notifications.length === 0 ? <div className="empty-state"><Bell size={30} /><h3>{t.noNotifications}</h3></div> :
-         <PaginatedList items={notifications}>{(pageNotifications) => <div className="admin-list-stack">{pageNotifications.map((n) => (
+         <PaginatedList items={filterByText(notifications, search, (n) => [n.title, n.message, n.user?.full_name, n.type])}>{(pageNotifications) => <div className="admin-list-stack">{pageNotifications.map((n) => (
            <div key={n.id} className="admin-course-row">
              <div className={`course-icon ${n.type === 'warning' ? 'gray-3' : 'gray-1'}`}>{typeIcon(n.type)}</div>
              <div className="course-row-info"><strong>{n.title}</strong><small>{n.user?.full_name ?? '—'} · {n.message}</small></div>

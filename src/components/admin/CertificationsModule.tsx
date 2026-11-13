@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, FileText, ShieldCheck, X } from 'lucide-react';
+import { Award, FileText, ShieldCheck, Users, BookOpen, X } from 'lucide-react';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { FilterSelect } from './FilterSelect';
@@ -19,7 +19,9 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
   const [previewCert, setPreviewCert] = useState<CertificateItem | null>(null);
   const [certWorkerId, setCertWorkerId] = useState('');
   const [certCourseId, setCertCourseId] = useState('');
+  const [certPicker, setCertPicker] = useState<'worker' | 'course' | null>(null);
   const [roleWorkerId, setRoleWorkerId] = useState('');
+  const [rolePickerOpen, setRolePickerOpen] = useState(false);
   const [roleStatus, setRoleStatus] = useState('');
   const [reportPicker, setReportPicker] = useState<Exclude<CertScope, 'general'> | null>(null);
 
@@ -113,8 +115,20 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
             {certHasFilters && <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={() => { setCertWorkerId(''); setCertCourseId(''); }}><X size={16} />Limpiar filtros</button>}
           </div>
           <div className="editor-grid" style={{ marginBottom: 16 }}>
-            <FilterSelect label="Trabajador" value={certWorkerId} onChange={setCertWorkerId} placeholder="Todos los trabajadores" options={certWorkerOptions} />
-            <FilterSelect label="Curso" value={certCourseId} onChange={setCertCourseId} placeholder="Todos los cursos" options={certCourseOptions} />
+            <div className="field-group">
+              <label>Trabajador</label>
+              <button type="button" className="selection-trigger" onClick={() => setCertPicker('worker')}>
+                <span>{certWorkerOptions.find((o) => o.value === certWorkerId)?.label ?? 'Todos los trabajadores'}</span>
+                <Users size={16} />
+              </button>
+            </div>
+            <div className="field-group">
+              <label>Curso</label>
+              <button type="button" className="selection-trigger" onClick={() => setCertPicker('course')}>
+                <span>{certCourseOptions.find((o) => o.value === certCourseId)?.label ?? 'Todos los cursos'}</span>
+                <BookOpen size={16} />
+              </button>
+            </div>
           </div>
           {filteredCertificates.length === 0 ? <div className="empty-state"><Award size={30} /><h3>{t.noCertificates}</h3></div> :
            <PaginatedList items={filteredCertificates}>{(pageCertificates) => <div className="admin-list-stack">{pageCertificates.map((c) => (
@@ -132,7 +146,13 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
             {roleHasFilters && <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={() => { setRoleWorkerId(''); setRoleStatus(''); }}><X size={16} />Limpiar filtros</button>}
           </div>
           <div className="editor-grid" style={{ marginBottom: 16 }}>
-            <FilterSelect label="Trabajador" value={roleWorkerId} onChange={setRoleWorkerId} placeholder="Todos los trabajadores" options={roleWorkerOptions} />
+            <div className="field-group">
+              <label>Trabajador</label>
+              <button type="button" className="selection-trigger" onClick={() => setRolePickerOpen(true)}>
+                <span>{roleWorkerOptions.find((o) => o.value === roleWorkerId)?.label ?? 'Todos los trabajadores'}</span>
+                <Users size={16} />
+              </button>
+            </div>
             <FilterSelect label="Estado" value={roleStatus} onChange={setRoleStatus} placeholder="Todos los estados" options={statusOptions} />
           </div>
           {filteredRoleCertifications.length === 0 ? <div className="empty-state"><ShieldCheck size={30} /><h3>{t.noData}</h3></div> :
@@ -145,6 +165,28 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
            ))}</div>}</PaginatedList>}
         </div>
       </div>
+      {certPicker && (
+        <SelectionModal
+          eyebrow={t.totalCertificates}
+          title={certPicker === 'course' ? 'Seleccionar curso' : 'Seleccionar trabajador'}
+          options={certPicker === 'course' ? certCourseOptions : certWorkerOptions}
+          selectedValue={certPicker === 'course' ? certCourseId : certWorkerId}
+          searchPlaceholder={certPicker === 'course' ? 'Buscar curso' : 'Buscar trabajador'}
+          onSelect={(value) => { if (certPicker === 'course') setCertCourseId(value); else setCertWorkerId(value); setCertPicker(null); }}
+          onClose={() => setCertPicker(null)}
+        />
+      )}
+      {rolePickerOpen && (
+        <SelectionModal
+          eyebrow={t.roleManagement}
+          title="Seleccionar trabajador"
+          options={roleWorkerOptions}
+          selectedValue={roleWorkerId}
+          searchPlaceholder="Buscar trabajador"
+          onSelect={(value) => { setRoleWorkerId(value); setRolePickerOpen(false); }}
+          onClose={() => setRolePickerOpen(false)}
+        />
+      )}
       {reportPicker && (
         <SelectionModal
           eyebrow={t.reportCertifications}

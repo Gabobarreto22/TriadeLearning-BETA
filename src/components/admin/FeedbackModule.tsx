@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Star, X } from 'lucide-react';
+import { Star, Users, BookOpen, X } from 'lucide-react';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
 import { FilterSelect } from './FilterSelect';
@@ -19,6 +19,8 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
   const [courseId, setCourseId] = useState('');
   const [rating, setRating] = useState('');
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
+  const [workerPickerOpen, setWorkerPickerOpen] = useState(false);
+  const [coursePickerOpen, setCoursePickerOpen] = useState(false);
   const [reportPicker, setReportPicker] = useState<'byCourse' | 'byWorker' | null>(null);
 
 
@@ -120,8 +122,20 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
           {hasFilters && <button className="outline-button" style={{ minHeight: 36, padding: '8px 12px', fontSize: 11 }} onClick={clearFilters}><X size={16} />Limpiar filtros</button>}
         </div>
         <div className="feedback-filter-row">
-          <FilterSelect label="Trabajador" value={workerId} onChange={setWorkerId} placeholder="Todos los trabajadores" options={workerOptions} />
-          <FilterSelect label="Curso" value={courseId} onChange={setCourseId} placeholder="Todos los cursos" options={courseOptions} />
+          <div className="field-group">
+            <label>Trabajador</label>
+            <button type="button" className="selection-trigger" onClick={() => setWorkerPickerOpen(true)}>
+              <span>{workerOptions.find((o) => o.value === workerId)?.label ?? 'Todos los trabajadores'}</span>
+              <Users size={16} />
+            </button>
+          </div>
+          <div className="field-group">
+            <label>Curso</label>
+            <button type="button" className="selection-trigger" onClick={() => setCoursePickerOpen(true)}>
+              <span>{courseOptions.find((o) => o.value === courseId)?.label ?? 'Todos los cursos'}</span>
+              <BookOpen size={16} />
+            </button>
+          </div>
           <FilterSelect label="Calificación" value={rating} onChange={setRating} placeholder="Todas las calificaciones" options={ratingOptions} />
         </div>
         {visibleGroups.length === 0 ? <div className="empty-state"><Star size={30} /><h3>{t.noFeedback}</h3></div> :
@@ -141,6 +155,28 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
            );
          })}</div>}
       </div>
+      {workerPickerOpen && (
+        <SelectionModal
+          eyebrow={t.feedback}
+          title="Seleccionar trabajador"
+          options={workerOptions}
+          selectedValue={workerId}
+          searchPlaceholder="Buscar trabajador"
+          onSelect={(value) => { setWorkerId(value); setWorkerPickerOpen(false); }}
+          onClose={() => setWorkerPickerOpen(false)}
+        />
+      )}
+      {coursePickerOpen && (
+        <SelectionModal
+          eyebrow={t.feedback}
+          title="Seleccionar curso"
+          options={courseOptions}
+          selectedValue={courseId}
+          searchPlaceholder="Buscar curso"
+          onSelect={(value) => { setCourseId(value); setCoursePickerOpen(false); }}
+          onClose={() => setCoursePickerOpen(false)}
+        />
+      )}
       {reportPicker && (
         <SelectionModal
           eyebrow={t.reportFeedback}
