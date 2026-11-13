@@ -4,6 +4,7 @@ import { Award, BarChart3, Bell, BookOpen, FileText, History, LayoutDashboard, S
 import { adminStringsByLanguage } from '@/components/admin/strings';
 import type { AdminData } from '@/components/admin/types';
 import { HelpButton } from '@/components/docs/HelpButton';
+import { ReportPreviewModal } from '@/components/admin/ReportPreviewModal';
 import { AppFrame, LoadingScreen } from '@/components/layout/AppFrame';
 import { useAuth } from '@/lib/auth';
 import { docSummaryMapByLanguage, docsLabels } from '@/lib/docs';
@@ -128,5 +129,6 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     </>}
   >
     <Outlet context={contextValue} />
+    <ReportPreviewModal />
   </AppFrame>;
 }

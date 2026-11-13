@@ -43,16 +43,12 @@ const BASE_STYLE = `
   ul{margin:8px 0;padding-left:18px}
   li{margin:4px 0;font-size:12px}
   .footer{margin-top:40px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
-  .toolbar{position:sticky;top:0;display:flex;justify-content:flex-end;gap:8px;margin:-40px -40px 24px;padding:12px 40px;background:#ffffff;border-bottom:1px solid #e2e8f0}
-  .toolbar button{font:600 13px 'Segoe UI',Arial,sans-serif;padding:8px 16px;border-radius:8px;border:1px solid #1e293b;background:#1e293b;color:#ffffff;cursor:pointer}
-  .toolbar button:hover{background:#0f172a}
-  @media print{body{padding:20px}.toolbar{display:none}}
+  @media print{body{padding:20px}}
 `;
 
 function buildHtml(title: string, subtitle: string, bodyContent: string): string {
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
   <style>${BASE_STYLE}</style></head><body>
-  <div class="toolbar"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
   <div class="header">
     <div>
       <div class="header-logo">TRIADE</div>
@@ -70,14 +66,7 @@ function buildHtml(title: string, subtitle: string, bodyContent: string): string
 }
 
 function openReportPreview(html: string) {
-  const win = window.open('', '_blank');
-  if (!win) {
-    window.alert('Permite las ventanas emergentes para ver el reporte.');
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  window.dispatchEvent(new CustomEvent('report:preview', { detail: html }));
 }
 
 function table(headers: string[], rows: (string)[][]): string {
