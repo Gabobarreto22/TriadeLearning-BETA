@@ -61,6 +61,7 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
   onRefresh: () => void;
 }) {
   const [tab, setTab] = useState<PersonnelTab>('employees');
+  const [reportPicker, setReportPicker] = useState<'history' | 'requirements' | null>(null);
 
   const tabs: { key: PersonnelTab; label: string; icon: typeof Users }[] = [
     { key: 'employees', label: t.personnelTabs.employees, icon: Users },
@@ -97,8 +98,8 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
   const departmentsList = filterByText(departments, normalizedSearch, (d) => [d.name, d.code, d.description]);
   const rolesList = filterByText(jobRoles, normalizedSearch, (r) => [r.name, r.description, getDeptName(r.department_id)]);
 
-  const handlePersonnelReport = async (scope: string) => {
-    const employees = team.filter((m) => m.role === 'employee').map((e) => ({
+  const buildReportBase = () => ({
+    employees: team.filter((m) => m.role === 'employee').map((e) => ({
       full_name: e.full_name,
       email: e.email,
       cedula: e.cedula,
@@ -106,63 +107,63 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
       is_active: e.is_active,
       jobRoleName: getRoleName(e.job_role_id),
       deptName: getDeptName(e.job_role_id),
-    }));
-    const admins = team.filter((m) => m.role === 'admin').map((a) => ({
+    })),
+    admins: team.filter((m) => m.role === 'admin').map((a) => ({
       full_name: a.full_name,
       email: a.email,
       is_active: a.is_active,
-    }));
-    const depts = departments.map((d) => ({
+    })),
+    departments: departments.map((d) => ({
       name: d.name,
       code: d.code,
       description: d.description,
       is_active: d.is_active,
-    }));
-    const roles = jobRoles.map((r) => ({
+    })),
+    jobRoles: jobRoles.map((r) => ({
       name: r.name,
       description: r.description,
       deptName: departments.find((d) => d.id === r.department_id)?.name ?? '',
       courseCount: courses.reduce((acc, c) => acc + c.assignments.filter((a) => a.job_role_id === r.id).length, 0),
       is_active: r.is_active,
+    })),
+  });
+
+  const exportHistoryReport = async (workerId: string) => {
+    const worker = team.find((u) => u.id === workerId && u.role === 'employee');
+    if (!worker) return;
+    const data = await fetchUserJobRoleHistory(worker.id);
+    const history = data.map((h) => ({
+      userName: worker.full_name,
+      roleName: jobRoles.find((r) => r.id === h.job_role_id)?.name ?? '—',
+      startDate: h.start_date,
+      endDate: h.end_date,
+      reason: h.reason,
     }));
+    exportPersonnelReport({ ...buildReportBase(), scope: 'history', history });
+  };
 
-    let history: { userName: string; roleName: string; startDate: string; endDate: string | null; reason: string | null }[] | undefined;
-    if (scope === 'history') {
-      const chosen = prompt('Trabajador (nombre):', team[0]?.full_name ?? '');
-      if (!chosen) return;
-      const worker = team.find((u) => u.full_name === chosen);
-      if (!worker) return;
-      const data = await fetchUserJobRoleHistory(worker.id);
-      history = data.map((h) => ({
-        userName: worker.full_name,
-        roleName: jobRoles.find((r) => r.id === h.job_role_id)?.name ?? '—',
-        startDate: h.start_date,
-        endDate: h.end_date,
-        reason: h.reason,
-      }));
-    }
+  const exportRequirementsReport = (roleId: string) => {
+    const selectedRoles = roleId ? jobRoles.filter((r) => r.id === roleId) : jobRoles;
+    const requirements = selectedRoles.map((role) => ({
+      roleName: role.name,
+      courses: courses
+        .filter((c) => c.assignments.some((a) => a.job_role_id === role.id))
+        .map((c) => {
+          const a = c.assignments.find((asg) => asg.job_role_id === role.id);
+          return { title: c.title, mandatory: a?.is_mandatory ?? false, priority: a?.priority ?? 'medium', deadlineDays: a?.completion_deadline_days ?? null };
+        }),
+    }));
+    const base = buildReportBase();
+    const roles = roleId ? base.jobRoles.filter((r) => selectedRoles.some((sr) => sr.name === r.name)) : base.jobRoles;
+    exportPersonnelReport({ ...base, jobRoles: roles, scope: 'requirements', requirements });
+  };
 
-    let requirements: { roleName: string; courses: { title: string; mandatory: boolean; priority: string; deadlineDays: number | null }[] }[] | undefined;
-    if (scope === 'requirements') {
-      requirements = jobRoles.map((role) => ({
-        roleName: role.name,
-        courses: courses
-          .filter((c) => c.assignments.some((a) => a.job_role_id === role.id))
-          .map((c) => {
-            const a = c.assignments.find((asg) => asg.job_role_id === role.id);
-            return { title: c.title, mandatory: a?.is_mandatory ?? false, priority: a?.priority ?? 'medium', deadlineDays: a?.completion_deadline_days ?? null };
-          }),
-      }));
-    }
-
+  const handlePersonnelReport = async (scope: string) => {
+    if (scope === 'history') { setReportPicker('history'); return; }
+    if (scope === 'requirements') { setReportPicker('requirements'); return; }
     exportPersonnelReport({
-      employees,
-      admins,
-      departments: depts,
-      jobRoles: roles,
-      scope: scope as 'all' | 'employees' | 'admins' | 'departments' | 'roles' | 'history' | 'requirements',
-      history,
-      requirements,
+      ...buildReportBase(),
+      scope: scope as 'all' | 'employees' | 'admins' | 'departments' | 'roles',
     });
   };
 
@@ -176,6 +177,28 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
         </div>
         <ReportDropdown label={t.reportPersonnel} options={personnelReportOpts} onSelect={handlePersonnelReport} />
       </div>
+      {reportPicker === 'history' && (
+        <SelectionModal
+          eyebrow={t.reportPersonnel}
+          title="Seleccionar trabajador"
+          options={team.filter((m) => m.role === 'employee').map((m) => ({ value: m.id, label: m.full_name, hint: getRoleName(m.job_role_id) }))}
+          selectedValue=""
+          searchPlaceholder="Buscar trabajador"
+          onSelect={(value) => { setReportPicker(null); exportHistoryReport(value); }}
+          onClose={() => setReportPicker(null)}
+        />
+      )}
+      {reportPicker === 'requirements' && (
+        <SelectionModal
+          eyebrow={t.reportPersonnel}
+          title="Seleccionar cargo"
+          options={[{ value: '', label: t.reportAll }, ...jobRoles.map((r) => ({ value: r.id, label: r.name, hint: getDeptName(r.department_id) }))].filter((o) => o.value !== '' || jobRoles.length > 0)}
+          selectedValue=""
+          searchPlaceholder="Buscar cargo"
+          onSelect={(value) => { setReportPicker(null); exportRequirementsReport(value); }}
+          onClose={() => setReportPicker(null)}
+        />
+      )}
       <div className="admin-tabs">
         {tabs.map((tabItem) => {
           const Icon = tabItem.icon;
@@ -888,7 +911,7 @@ function HistoryTab({ t, team, jobRoles, departments }: {
         <div className="field-group field-group-full">
           <label>{t.user}</label>
           <button type="button" className="selection-trigger" onClick={() => setUserPickerOpen(true)}>
-            <span>{team.find((m) => m.id === selectedUserId)?.full_name ?? t.selectRole}</span>
+            <span>{team.find((m) => m.id === selectedUserId)?.full_name ?? 'Seleccionar trabajador'}</span>
             <Users size={16} />
           </button>
         </div>
@@ -897,7 +920,7 @@ function HistoryTab({ t, team, jobRoles, departments }: {
         <SelectionModal
           eyebrow={t.history}
           title="Seleccionar trabajador"
-          options={team.map((m) => ({ value: m.id, label: m.full_name, hint: getRoleName(m.job_role_id || '') }))}
+          options={team.filter((m) => m.role === 'employee').map((m) => ({ value: m.id, label: m.full_name, hint: getRoleName(m.job_role_id || '') }))}
           selectedValue={selectedUserId}
           searchPlaceholder="Buscar trabajador"
           onSelect={(value) => { setSelectedUserId(value); setUserPickerOpen(false); }}
