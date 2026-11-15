@@ -18,12 +18,14 @@
 - Estilos custom usan variables CSS existentes (p. ej. `--muted`, `--surface-2`); verificar nombres reales antes de usar.
 - Componente de botones segmentados agregado a estilos globales.
 - Layout: menú lateral + panel de inicio con accesos a módulos.
+- Tarjetas resumen de reportes: muestran valor, nombre del indicador y explicación breve debajo. Acentos visuales sobrios por tarjeta. Tamaños de texto ajustados para legibilidad en multipágina impresa.
 
 ## Decisions, constraints & rationale
 
 - **Notificaciones:** permite destinatario por "Persona" o "Cargo"; al elegir "Cargo" se envía a todas las personas con ese cargo y el formulario muestra el total de receptores.
 - **Configuración:** se removió del menú lateral, del panel de inicio y de la documentación; la tabla en base de datos sigue existiendo pero ya no se expone en UI.
 - **Reportes:** exportación a PDF vía diálogo de impresión del navegador ("Guardar como PDF"), sin dependencias adicionales. Incluye resumen + cursos e intentos fallidos del empleado seleccionado.
+- **Cartas de reportes enriquecidas:** las 7 variantes de reporte ahora incluyen contexto específico por indicador (p. ej. personal vigente, mensajes pendientes, resultados aprobados, eventos registrados). No se cambiaron los datos ni la forma de imprimir.
 - **Build/type-check:** verificación de tipos (`tsc`) y build pasan correctamente tras los cambios.
 - **Sin dependencias extra:** no instalar paquetes UI/iconos salvo necesidad justificada o petición explícita.
 
@@ -31,3 +33,4 @@
 
 - No se han verificado las pantallas en el navegador tras los últimos cambios.
 - Se asume que la tabla de configuraciones puede reactivarse en UI en el futuro si se requiere.
+- Las explicaciones breves de las cartas son redactadas por inferencia; podrían requerir validación de terminología con el usuario.

@@ -30,9 +30,14 @@ const BASE_STYLE = `
   .badge-blue{background:#dbeafe;color:#1e40af}
   .badge-gray{background:#f3f4f6;color:#374151}
   .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0;break-inside:avoid;page-break-inside:avoid}
-  .summary-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px;break-inside:avoid;page-break-inside:avoid}
-  .summary-card strong{font-size:24px;display:block;font-weight:800}
-  .summary-card span{font-size:11px;color:#64748b}
+  .summary-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;background:#fff}
+  .summary-card::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:#334155}
+  .summary-card:nth-child(2)::before{background:#2563eb}
+  .summary-card:nth-child(3)::before{background:#0f766e}
+  .summary-card:nth-child(4)::before{background:#b45309}
+  .summary-card strong{font-size:24px;display:block;font-weight:800;line-height:1.1;color:#0f172a}
+  .summary-card span{font-size:11px;color:#334155;font-weight:700}
+  .summary-card small{font-size:10px;line-height:1.35;color:#64748b}
   .section{margin-bottom:28px}
   .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin:12px 0;break-inside:avoid;page-break-inside:avoid}
   .info-item{display:flex;flex-direction:column}
@@ -56,6 +61,7 @@ const BASE_STYLE = `
     .summary-card{padding:7px}
     .summary-card strong{font-size:17px}
     .summary-card span{font-size:8px}
+    .summary-card small{font-size:7px;line-height:1.25}
     .section{margin-bottom:16px}
     .info-grid{gap:5px 12px;margin:8px 0}
     .info-item label{font-size:8px}
@@ -90,8 +96,8 @@ function badge(text: string, color: 'green' | 'red' | 'yellow' | 'blue' | 'gray'
   return `<span class="badge badge-${color}">${escapeHtml(text)}</span>`;
 }
 
-function summaryCards(items: { value: string | number; label: string }[]): string {
-  return `<div class="summary-grid">${items.map((s) => `<div class="summary-card"><strong>${escapeHtml(s.value)}</strong><span>${escapeHtml(s.label)}</span></div>`).join('')}</div>`;
+function summaryCards(items: { value: string | number; label: string; detail?: string }[]): string {
+  return `<div class="summary-grid">${items.map((s) => `<div class="summary-card"><strong>${escapeHtml(s.value)}</strong><span>${escapeHtml(s.label)}</span>${s.detail ? `<small>${escapeHtml(s.detail)}</small>` : ''}</div>`).join('')}</div>`;
 }
 
 function infoGrid(items: { label: string; value: string }[]): string {
@@ -132,9 +138,9 @@ export function exportPersonnelReport(opts: {
 
   if (scope === 'all' || scope === 'employees') {
     body += section('Empleados', summaryCards([
-      { value: opts.employees.length, label: 'Empleados totales' },
-      { value: opts.employees.filter((e) => e.is_active).length, label: 'Activos' },
-      { value: opts.employees.filter((e) => !e.is_active).length, label: 'Inactivos' },
+      { value: opts.employees.length, label: 'Empleados totales', detail: 'Personas incluidas en el reporte' },
+      { value: opts.employees.filter((e) => e.is_active).length, label: 'Activos', detail: 'Personal con estado vigente' },
+      { value: opts.employees.filter((e) => !e.is_active).length, label: 'Inactivos', detail: 'Requieren revisión o actualización' },
     ]) + table(['Nombre', 'Correo', 'Cédula', 'Teléfono', 'Cargo', 'Departamento', 'Estado'],
       opts.employees.map((e) => [escapeHtml(e.full_name), escapeHtml(e.email), escapeHtml(e.cedula), escapeHtml(e.telefono), escapeHtml(e.jobRoleName), escapeHtml(e.deptName), e.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')])));
   }
@@ -188,10 +194,10 @@ export function exportCoursesReport(opts: {
   }
 
   const body = summaryCards([
-    { value: opts.courses.length, label: 'Cursos totales' },
-    { value: opts.courses.reduce((acc, c) => acc + 1, 0), label: 'Cursos con módulos' },
-    { value: opts.courses.reduce((acc, c) => acc + c.assignments.length, 0), label: 'Asignaciones' },
-    { value: opts.courses.reduce((acc, c) => acc + c.prerequisites.length, 0), label: 'Prerrequisitos' },
+    { value: opts.courses.length, label: 'Cursos totales', detail: 'Cursos incluidos en el catálogo' },
+    { value: opts.courses.reduce((acc, c) => acc + 1, 0), label: 'Cursos con módulos', detail: 'Cursos con contenido asociado' },
+    { value: opts.courses.reduce((acc, c) => acc + c.assignments.length, 0), label: 'Asignaciones', detail: 'Relaciones con cargos' },
+    { value: opts.courses.reduce((acc, c) => acc + c.prerequisites.length, 0), label: 'Prerrequisitos', detail: 'Condiciones previas registradas' },
   ]) + section('Listado de Cursos', table(['Título', 'Categoría', 'Duración', 'Horas', 'Módulos', 'Asignaciones'],
     opts.courses.map((c) => [escapeHtml(c.title), escapeHtml(c.category), escapeHtml(c.duration), String(c.estimated_hours ?? 0), '1', String(c.assignments.length)])));
 
@@ -215,10 +221,10 @@ export function exportCertificationsReport(opts: {
   if (filterLabel) body += `<p class="muted" style="margin-bottom:16px">Filtro: <strong>${escapeHtml(filterLabel)}</strong></p>`;
 
   body += summaryCards([
-    { value: opts.certificates.length, label: 'Certificados de curso' },
-    { value: opts.roleCerts.length, label: 'Certificaciones de cargo' },
-    { value: opts.certificates.filter((c) => c.issue_date).length, label: 'Emitidos' },
-    { value: opts.roleCerts.filter((r) => r.is_valid).length, label: 'Vigentes' },
+    { value: opts.certificates.length, label: 'Certificados de curso', detail: 'Credenciales de capacitación' },
+    { value: opts.roleCerts.length, label: 'Certificaciones de cargo', detail: 'Acreditaciones por posición' },
+    { value: opts.certificates.filter((c) => c.issue_date).length, label: 'Emitidos', detail: 'Con fecha de emisión registrada' },
+    { value: opts.roleCerts.filter((r) => r.is_valid).length, label: 'Vigentes', detail: 'Certificaciones actualmente válidas' },
   ]);
 
   body += section('Certificados de Cursos', table(['N° Certificado', 'Trabajador', 'Curso', 'Emisión', 'Vencimiento'],
@@ -247,10 +253,10 @@ export function exportFeedbackReport(opts: {
   if (filterLabel) body += `<p class="muted" style="margin-bottom:16px">Filtro: <strong>${escapeHtml(filterLabel)}</strong></p>`;
 
   body += summaryCards([
-    { value: opts.feedback.length, label: 'Calificaciones totales' },
-    { value: avg, label: 'Promedio de estrellas' },
-    { value: opts.feedback.filter((f) => f.wouldRecommend).length, label: 'Recomendarían' },
-    { value: opts.feedback.filter((f) => f.difficulty === 'hard' || f.difficulty === 'very_hard').length, label: 'Difíciles' },
+    { value: opts.feedback.length, label: 'Calificaciones totales', detail: 'Respuestas recibidas' },
+    { value: avg, label: 'Promedio de estrellas', detail: 'Sobre una escala de 1 a 5' },
+    { value: opts.feedback.filter((f) => f.wouldRecommend).length, label: 'Recomendarían', detail: 'Respuestas con recomendación positiva' },
+    { value: opts.feedback.filter((f) => f.difficulty === 'hard' || f.difficulty === 'very_hard').length, label: 'Difíciles', detail: 'Marcadas como alta dificultad' },
   ]);
 
   body += section('Detalle de Calificaciones', table(['Trabajador', 'Curso', 'Estrellas', 'Dificultad', 'Recomendaría', 'Tiempo adecuado', 'Comentario'],
@@ -285,10 +291,10 @@ export function exportNotificationsReport(opts: {
 
   const types = ['info', 'success', 'warning', 'error', 'reminder'];
   body += summaryCards([
-    { value: opts.notifications.length, label: 'Notificaciones totales' },
-    { value: opts.notifications.filter((n) => n.is_read).length, label: 'Leídas' },
-    { value: opts.notifications.filter((n) => !n.is_read).length, label: 'No leídas' },
-    { value: types.map((tp) => opts.notifications.filter((n) => n.type === tp).length).filter((c) => c > 0).length, label: 'Tipos usados' },
+    { value: opts.notifications.length, label: 'Notificaciones totales', detail: 'Mensajes incluidos en el reporte' },
+    { value: opts.notifications.filter((n) => n.is_read).length, label: 'Leídas', detail: 'Mensajes ya revisados' },
+    { value: opts.notifications.filter((n) => !n.is_read).length, label: 'No leídas', detail: 'Pendientes de revisión' },
+    { value: types.map((tp) => opts.notifications.filter((n) => n.type === tp).length).filter((c) => c > 0).length, label: 'Tipos usados', detail: 'Categorías con registros' },
   ]);
 
   body += section('Notificaciones', table(['Título', 'Tipo', 'Destinatario', 'Estado', 'Fecha', 'Mensaje'],
@@ -313,10 +319,10 @@ export function exportExamResultsReport(opts: {
   if (filterLabel) body += `<p class="muted" style="margin-bottom:16px">Trabajador: <strong>${escapeHtml(filterLabel)}</strong></p>`;
 
   body += summaryCards([
-    { value: opts.attempts.length, label: 'Intentos totales' },
-    { value: passed, label: 'Aprobados' },
-    { value: opts.attempts.length - passed, label: 'Reprobados' },
-    { value: opts.attempts.length > 0 ? `${Math.round((passed / opts.attempts.length) * 100)}%` : '—', label: 'Tasa de aprobación' },
+    { value: opts.attempts.length, label: 'Intentos totales', detail: 'Evaluaciones registradas' },
+    { value: passed, label: 'Aprobados', detail: 'Resultados que cumplen el mínimo' },
+    { value: opts.attempts.length - passed, label: 'Reprobados', detail: 'Requieren refuerzo o repetición' },
+    { value: opts.attempts.length > 0 ? `${Math.round((passed / opts.attempts.length) * 100)}%` : '—', label: 'Tasa de aprobación', detail: 'Aprobados sobre el total' },
   ]);
 
   body += section('Resultados de Exámenes', table(['Trabajador', 'Curso', 'Puntaje', 'Resultado', 'Fecha'],
@@ -329,10 +335,10 @@ export function exportAuditReport(opts: {
   logs: { action: string; entity_type: string; userName: string; ip_address: string | null; created_at: string; changesSummary: string | null }[];
 }) {
   const body = summaryCards([
-    { value: opts.logs.length, label: 'Registros totales' },
-    { value: opts.logs.filter((l) => l.action === 'CREATE').length, label: 'Creaciones' },
-    { value: opts.logs.filter((l) => l.action === 'UPDATE').length, label: 'Actualizaciones' },
-    { value: opts.logs.filter((l) => l.action === 'DELETE').length, label: 'Eliminaciones' },
+    { value: opts.logs.length, label: 'Registros totales', detail: 'Eventos registrados en el sistema' },
+    { value: opts.logs.filter((l) => l.action === 'CREATE').length, label: 'Creaciones', detail: 'Nuevos registros generados' },
+    { value: opts.logs.filter((l) => l.action === 'UPDATE').length, label: 'Actualizaciones', detail: 'Cambios realizados' },
+    { value: opts.logs.filter((l) => l.action === 'DELETE').length, label: 'Eliminaciones', detail: 'Registros removidos' },
   ]) + section('Registro de Auditoría', table(['Acción', 'Entidad', 'Usuario', 'IP', 'Fecha', 'Cambios'],
     opts.logs.map((l) => [badge(l.action, l.action === 'CREATE' ? 'green' : l.action === 'UPDATE' ? 'yellow' : 'red'), escapeHtml(l.entity_type), escapeHtml(l.userName), escapeHtml(l.ip_address), formatDate(l.created_at), escapeHtml(l.changesSummary?.slice(0, 50))])));
 
