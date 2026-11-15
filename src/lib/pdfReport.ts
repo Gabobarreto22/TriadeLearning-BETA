@@ -10,9 +10,9 @@ function formatDate(value: string | null | undefined): string {
 const BASE_STYLE = `
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;padding:40px;font-size:13px;line-height:1.5}
-  .header{display:flex;align-items:center;gap:14px;margin-bottom:24px;border-bottom:2px solid #1e293b;padding-bottom:16px}
-  .header-logo{font-size:20px;font-weight:800;color:#1e293b;letter-spacing:-.02em}
-  .header-sub{font-size:11px;color:#64748b;margin-top:2px}
+  .header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px;border-bottom:2px solid #1e293b;padding-bottom:16px}
+  .header-logo{display:block;width:180px;height:auto;max-height:42px;object-fit:contain;object-position:left center}
+  .header-sub{font-size:11px;color:#64748b;margin-top:2px;text-align:right}
   h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
   h2{font-size:17px;margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}
   h3{font-size:14px;margin:18px 0 8px;color:#334155}
@@ -50,10 +50,8 @@ function buildHtml(title: string, subtitle: string, bodyContent: string): string
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
   <style>${BASE_STYLE}</style></head><body>
   <div class="header">
-    <div>
-      <div class="header-logo">TRIADE</div>
-      <div class="header-sub">Sistema de Gestión de Aprendizaje</div>
-    </div>
+    <img class="header-logo" src="/LOGOTIPO_POSITIVO.png" alt="TRIADE" />
+    <div class="header-sub">Sistema de Gestión de Aprendizaje</div>
   </div>
   <h1>${escapeHtml(title)}</h1>
   <p class="muted">${escapeHtml(subtitle)}</p>
