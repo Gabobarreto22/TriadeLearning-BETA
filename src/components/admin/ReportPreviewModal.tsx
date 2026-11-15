@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Save, X } from 'lucide-react';
+import { Printer, X } from 'lucide-react';
 import { usePreferences } from '@/lib/preferences';
 import { adminStringsByLanguage } from '@/components/admin/strings';
 
@@ -42,26 +42,12 @@ export function ReportPreviewModal() {
     frame.contentWindow.print();
   };
 
-  const saveReport = () => {
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const titleMatch = html.match(/<title>([^<]*)<\/title>/);
-    a.download = `${titleMatch?.[1] ?? 'reporte'}.html`;
-    a.href = url;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return createPortal(
     <div className="modal-backdrop report-preview-backdrop" onClick={() => setHtml(null)}>
       <div className="report-preview-modal" onClick={(e) => e.stopPropagation()}>
         <div className="report-preview-toolbar">
           <p className="eyebrow">{at.reports}</p>
           <div className="report-preview-actions">
-            <button type="button" className="outline-button" onClick={saveReport}>
-              <Save size={15} /> Guardar
-            </button>
             <button type="button" className="primary-button" onClick={printReport}>
               <Printer size={15} /> Imprimir / PDF
             </button>

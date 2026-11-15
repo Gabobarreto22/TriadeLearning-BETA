@@ -12,8 +12,6 @@ const BASE_STYLE = `
   body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;padding:40px;font-size:13px;line-height:1.5}
   .header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px;border-bottom:2px solid #1e293b;padding-bottom:16px}
   .header-logo{display:block;width:180px;height:auto;max-height:42px;object-fit:contain;object-position:left center}
-  .header-sub{font-size:11px;color:#64748b;margin-top:2px;text-align:right}
-  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
   h2{font-size:17px;margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}
   h3{font-size:14px;margin:18px 0 8px;color:#334155}
   .muted{color:#64748b;font-size:12px}
@@ -42,24 +40,20 @@ const BASE_STYLE = `
   .empty{color:#94a3b8;font-style:italic;padding:12px 0}
   ul{margin:8px 0;padding-left:18px}
   li{margin:4px 0;font-size:12px}
-  .footer{margin-top:40px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
-  @media print{body{padding:20px}}
+  @media print{
+    @page{margin:0}
+    body{padding:84px 20px 20px}
+    .header{position:fixed;top:20px;left:20px;right:20px;margin:0;padding-bottom:10px;background:#fff;z-index:10}
+  }
 `;
 
-function buildHtml(title: string, subtitle: string, bodyContent: string): string {
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+function buildHtml(_title: string, _subtitle: string, bodyContent: string): string {
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title></title>
   <style>${BASE_STYLE}</style></head><body>
   <div class="header">
     <img class="header-logo" src="/LOGOTIPO_POSITIVO.png" alt="TRIADE" />
-    <div class="header-sub">Sistema de Gestión de Aprendizaje</div>
-  </div>
-  <h1>${escapeHtml(title)}</h1>
-  <p class="muted">${escapeHtml(subtitle)}</p>
-  <div class="meta">
-    <div class="meta-item"><span>Fecha de generación</span><strong>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
   </div>
   ${bodyContent}
-  <div class="footer">Documento generado por TRIADE · ${new Date().toLocaleDateString()}</div>
   </body></html>`;
 }
 
