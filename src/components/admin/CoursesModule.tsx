@@ -46,6 +46,26 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
       moduleName: (c.modules ?? [])[0]?.title ?? '—',
       moduleType: (c.modules ?? [])[0]?.type ?? '—',
       moduleDuration: (c.modules ?? [])[0]?.duration ?? null,
+      modules: (c.modules ?? []).map((module) => ({
+        title: module.title,
+        type: module.type,
+        duration: module.duration,
+        duration_minutes: module.duration_minutes,
+        body: module.body,
+        image_url: module.image_url,
+        video_url: module.video_url,
+        is_required: module.is_required,
+        is_free_preview: module.is_free_preview,
+        resource_type: module.resource_type,
+        resource_url: module.resource_url,
+        resources: (c.resources ?? []).filter((resource) => resource.module_id === module.id).map((resource) => ({
+          title: resource.title,
+          description: resource.description,
+          file_type: resource.file_type,
+          file_url: resource.file_url,
+          is_downloadable: resource.is_downloadable,
+        })),
+      })),
       assignments: (c.assignments ?? []).map((a) => ({
         roleName: jobRoles.find((r) => r.id === a.job_role_id)?.name ?? '—',
         mandatory: a.is_mandatory,
@@ -77,6 +97,26 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
       moduleName: (c.modules ?? [])[0]?.title ?? '—',
       moduleType: (c.modules ?? [])[0]?.type ?? '—',
       moduleDuration: (c.modules ?? [])[0]?.duration ?? null,
+      modules: (c.modules ?? []).map((module) => ({
+        title: module.title,
+        type: module.type,
+        duration: module.duration,
+        duration_minutes: module.duration_minutes,
+        body: module.body,
+        image_url: module.image_url,
+        video_url: module.video_url,
+        is_required: module.is_required,
+        is_free_preview: module.is_free_preview,
+        resource_type: module.resource_type,
+        resource_url: module.resource_url,
+        resources: (c.resources ?? []).filter((resource) => resource.module_id === module.id).map((resource) => ({
+          title: resource.title,
+          description: resource.description,
+          file_type: resource.file_type,
+          file_url: resource.file_url,
+          is_downloadable: resource.is_downloadable,
+        })),
+      })),
       assignments: (c.assignments ?? []).map((a) => ({
         roleName: jobRoles.find((r) => r.id === a.job_role_id)?.name ?? '—',
         mandatory: a.is_mandatory,
@@ -86,7 +126,7 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
       prerequisites: (c.prerequisites ?? []).map((p) => allCoursesRef.find((co) => co.id === p.prerequisite_course_id)?.title ?? '—'),
     }));
     setCourseReportOpen(false);
-    exportCoursesReport({ courses: selected });
+    exportCoursesReport({ courses: selected, singleCourseId: selectedCourse.id });
   };
 
   useEffect(() => {

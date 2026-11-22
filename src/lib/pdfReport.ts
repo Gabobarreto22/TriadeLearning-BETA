@@ -17,13 +17,25 @@ const BASE_STYLE = `
   h3{font-size:14px;margin:18px 0 8px;color:#334155;break-after:avoid;page-break-after:avoid}
   .muted{color:#64748b;font-size:12px}
   table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;table-layout:auto}
+  table.personnel-employees-table{font-size:11px;table-layout:fixed}
+  table.personnel-employees-table th,table.personnel-employees-table td{padding:6px 7px}
+  table.personnel-employees-table th:nth-child(1){width:17%}
+  table.personnel-employees-table th:nth-child(2){width:22%}
+  table.personnel-employees-table th:nth-child(3){width:12%}
+  table.personnel-employees-table th:nth-child(4){width:11%}
+  table.personnel-employees-table th:nth-child(5){width:15%}
+  table.personnel-employees-table th:nth-child(6){width:15%}
+  table.personnel-employees-table th:nth-child(7){width:8%}
+  .report-table-page{margin-top:8px}
+  .report-page-heading th{background:#fff;color:#0f172a;text-transform:none;font-size:12px;padding:4px 0;border-bottom:1px solid #cbd5e1}
+  .single-page-report .report-page-heading{display:none}
   thead{display:table-header-group}
   tbody{display:table-row-group}
   th{background:#f1f5f9;padding:9px 10px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#475569;border-bottom:2px solid #e2e8f0;overflow-wrap:anywhere}
   td{padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top;overflow-wrap:anywhere}
   tr{break-inside:avoid;page-break-inside:avoid}
   tr:nth-child(even) td{background:#fafbfc}
-  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
   .badge-green{background:#d1fae5;color:#065f46}
   .badge-red{background:#fee2e2;color:#991b1b}
   .badge-yellow{background:#fef3c7;color:#92400e}
@@ -43,29 +55,63 @@ const BASE_STYLE = `
   .info-item{display:flex;flex-direction:column}
   .info-item label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b}
   .info-item span{font-size:13px;margin-top:2px}
+  .course-module-specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 14px}
+  .course-module-spec{border-left:3px solid #2563eb;background:#f8fafc;padding:8px 10px}
+  .course-module-spec label{display:block;color:#64748b;font-size:9px;font-weight:700;text-transform:uppercase}
+  .course-module-spec strong{display:block;margin-top:3px;color:#0f172a;font-size:12px}
+  .course-module-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(210px,1fr);gap:14px;align-items:start}
+  .course-module-block{margin:0 0 14px;break-inside:avoid;page-break-inside:avoid}
+  .course-module-block:last-child{margin-bottom:0}
+  .course-module-panel{border:1px solid #e2e8f0;border-radius:6px;padding:12px;min-width:0}
+  .course-module-panel h4{margin:0 0 8px;color:#334155;font-size:11px}
+  .course-module-content{font-size:11px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+  .course-module-resources{background:#f8fafc}
+  .course-resource-item{border-top:1px solid #e2e8f0;padding:8px 0;overflow-wrap:anywhere}
+  .course-resource-item:first-of-type{border-top:0;padding-top:0}
+  .course-resource-item strong{display:block;color:#0f172a;font-size:10px}
+  .course-resource-item p{margin:3px 0;color:#475569;font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+  .course-resource-item span{display:block;color:#64748b;font-size:8px;overflow-wrap:anywhere}
   .empty{color:#94a3b8;font-style:italic;padding:12px 0}
   ul{margin:8px 0;padding-left:18px}
   li{margin:4px 0;font-size:12px}
   @media print{
-    @page{size:A4;margin:0}
-    body{width:210mm;min-height:297mm;padding:30mm 14mm 18mm;font-size:10px}
-    .header{position:fixed;top:12mm;left:14mm;right:14mm;height:14mm;margin:0;padding-bottom:3mm;background:#fff;z-index:10}
+    @page{size:A4 landscape;margin:0}
+    body{width:297mm;min-height:0;padding:21mm 14mm 27mm;font-size:11px}
+    .header{position:fixed;top:3mm;left:14mm;right:14mm;height:14mm;margin:0;padding-bottom:3mm;background:#fff;z-index:10}
     .header-logo{width:48mm;max-height:12mm}
     h2{font-size:14px;margin:18px 0 7px}
     h3{font-size:12px;margin:12px 0 6px}
-    table{font-size:9px;margin-top:6px}
-    th{padding:5px 6px;font-size:8px}
-    td{padding:5px 6px}
-    .badge{font-size:8px;padding:2px 5px}
+    table{font-size:10.5px;margin-top:8px}
+    .report-table-page{margin-top:6px}
+    .report-page-heading th{background:#fff;color:#0f172a;text-transform:none;font-size:11px;padding:4px 0;border-bottom:1px solid #cbd5e1}
+    table.personnel-employees-table{font-size:10.5px}
+    table.personnel-employees-table th,table.personnel-employees-table td{padding:5px 6px}
+    th{padding:7px 8px;font-size:9.5px}
+    td{padding:7px 8px}
+    .badge{font-size:9px;padding:2px 6px}
     .summary-grid{gap:7px;margin:10px 0}
     .summary-card{padding:7px}
     .summary-card strong{font-size:17px}
     .summary-card span{font-size:8px}
     .summary-card small{font-size:7px;line-height:1.25}
     .section{margin-bottom:16px}
+    .page-break-before{break-before:page;page-break-before:always;padding-top:21mm}
     .info-grid{gap:5px 12px;margin:8px 0}
     .info-item label{font-size:8px}
     .info-item span{font-size:10px}
+    .course-module-specs{gap:6px;margin:6px 0 10px}
+    .course-module-spec{padding:6px 8px}
+    .course-module-spec label{font-size:8px}
+    .course-module-spec strong{font-size:10px}
+    .course-module-layout{grid-template-columns:minmax(0,1.7fr) minmax(190px,1fr);gap:10px}
+    .course-module-block{margin-bottom:10px}
+    .course-module-panel{padding:9px}
+    .course-module-panel h4{font-size:10px}
+    .course-module-content{font-size:10px;line-height:1.45}
+    .course-resource-item{padding:6px 0}
+    .course-resource-item strong{font-size:9px}
+    .course-resource-item p{font-size:8px}
+    .course-resource-item span{font-size:7px}
     .empty{padding:8px 0}
     ul{margin:5px 0;padding-left:14px}
     li{margin:3px 0;font-size:9px}
@@ -73,12 +119,14 @@ const BASE_STYLE = `
 `;
 
 function buildHtml(_title: string, _subtitle: string, bodyContent: string): string {
+  const isMultiPage = bodyContent.includes('page-break-before');
+  const reportClass = isMultiPage ? 'multi-page-report' : 'single-page-report';
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title></title>
   <style>${BASE_STYLE}</style></head><body>
   <div class="header">
     <img class="header-logo" src="/LOGOTIPO_POSITIVO.png" alt="TRIADE" />
   </div>
-  ${bodyContent}
+  <main class="${reportClass}">${bodyContent}</main>
   </body></html>`;
 }
 
@@ -86,10 +134,35 @@ function openReportPreview(html: string) {
   window.dispatchEvent(new CustomEvent('report:preview', { detail: html }));
 }
 
-function table(headers: string[], rows: (string)[][]): string {
-  if (rows.length === 0) return '<p class="empty">Sin datos disponibles</p>';
-  return `<table><thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+let reportPageTitle = '';
+let reportPageNumber = 0;
+let reportHasSection = false;
+let reportHasTable = false;
+
+function beginReport(title: string) {
+  reportPageTitle = title;
+  reportPageNumber = 0;
+  reportHasSection = false;
+  reportHasTable = false;
+}
+
+function table(headers: string[], rows: (string)[][], className = '', repeatedTitle = '', manualPagination = false): string {
+  const starts = manualPagination || repeatedTitle ? [0] : Array.from({ length: Math.max(1, Math.ceil(rows.length / 8)) }, (_, index) => index * 8);
+  const startsNewSectionPage = reportHasSection && !reportHasTable;
+  reportHasTable = true;
+  return starts.map((start, chunkIndex) => {
+    const chunk = rows.slice(start, start + 8);
+    const advancesPage = chunkIndex > 0 || (chunkIndex === 0 && startsNewSectionPage);
+    const pageBreak = chunkIndex > 0;
+    if (reportPageNumber === 0 || advancesPage) reportPageNumber += 1;
+    const heading = repeatedTitle || `${reportPageTitle} - Página ${reportPageNumber}`;
+    if (chunk.length === 0) {
+      return `<div class="report-table-page${pageBreak ? ' page-break-before' : ''}"><p class="report-page-heading">${escapeHtml(heading)}</p><p class="empty">Sin datos disponibles</p></div>`;
+    }
+    const pageHeading = manualPagination && !repeatedTitle ? '' : `<tr class="report-page-heading"><th colspan="${headers.length}">${escapeHtml(heading)}</th></tr>`;
+    return `<div class="report-table-page${pageBreak ? ' page-break-before' : ''}"><table${className ? ` class="${className}"` : ''}><thead>${pageHeading}<tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+      <tbody>${chunk.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }).join('');
 }
 
 function badge(text: string, color: 'green' | 'red' | 'yellow' | 'blue' | 'gray'): string {
@@ -104,8 +177,13 @@ function infoGrid(items: { label: string; value: string }[]): string {
   return `<div class="info-grid">${items.map((i) => `<div class="info-item"><label>${escapeHtml(i.label)}</label><span>${escapeHtml(i.value)}</span></div>`).join('')}</div>`;
 }
 
-function section(title: string, content: string): string {
-  return `<div class="section"><h2>${escapeHtml(title)}</h2>${content}</div>`;
+function section(title: string, content: string, pageBreakBefore = false): string {
+  const startsNewPage = reportHasSection && (pageBreakBefore || reportHasTable);
+  if (!reportHasSection) reportPageNumber = Math.max(reportPageNumber, 1);
+  reportHasSection = true;
+  reportHasTable = false;
+  const pageTitleClass = / - Página \d+$/.test(title) ? ' report-page-heading' : '';
+  return `<div class="section${startsNewPage ? ' page-break-before' : ''}">${title ? `<h2 class="${pageTitleClass.trim()}">${escapeHtml(title)}</h2>` : ''}${content}</div>`;
 }
 
 // ============ REPORT BUILDERS ============
@@ -134,6 +212,7 @@ export function exportPersonnelReport(opts: {
     requirements: 'Reporte de Requisitos por Cargo',
   };
   const title = titleMap[scope] ?? 'Reporte de Personal';
+  beginReport(title);
   let body = '';
 
   if (scope === 'all' || scope === 'employees') {
@@ -142,27 +221,52 @@ export function exportPersonnelReport(opts: {
       { value: opts.employees.filter((e) => e.is_active).length, label: 'Activos', detail: 'Personal con estado vigente' },
       { value: opts.employees.filter((e) => !e.is_active).length, label: 'Inactivos', detail: 'Requieren revisión o actualización' },
     ]) + table(['Nombre', 'Correo', 'Cédula', 'Teléfono', 'Cargo', 'Departamento', 'Estado'],
-      opts.employees.map((e) => [escapeHtml(e.full_name), escapeHtml(e.email), escapeHtml(e.cedula), escapeHtml(e.telefono), escapeHtml(e.jobRoleName), escapeHtml(e.deptName), e.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')])));
+      opts.employees.map((e) => [escapeHtml(e.full_name), escapeHtml(e.email), escapeHtml(e.cedula), escapeHtml(e.telefono), escapeHtml(e.jobRoleName), escapeHtml(e.deptName), e.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')]), 'personnel-employees-table'));
   }
   if (scope === 'all' || scope === 'admins') {
-    body += section('Administradores', table(['Nombre', 'Correo', 'Estado'],
-      opts.admins.map((a) => [escapeHtml(a.full_name), escapeHtml(a.email), a.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')])));
+    body += section('Administradores', summaryCards([
+      { value: opts.admins.length, label: 'Administradores', detail: 'Cuentas incluidas' },
+      { value: opts.admins.filter((a) => a.is_active).length, label: 'Activos', detail: 'Con acceso vigente' },
+      { value: opts.admins.filter((a) => !a.is_active).length, label: 'Inactivos', detail: 'Sin acceso vigente' },
+    ]) + table(['Nombre', 'Correo', 'Estado'],
+      opts.admins.map((a) => [escapeHtml(a.full_name), escapeHtml(a.email), a.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')])), scope === 'all');
   }
   if (scope === 'all' || scope === 'departments') {
-    body += section('Departamentos', table(['Nombre', 'Código', 'Descripción', 'Estado'],
-      opts.departments.map((d) => [escapeHtml(d.name), escapeHtml(d.code), escapeHtml(d.description), d.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')])));
+    body += section('Departamentos', summaryCards([
+      { value: opts.departments.length, label: 'Departamentos', detail: 'Áreas registradas' },
+      { value: opts.departments.filter((d) => d.is_active).length, label: 'Activos', detail: 'Áreas vigentes' },
+      { value: opts.departments.filter((d) => !d.is_active).length, label: 'Inactivos', detail: 'Áreas no vigentes' },
+    ]) + table(['Nombre', 'Código', 'Descripción', 'Estado'],
+      opts.departments.map((d) => [escapeHtml(d.name), escapeHtml(d.code), escapeHtml(d.description), d.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')])), scope === 'all');
   }
   if (scope === 'all' || scope === 'roles') {
-    body += section('Cargos', table(['Nombre', 'Descripción', 'Departamento', 'Cursos asignados', 'Estado'],
-      opts.jobRoles.map((r) => [escapeHtml(r.name), escapeHtml(r.description), escapeHtml(r.deptName), String(r.courseCount), r.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')])));
+    const roleRows = opts.jobRoles.map((r) => [escapeHtml(r.name), escapeHtml(r.description), escapeHtml(r.deptName), String(r.courseCount), r.is_active ? badge('Activo', 'green') : badge('Inactivo', 'red')]);
+    const rolePageSize = 9;
+    const rolePages = Array.from({ length: Math.ceil(roleRows.length / rolePageSize) }, (_, index) => roleRows.slice(index * rolePageSize, (index + 1) * rolePageSize));
+    const roleSummary = summaryCards([
+      { value: opts.jobRoles.length, label: 'Cargos', detail: 'Posiciones registradas' },
+      { value: opts.jobRoles.filter((r) => r.is_active).length, label: 'Activos', detail: 'Cargos vigentes' },
+      { value: opts.jobRoles.reduce((total, role) => total + role.courseCount, 0), label: 'Asignaciones', detail: 'Cursos asociados a cargos' },
+    ]);
+    rolePages.forEach((rows, index) => {
+      const pageTitle = `Cargos - Página ${index + 1}`;
+      const pageBody = (index === 0 ? roleSummary : '') + table(['Nombre', 'Descripción', 'Departamento', 'Cursos asignados', 'Estado'], rows, '', pageTitle);
+      body += section('', pageBody, (scope === 'all' && index === 0) || index > 0);
+    });
   }
   if (scope === 'history' && opts.history) {
-    body += section('Historial de Cargos', table(['Persona', 'Cargo', 'Fecha inicio', 'Fecha fin', 'Razón'],
+    body += section('Historial de Cargos', summaryCards([
+      { value: opts.history.length, label: 'Cambios de cargo', detail: 'Movimientos registrados' },
+      { value: opts.history.filter((h) => !h.endDate).length, label: 'Cargos actuales', detail: 'Asignaciones vigentes' },
+    ]) + table(['Persona', 'Cargo', 'Fecha inicio', 'Fecha fin', 'Razón'],
       opts.history.map((h) => [escapeHtml(h.userName), escapeHtml(h.roleName), formatDate(h.startDate), h.endDate ? formatDate(h.endDate) : 'Actual', escapeHtml(h.reason)])));
   }
   if (scope === 'requirements' && opts.requirements) {
     opts.requirements.forEach((req) => {
-      body += section(`Requisitos — ${req.roleName}`, table(['Curso', 'Obligatorio', 'Prioridad', 'Días límite'],
+      body += section(`Requisitos — ${req.roleName}`, summaryCards([
+        { value: req.courses.length, label: 'Cursos asignados', detail: 'Requisitos de este cargo' },
+        { value: req.courses.filter((course) => course.mandatory).length, label: 'Obligatorios', detail: 'Cursos requeridos' },
+      ]) + table(['Curso', 'Obligatorio', 'Prioridad', 'Días límite'],
         req.courses.map((c) => [escapeHtml(c.title), c.mandatory ? badge('Sí', 'green') : badge('No', 'gray'), escapeHtml(c.priority), c.deadlineDays ? String(c.deadlineDays) : '—'])));
     });
   }
@@ -171,28 +275,92 @@ export function exportPersonnelReport(opts: {
 }
 
 export function exportCoursesReport(opts: {
-  courses: { id: string; title: string; description: string | null; category: string | null; duration: string | null; estimated_hours: number | null; moduleName: string; moduleType: string; moduleDuration: string | null; assignments: { roleName: string; mandatory: boolean; priority: string; deadlineDays: number | null }[]; prerequisites: string[] }[];
+  courses: {
+    id: string;
+    title: string;
+    description: string | null;
+    category: string | null;
+    duration: string | null;
+    estimated_hours: number | null;
+    moduleName: string;
+    moduleType: string;
+    moduleDuration: string | null;
+    modules?: { title: string; type: string; duration: string | null; duration_minutes?: number; body?: string | null; image_url?: string | null; video_url?: string | null; resource_type?: string | null; resource_url?: string | null; resources?: { title: string; description: string | null; file_type: string | null; file_url: string; is_downloadable: boolean }[] }[];
+    assignments: { roleName: string; mandatory: boolean; priority: string; deadlineDays: number | null }[];
+    prerequisites: string[];
+  }[];
   singleCourseId?: string;
 }) {
   if (opts.singleCourseId) {
     const c = opts.courses.find((course) => course.id === opts.singleCourseId);
     if (!c) return;
-    let body = infoGrid([
+    beginReport(`Reporte de Curso: ${c.title}`);
+    const courseInfo = infoGrid([
       { label: 'Título', value: c.title },
       { label: 'Categoría', value: c.category ?? '—' },
       { label: 'Duración', value: c.duration ?? '—' },
       { label: 'Horas estimadas', value: String(c.estimated_hours ?? 0) },
     ]);
-    if (c.description) body += `<p style="margin:12px 0">${escapeHtml(c.description)}</p>`;
-    body += section('Módulos', table(['#', 'Título', 'Tipo', 'Duración'],
-      [[['1', c.moduleName, c.moduleType, c.moduleDuration ?? '—']].flat() as string[]]));
-    body += section('Asignaciones', table(['Cargo', 'Obligatorio', 'Prioridad', 'Días límite'],
-      c.assignments.map((a) => [escapeHtml(a.roleName), a.mandatory ? badge('Sí', 'green') : badge('No', 'gray'), escapeHtml(a.priority), a.deadlineDays ? String(a.deadlineDays) : '—'])));
-    if (c.prerequisites.length > 0) body += section('Prerrequisitos', `<ul>${c.prerequisites.map((p) => `<li>${escapeHtml(p)}</li>`).join('')}</ul>`);
+    const description = c.description ? `<p style="margin:12px 0">${escapeHtml(c.description)}</p>` : '';
+    const modules = c.modules ?? [{ title: c.moduleName, type: c.moduleType, duration: c.moduleDuration }];
+    const modulePageSize = 8;
+    const moduleListPages = Array.from({ length: Math.max(1, Math.ceil(modules.length / modulePageSize)) }, (_, index) =>
+      modules.slice(index * modulePageSize, (index + 1) * modulePageSize));
+    let body = '';
+    moduleListPages.forEach((pageModules, index) => {
+      const pageNumber = index + 1;
+      const pageContent = (index === 0 ? courseInfo + description : '') + `<h2>Módulos</h2>${table(['#', 'Título', 'Tipo', 'Duración'],
+        pageModules.map((module, moduleIndex) => [
+          String(index * modulePageSize + moduleIndex + 1), escapeHtml(module.title), escapeHtml(module.type), escapeHtml(module.duration),
+        ]), '', '', true)}`;
+      body += section(`${c.title} - Página ${pageNumber}`, pageContent, index > 0);
+    });
+    const moduleDetails = modules.map((module, index) => {
+      const resources = [
+        ...(module.video_url ? [{ title: 'Video del módulo', description: null, type: 'Video', url: module.video_url }] : []),
+        ...(module.resource_url ? [{ title: 'Recurso del módulo', description: null, type: module.resource_type ?? 'Archivo', url: module.resource_url }] : []),
+        ...(module.resources ?? []).map((resource) => ({
+          title: resource.title,
+          description: resource.description,
+          type: resource.file_type ?? 'Archivo',
+          url: resource.file_url,
+        })),
+      ];
+      const resourcePanel = resources.length
+        ? `<aside class="course-module-panel course-module-resources"><h4>Material de apoyo</h4>${resources.map((resource) => `<div class="course-resource-item"><strong>${escapeHtml(resource.title)}</strong>${resource.description ? `<p>${escapeHtml(resource.description)}</p>` : ''}<span>${escapeHtml(resource.type)} · ${escapeHtml(resource.url)}</span></div>`).join('')}</aside>`
+        : '';
+      const content = `<div class="course-module-specs"><div class="course-module-spec"><label>Tipo de módulo</label><strong>${escapeHtml(module.type)}</strong></div><div class="course-module-spec"><label>Duración</label><strong>${escapeHtml(module.duration ?? '—')}</strong></div></div><div class="course-module-layout"><section class="course-module-panel"><h4>Contenido del módulo</h4><div class="course-module-content">${module.body ? escapeHtml(module.body) : 'Sin contenido textual.'}</div></section>${resourcePanel}</div>`;
+      const bodyLines = Math.ceil((module.body?.length ?? 24) / 100);
+      const resourceLines = resources.reduce((total, resource) => total + Math.ceil((resource.title.length + resource.description?.length + resource.url.length) / 52), 0);
+      const estimatedHeight = 38 + bodyLines * 4.5 + resourceLines * 4.5;
+      return {
+        markup: `<article class="course-module-block"><h3>Módulo ${index + 1}: ${escapeHtml(module.title)}</h3>${content}</article>`,
+        estimatedHeight,
+      };
+    });
+    const detailPageCapacity = 125;
+    const detailPages: typeof moduleDetails[] = [];
+    let currentPage: typeof moduleDetails = [];
+    let currentPageHeight = 0;
+    moduleDetails.forEach((moduleDetail) => {
+      if (currentPage.length > 0 && currentPageHeight + moduleDetail.estimatedHeight > detailPageCapacity) {
+        detailPages.push(currentPage);
+        currentPage = [];
+        currentPageHeight = 0;
+      }
+      currentPage.push(moduleDetail);
+      currentPageHeight += moduleDetail.estimatedHeight;
+    });
+    if (currentPage.length > 0) detailPages.push(currentPage);
+    detailPages.forEach((pageModules, index) => {
+      const pageNumber = moduleListPages.length + index + 1;
+      body += section(`${c.title} - Página ${pageNumber}`, pageModules.map((moduleDetail) => moduleDetail.markup).join(''), true);
+    });
     openReportPreview(buildHtml(`Reporte de Curso: ${c.title}`, 'Gestión de Cursos', body));
     return;
   }
 
+  beginReport('Reporte General de Cursos');
   const body = summaryCards([
     { value: opts.courses.length, label: 'Cursos totales', detail: 'Cursos incluidos en el catálogo' },
     { value: opts.courses.reduce((acc, c) => acc + 1, 0), label: 'Cursos con módulos', detail: 'Cursos con contenido asociado' },
@@ -216,6 +384,7 @@ export function exportCertificationsReport(opts: {
     byCourse: 'Reporte de Certificaciones por Curso',
     byWorker: 'Reporte de Certificaciones por Trabajador',
   };
+  beginReport(titleMap[scope] ?? 'Reporte de Certificaciones');
   let body = '';
 
   if (filterLabel) body += `<p class="muted" style="margin-bottom:16px">Filtro: <strong>${escapeHtml(filterLabel)}</strong></p>`;
@@ -247,6 +416,7 @@ export function exportFeedbackReport(opts: {
     byCourse: 'Reporte de Feedback por Curso',
     byWorker: 'Reporte de Feedback por Trabajador',
   };
+  beginReport(titleMap[scope] ?? 'Reporte de Feedback');
   const avg = opts.feedback.length > 0 ? (opts.feedback.reduce((acc, f) => acc + f.rating, 0) / opts.feedback.length).toFixed(1) : '0';
   let body = '';
 
@@ -285,6 +455,7 @@ export function exportNotificationsReport(opts: {
     byRole: 'Reporte de Notificaciones por Cargo',
     byWorker: 'Reporte de Notificaciones por Trabajador',
   };
+  beginReport(titleMap[scope] ?? 'Reporte de Notificaciones');
   let body = '';
 
   if (filterLabel) body += `<p class="muted" style="margin-bottom:16px">Filtro: <strong>${escapeHtml(filterLabel)}</strong></p>`;
@@ -310,6 +481,7 @@ export function exportExamResultsReport(opts: {
 }) {
   const { scope, filterLabel } = opts;
   const title = scope === 'byWorker' ? 'Reporte de Resultados de Exámenes por Trabajador' : 'Reporte General de Resultados de Exámenes';
+  beginReport(title);
   const passed = opts.attempts.filter((a) => a.passed).length;
   const avgScore = opts.attempts.length > 0 && opts.attempts[0].score !== null
     ? (opts.attempts.reduce((acc, a) => acc + (a.score ?? 0), 0) / opts.attempts.length).toFixed(1)
@@ -334,6 +506,7 @@ export function exportExamResultsReport(opts: {
 export function exportAuditReport(opts: {
   logs: { action: string; entity_type: string; userName: string; ip_address: string | null; created_at: string; changesSummary: string | null }[];
 }) {
+  beginReport('Reporte General de Auditoría');
   const body = summaryCards([
     { value: opts.logs.length, label: 'Registros totales', detail: 'Eventos registrados en el sistema' },
     { value: opts.logs.filter((l) => l.action === 'CREATE').length, label: 'Creaciones', detail: 'Nuevos registros generados' },
