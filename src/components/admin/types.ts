@@ -329,12 +329,10 @@ export type AdminStrings = {
   reportNotifications: string;
   reportExamResults: string;
   reportAudit: string;
-  reportGeneral: string;
   reportByCourse: string;
   reportByWorker: string;
   reportByType: string;
   reportByRole: string;
-  reportAll: string;
   reportEmployees: string;
   reportAdmins: string;
   reportDepartments: string;

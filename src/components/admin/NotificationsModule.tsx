@@ -59,7 +59,6 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const typeIcon = (tp: string) => tp === 'warning' ? <AlertCircle size={14} /> : tp === 'success' ? <Check size={14} /> : tp === 'error' ? <AlertCircle size={14} /> : tp === 'reminder' ? <Clock3 size={14} /> : <Bell size={14} />;
 
   const notifReportOpts = [
-    { value: 'general', label: t.reportGeneral },
     { value: 'byType', label: t.reportByType },
     { value: 'byRole', label: t.reportByRole },
     { value: 'byWorker', label: t.reportByWorker },

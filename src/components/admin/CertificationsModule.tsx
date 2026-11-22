@@ -56,7 +56,6 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
   const roleHasFilters = Boolean(roleWorkerId || roleStatus);
 
   const certReportOpts = [
-    { value: 'general', label: t.reportGeneral },
     { value: 'byCourse', label: t.reportByCourse },
     { value: 'byWorker', label: t.reportByWorker },
   ];
@@ -99,8 +98,7 @@ export function CertificationsModule({ t, data }: { t: AdminStrings; data: Admin
   };
 
   const handleCertReport = (scope: string) => {
-    if (scope === 'general') exportCertReport('general');
-    else setReportPicker(scope as Exclude<CertScope, 'general'>);
+    setReportPicker(scope as Exclude<CertScope, 'general'>);
   };
 
   return (

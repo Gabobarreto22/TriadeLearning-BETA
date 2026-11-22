@@ -31,7 +31,6 @@ export function CoursesModule({ t, courses, jobRoles, departments, profile, onRe
   const { toast } = useToast();
 
   const coursesReportOpts = [
-    { value: 'all', label: t.reportGeneral },
     { value: 'single', label: t.reportSingleCourse },
   ];
 

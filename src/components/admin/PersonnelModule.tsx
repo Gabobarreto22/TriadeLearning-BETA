@@ -73,7 +73,6 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
   ];
 
   const personnelReportOpts = [
-    { value: 'all', label: t.reportAll },
     { value: 'employees', label: t.reportEmployees },
     { value: 'admins', label: t.reportAdmins },
     { value: 'departments', label: t.reportDepartments },
@@ -192,7 +191,7 @@ export function PersonnelModule({ t, team, jobRoles, departments, courses, onRef
         <SelectionModal
           eyebrow={t.reportPersonnel}
           title="Seleccionar cargo"
-          options={[{ value: '', label: t.reportAll }, ...jobRoles.map((r) => ({ value: r.id, label: r.name, hint: getDeptName(r.department_id) }))].filter((o) => o.value !== '' || jobRoles.length > 0)}
+          options={[{ value: '', label: 'Todos los cargos' }, ...jobRoles.map((r) => ({ value: r.id, label: r.name, hint: getDeptName(r.department_id) }))].filter((o) => o.value !== '' || jobRoles.length > 0)}
           selectedValue=""
           searchPlaceholder="Buscar cargo"
           onSelect={(value) => { setReportPicker(null); exportRequirementsReport(value); }}

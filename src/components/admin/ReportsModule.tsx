@@ -73,7 +73,6 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
     : [];
 
   const examReportOpts = [
-    { value: 'general', label: t.reportGeneral },
     { value: 'byWorker', label: t.reportByWorker },
   ];
 
@@ -99,16 +98,11 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
       exportExamResultsReport({ attempts, scope: 'byWorker', filterLabel: worker.full_name });
   };
 
-  const handleExamReport = (scope: string) => {
-    if (scope === 'general') exportExamResultsReport({ attempts: allAttempts, scope: 'general' });
-    else setReportPickerOpen(true);
-  };
-
   return (
     <div className="page animate-in">
       <div className="page-heading">
         <div><p className="eyebrow">REPORTES</p><h1>{t.examResults}</h1><p className="muted">{t.reportsDesc}</p></div>
-        <ReportDropdown label={t.reportExamResults} options={examReportOpts} onSelect={handleExamReport} />
+        <ReportDropdown label={t.reportExamResults} options={examReportOpts} onSelect={() => setReportPickerOpen(true)} />
       </div>
 
       {reportPickerOpen && (

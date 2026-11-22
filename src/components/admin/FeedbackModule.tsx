@@ -68,7 +68,6 @@ export function FeedbackModule({ t, data }: { t: AdminStrings; data: AdminData }
   const clearFilters = () => { setWorkerId(''); setCourseId(''); setRating(''); };
 
   const feedbackReportOpts = [
-    { value: 'general', label: t.reportGeneral },
     { value: 'byCourse', label: t.reportByCourse },
     { value: 'byWorker', label: t.reportByWorker },
   ];
