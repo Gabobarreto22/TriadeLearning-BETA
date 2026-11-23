@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Briefcase, Building2, Clock3, History, Plus, Settings, ShieldCheck, Trash2, Users, X, AlertCircle, BookOpen, Check } from 'lucide-react';
+import { Briefcase, Building2, History, Plus, Settings, ShieldCheck, Trash2, Users, X, AlertCircle, BookOpen } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type Department, type CourseWithRelations, type UserJobRoleHistory } from '@/lib/supabase';
 import { uploadToImageKit } from '@/lib/imagekit';
 import {
-  fetchDepartments, createDepartment, updateDepartment, deleteDepartment,
+  createDepartment, updateDepartment, deleteDepartment,
   createJobRole, updateJobRole, deleteJobRole,
   updateProfile, deleteProfile,
   fetchUserJobRoleHistory, changeUserRole,
@@ -18,11 +18,26 @@ import { SelectionModal } from './SelectionModal';
 import { SearchBar, filterByText } from './SearchBar';
 import { exportPersonnelReport } from '@/lib/pdfReport';
 
-function UserPhotoField({ value, uploading, onChange, onClear }: {
+function useLiveFieldValidation() {
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  return {
+    touch: (field: string) => setTouchedFields((current) => ({ ...current, [field]: true })),
+    reset: () => setTouchedFields({}),
+    error: (field: string, value: string, message: string | null) =>
+      touchedFields[field] || value.length > 0 ? message : null,
+  };
+}
+
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+function UserPhotoField({ value, uploading, onChange, onClear, onTouch, error }: {
   value: string | null;
   uploading: boolean;
   onChange: (file: File) => Promise<void>;
   onClear: () => void;
+  onTouch: () => void;
+  error?: string;
 }) {
   const localInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -39,13 +54,14 @@ function UserPhotoField({ value, uploading, onChange, onClear }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         {value ? <img src={value} alt="Foto del usuario" style={{ width: 58, height: 58, borderRadius: '50%', objectFit: 'cover', border: '1px solid #d1d5db' }} /> : <div style={{ width: 58, height: 58, borderRadius: '50%', background: '#eef2ff', display: 'grid', placeItems: 'center', color: '#4338ca', fontWeight: 700 }}>U</div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="outline-button" onClick={() => localInputRef.current?.click()} disabled={uploading}>{uploading ? 'Subiendo...' : 'Archivo local'}</button>
-          <button type="button" className="outline-button" onClick={() => cameraInputRef.current?.click()} disabled={uploading}>Tomar foto</button>
+          <button type="button" className="outline-button" onClick={() => { onTouch(); localInputRef.current?.click(); }} disabled={uploading}>{uploading ? 'Subiendo...' : 'Archivo local'}</button>
+          <button type="button" className="outline-button" onClick={() => { onTouch(); cameraInputRef.current?.click(); }} disabled={uploading}>Tomar foto</button>
           {value && <button type="button" className="outline-button" onClick={onClear}>Quitar</button>}
         </div>
       </div>
       <input ref={localInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleInput} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleInput} />
+      {error && <small className="auth-field-error">{error}</small>}
     </div>
   );
 }
@@ -257,20 +273,35 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
   } | null>(null);
   const [loadingEmployeeSummary, setLoadingEmployeeSummary] = useState(false);
   const { toast } = useToast();
+  const validation = useLiveFieldValidation();
+  const selectedEmployeeId = selectedEmployee?.id;
+  const emailError = validation.error('email', email, !email.trim() ? 'El correo es obligatorio.' : !editingUser && !isValidEmail(email) ? 'Ingresa un correo válido.' : null);
+  const nameError = validation.error('name', name, name.trim() ? null : 'El nombre es obligatorio.');
+  const cedulaError = validation.error('cedula', cedula, cedula.trim() ? null : 'La cédula es obligatoria.');
+  const telefonoError = validation.error('telefono', telefono, telefono.trim() ? null : 'El teléfono es obligatorio.');
+  const direccionError = validation.error('direccion', direccion, direccion.trim() ? null : 'La dirección es obligatoria.');
+  const jobRoleError = validation.error('jobRole', jobRoleId, jobRoleId ? null : 'Selecciona un cargo.');
+  const photoError = !editingUser && validation.error('avatar', avatarUrl ?? '', avatarUrl ? null : 'La foto del usuario es obligatoria.');
+  const roleChangeError = validation.error('changeRole', newRoleId, newRoleId ? null : 'Selecciona un cargo.');
+
+  const canSave = Boolean(
+    name.trim() && (editingUser ? email.trim() : isValidEmail(email)) && cedula.trim() && telefono.trim() && direccion.trim() && jobRoleId &&
+    (editingUser || avatarUrl) && !photoUploading,
+  );
 
   useEffect(() => {
-    if (!selectedEmployee) {
+    if (!selectedEmployeeId) {
       setEmployeeSummary(null);
       return;
     }
     let active = true;
     setLoadingEmployeeSummary(true);
     Promise.all([
-      fetchUserCourseRequirementsForUser(selectedEmployee.id),
-      fetchCertificatesForUser(selectedEmployee.id),
-      fetchRoleCertificationsForUser(selectedEmployee.id),
-      fetchUserBadgesForUser(selectedEmployee.id),
-      fetchUserJobRoleHistory(selectedEmployee.id),
+      fetchUserCourseRequirementsForUser(selectedEmployeeId),
+      fetchCertificatesForUser(selectedEmployeeId),
+      fetchRoleCertificationsForUser(selectedEmployeeId),
+      fetchUserBadgesForUser(selectedEmployeeId),
+      fetchUserJobRoleHistory(selectedEmployeeId),
     ]).then(([courseReqs, certificates, roleCerts, badges, history]) => {
       if (!active) return;
       setEmployeeSummary({ courseReqs, certificates, roleCerts, badges, history });
@@ -279,9 +310,9 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
     });
 
     return () => { active = false; };
-  }, [selectedEmployee?.id]);
+  }, [selectedEmployeeId]);
 
-  const resetForm = () => { setName(''); setEmail(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setJobRoleId(''); setError(null); setEditingUser(null); setShowForm(false); };
+  const resetForm = () => { setName(''); setEmail(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setJobRoleId(''); setError(null); setEditingUser(null); validation.reset(); setShowForm(false); };
 
   const getJobRoleName = (id: string | null) => {
     const role = jobRoles.find((r) => r.id === id);
@@ -297,7 +328,7 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name || !email || !jobRoleId || !cedula || !telefono || !direccion) {
+    if (!name.trim() || !email.trim() || !jobRoleId || !cedula.trim() || !telefono.trim() || !direccion.trim()) {
       setError(`${t.name} / ${t.email} / ${t.jobRole} / Cédula / Teléfono / Dirección`);
       return;
     }
@@ -361,6 +392,7 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
     setChangeRoleUser(null);
     setChangeReason('');
     setNewRoleId('');
+    validation.reset();
     onRefresh();
   };
 
@@ -376,21 +408,22 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
           <h2>{editingUser ? t.editUser : t.newUser}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group"><label>{t.personName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="field-group"><label>{t.personEmail}</label><input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editingUser} /></div>
-            <div className="field-group"><label>Cédula</label><input className="auth-input" value={cedula} onChange={(e) => setCedula(e.target.value)} /></div>
-            <div className="field-group"><label>Teléfono</label><input className="auth-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>Dirección</label><input className="auth-input" value={direccion} onChange={(e) => setDireccion(e.target.value)} /></div>
+            <div className="field-group"><label>{t.personName}</label><input className={`auth-input${nameError ? ' invalid' : ''}`} value={name} onChange={(e) => { setName(e.target.value); validation.touch('name'); }} onBlur={() => validation.touch('name')} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'employee-name-error' : undefined} />{nameError && <small className="auth-field-error" id="employee-name-error">{nameError}</small>}</div>
+            <div className="field-group"><label>{t.personEmail}</label><input className={`auth-input${emailError ? ' invalid' : ''}`} type="email" value={email} onChange={(e) => { setEmail(e.target.value); validation.touch('email'); }} onBlur={() => validation.touch('email')} disabled={!!editingUser} aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'employee-email-error' : undefined} />{emailError && <small className="auth-field-error" id="employee-email-error">{emailError}</small>}</div>
+            <div className="field-group"><label>Cédula</label><input className={`auth-input${cedulaError ? ' invalid' : ''}`} value={cedula} onChange={(e) => { setCedula(e.target.value); validation.touch('cedula'); }} onBlur={() => validation.touch('cedula')} aria-invalid={Boolean(cedulaError)} aria-describedby={cedulaError ? 'employee-cedula-error' : undefined} />{cedulaError && <small className="auth-field-error" id="employee-cedula-error">{cedulaError}</small>}</div>
+            <div className="field-group"><label>Teléfono</label><input className={`auth-input${telefonoError ? ' invalid' : ''}`} value={telefono} onChange={(e) => { setTelefono(e.target.value); validation.touch('telefono'); }} onBlur={() => validation.touch('telefono')} aria-invalid={Boolean(telefonoError)} aria-describedby={telefonoError ? 'employee-telefono-error' : undefined} />{telefonoError && <small className="auth-field-error" id="employee-telefono-error">{telefonoError}</small>}</div>
+            <div className="field-group field-group-full"><label>Dirección</label><input className={`auth-input${direccionError ? ' invalid' : ''}`} value={direccion} onChange={(e) => { setDireccion(e.target.value); validation.touch('direccion'); }} onBlur={() => validation.touch('direccion')} aria-invalid={Boolean(direccionError)} aria-describedby={direccionError ? 'employee-direccion-error' : undefined} />{direccionError && <small className="auth-field-error" id="employee-direccion-error">{direccionError}</small>}</div>
             <div className="field-group field-group-full"><label>{t.jobRole}</label>
-              <select className="auth-input" value={jobRoleId} onChange={(e) => setJobRoleId(e.target.value)}>
+              <select className={`auth-input${jobRoleError ? ' invalid' : ''}`} value={jobRoleId} onChange={(e) => { setJobRoleId(e.target.value); validation.touch('jobRole'); }} onBlur={() => validation.touch('jobRole')} aria-invalid={Boolean(jobRoleError)} aria-describedby={jobRoleError ? 'employee-role-error' : undefined}>
                 <option value="">{t.selectRole}</option>
                 {jobRoles.map((r) => {
                   const dept = departments.find((d) => d.id === r.department_id)?.name;
                   return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
                 })}
               </select>
+              {jobRoleError && <small className="auth-field-error" id="employee-role-error">{jobRoleError}</small>}
             </div>
-            <UserPhotoField value={avatarUrl} uploading={photoUploading} onClear={() => setAvatarUrl(null)} onChange={async (file) => {
+            <UserPhotoField value={avatarUrl} uploading={photoUploading} onTouch={() => validation.touch('avatar')} error={photoError || undefined} onClear={() => setAvatarUrl(null)} onChange={async (file) => {
               try {
                 setPhotoUploading(true);
                 const result = await uploadToImageKit(file, 'profiles');
@@ -404,7 +437,7 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleSubmit} disabled={saving}>{saving ? t.loading : t.saveUser}</button>
+            <button className="primary-button" onClick={handleSubmit} disabled={saving || !canSave}>{saving ? t.loading : t.saveUser}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -416,13 +449,14 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
           <p className="muted">{changeRoleUser.full_name} → {getJobRoleName(changeRoleUser.job_role_id)}</p>
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group field-group-full"><label>{t.jobRole}</label>
-              <select className="auth-input" value={newRoleId} onChange={(e) => setNewRoleId(e.target.value)}>
+              <select className={`auth-input${roleChangeError ? ' invalid' : ''}`} value={newRoleId} onChange={(e) => { setNewRoleId(e.target.value); validation.touch('changeRole'); }} onBlur={() => validation.touch('changeRole')} aria-invalid={Boolean(roleChangeError)} aria-describedby={roleChangeError ? 'change-role-error' : undefined}>
                 <option value="">{t.selectRole}</option>
                 {jobRoles.map((r) => {
                   const dept = departments.find((d) => d.id === r.department_id)?.name;
                   return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
                 })}
               </select>
+              {roleChangeError && <small className="auth-field-error" id="change-role-error">{roleChangeError}</small>}
             </div>
             <div className="field-group field-group-full"><label>{t.changeRoleReason}</label>
               <input className="auth-input" value={changeReason} onChange={(e) => setChangeReason(e.target.value)} placeholder={t.reason} />
@@ -583,12 +617,27 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const validation = useLiveFieldValidation();
+  const nameError = validation.error('name', name, name.trim() ? null : 'El nombre es obligatorio.');
+  const emailError = validation.error('email', email, !email.trim() ? 'El correo es obligatorio.' : !editingUser && !isValidEmail(email) ? 'Ingresa un correo válido.' : null);
+  const passwordError = !editingUser && validation.error('password', password, password ? null : 'La contraseña es obligatoria.');
+  const passwordConfirmationError = !editingUser && validation.error('passwordConfirmation', passwordConfirmation, !passwordConfirmation ? 'Confirma la contraseña.' : password !== passwordConfirmation ? 'Las contraseñas no coinciden.' : null);
+  const cedulaError = validation.error('cedula', cedula, cedula.trim() ? null : 'La cédula es obligatoria.');
+  const telefonoError = validation.error('telefono', telefono, telefono.trim() ? null : 'El teléfono es obligatorio.');
+  const direccionError = validation.error('direccion', direccion, direccion.trim() ? null : 'La dirección es obligatoria.');
+  const photoError = !editingUser && validation.error('avatar', avatarUrl ?? '', avatarUrl ? null : 'La foto del usuario es obligatoria.');
 
-  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setPasswordConfirmation(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setError(null); setEditingUser(null); setShowForm(false); };
+  const canSave = Boolean(
+    name.trim() && (editingUser ? email.trim() : isValidEmail(email)) && cedula.trim() && telefono.trim() && direccion.trim() &&
+    (editingUser || (password && passwordConfirmation && password === passwordConfirmation && avatarUrl)) &&
+    !photoUploading,
+  );
+
+  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setPasswordConfirmation(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setError(null); setEditingUser(null); validation.reset(); setShowForm(false); };
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name || !email || !cedula || !telefono || !direccion) { setError(`${t.name} / ${t.email} / Cédula / Teléfono / Dirección`); return; }
+    if (!name.trim() || !email.trim() || !cedula.trim() || !telefono.trim() || !direccion.trim()) { setError(`${t.name} / ${t.email} / Cédula / Teléfono / Dirección`); return; }
     setSaving(true);
     if (editingUser) {
       const { error: err } = await updateProfile(editingUser.id, { full_name: name, cedula, telefono, direccion, avatar_url: avatarUrl ?? editingUser.avatar_url ?? null });
@@ -631,6 +680,7 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
     setTelefono(p.telefono ?? '');
     setDireccion(p.direccion ?? '');
     setAvatarUrl(p.avatar_url ?? null);
+    validation.reset();
     setShowForm(true);
   };
 
@@ -646,14 +696,14 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
           <h2>{editingUser ? t.editAdmin : t.newAdmin}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group"><label>{t.personName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="field-group"><label>{t.personEmail}</label><input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editingUser} /></div>
-            {!editingUser && <div className="field-group"><label>{t.personPassword}</label><input className="auth-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>}
-            {!editingUser && <div className="field-group"><label>Confirmar contraseña</label><input className="auth-input" type="password" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} /></div>}
-            <div className="field-group"><label>Cédula</label><input className="auth-input" value={cedula} onChange={(e) => setCedula(e.target.value)} /></div>
-            <div className="field-group"><label>Teléfono</label><input className="auth-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>Dirección</label><input className="auth-input" value={direccion} onChange={(e) => setDireccion(e.target.value)} /></div>
-            <UserPhotoField value={avatarUrl} uploading={photoUploading} onClear={() => setAvatarUrl(null)} onChange={async (file) => {
+            <div className="field-group"><label>{t.personName}</label><input className={`auth-input${nameError ? ' invalid' : ''}`} value={name} onChange={(e) => { setName(e.target.value); validation.touch('name'); }} onBlur={() => validation.touch('name')} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'admin-name-error' : undefined} />{nameError && <small className="auth-field-error" id="admin-name-error">{nameError}</small>}</div>
+            <div className="field-group"><label>{t.personEmail}</label><input className={`auth-input${emailError ? ' invalid' : ''}`} type="email" value={email} onChange={(e) => { setEmail(e.target.value); validation.touch('email'); }} onBlur={() => validation.touch('email')} disabled={!!editingUser} aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'admin-email-error' : undefined} />{emailError && <small className="auth-field-error" id="admin-email-error">{emailError}</small>}</div>
+            {!editingUser && <div className="field-group"><label>{t.personPassword}</label><input className={`auth-input${passwordError ? ' invalid' : ''}`} type="password" value={password} onChange={(e) => { setPassword(e.target.value); validation.touch('password'); }} onBlur={() => validation.touch('password')} aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? 'admin-password-error' : undefined} />{passwordError && <small className="auth-field-error" id="admin-password-error">{passwordError}</small>}</div>}
+            {!editingUser && <div className="field-group"><label>Confirmar contraseña</label><input className={`auth-input${passwordConfirmationError ? ' invalid' : ''}`} type="password" value={passwordConfirmation} onChange={(e) => { setPasswordConfirmation(e.target.value); validation.touch('passwordConfirmation'); }} onBlur={() => validation.touch('passwordConfirmation')} aria-invalid={Boolean(passwordConfirmationError)} aria-describedby={passwordConfirmationError ? 'admin-password-confirmation-error' : undefined} />{passwordConfirmationError && <small className="auth-field-error" id="admin-password-confirmation-error">{passwordConfirmationError}</small>}</div>}
+            <div className="field-group"><label>Cédula</label><input className={`auth-input${cedulaError ? ' invalid' : ''}`} value={cedula} onChange={(e) => { setCedula(e.target.value); validation.touch('cedula'); }} onBlur={() => validation.touch('cedula')} aria-invalid={Boolean(cedulaError)} aria-describedby={cedulaError ? 'admin-cedula-error' : undefined} />{cedulaError && <small className="auth-field-error" id="admin-cedula-error">{cedulaError}</small>}</div>
+            <div className="field-group"><label>Teléfono</label><input className={`auth-input${telefonoError ? ' invalid' : ''}`} value={telefono} onChange={(e) => { setTelefono(e.target.value); validation.touch('telefono'); }} onBlur={() => validation.touch('telefono')} aria-invalid={Boolean(telefonoError)} aria-describedby={telefonoError ? 'admin-telefono-error' : undefined} />{telefonoError && <small className="auth-field-error" id="admin-telefono-error">{telefonoError}</small>}</div>
+            <div className="field-group field-group-full"><label>Dirección</label><input className={`auth-input${direccionError ? ' invalid' : ''}`} value={direccion} onChange={(e) => { setDireccion(e.target.value); validation.touch('direccion'); }} onBlur={() => validation.touch('direccion')} aria-invalid={Boolean(direccionError)} aria-describedby={direccionError ? 'admin-direccion-error' : undefined} />{direccionError && <small className="auth-field-error" id="admin-direccion-error">{direccionError}</small>}</div>
+            <UserPhotoField value={avatarUrl} uploading={photoUploading} onTouch={() => validation.touch('avatar')} error={photoError || undefined} onClear={() => setAvatarUrl(null)} onChange={async (file) => {
               try {
                 setPhotoUploading(true);
                 const result = await uploadToImageKit(file, 'profiles');
@@ -667,7 +717,7 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleSubmit} disabled={saving}>{saving ? t.loading : t.saveAdmin}</button>
+            <button className="primary-button" onClick={handleSubmit} disabled={saving || !canSave}>{saving ? t.loading : t.saveAdmin}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -716,11 +766,16 @@ function DepartmentsTab({ t, departments, totalCount, onRefresh }: {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const validation = useLiveFieldValidation();
+  const nameError = validation.error('name', name, name.trim() ? null : 'El nombre es obligatorio.');
+  const codeError = validation.error('code', code, code.trim() ? null : 'El código es obligatorio.');
 
-  const resetForm = () => { setName(''); setCode(''); setDescription(''); setEditingId(null); setError(null); setShowForm(false); };
+  const canSave = Boolean(name.trim() && code.trim());
+
+  const resetForm = () => { setName(''); setCode(''); setDescription(''); setEditingId(null); setError(null); validation.reset(); setShowForm(false); };
 
   const handleSubmit = async () => {
-    if (!name || !code) { setError(t.name + ' / ' + t.code); return; }
+    if (!name.trim() || !code.trim()) { setError(t.name + ' / ' + t.code); return; }
     setSaving(true);
     if (editingId) {
       const { error: err } = await updateDepartment(editingId, { name, code, description });
@@ -744,13 +799,13 @@ function DepartmentsTab({ t, departments, totalCount, onRefresh }: {
           <h2>{editingId ? t.editDepartment : t.newDepartment}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group"><label>{t.deptName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="field-group"><label>{t.deptCode}</label><input className="auth-input" value={code} onChange={(e) => setCode(e.target.value)} /></div>
+            <div className="field-group"><label>{t.deptName}</label><input className={`auth-input${nameError ? ' invalid' : ''}`} value={name} onChange={(e) => { setName(e.target.value); validation.touch('name'); }} onBlur={() => validation.touch('name')} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'department-name-error' : undefined} />{nameError && <small className="auth-field-error" id="department-name-error">{nameError}</small>}</div>
+            <div className="field-group"><label>{t.deptCode}</label><input className={`auth-input${codeError ? ' invalid' : ''}`} value={code} onChange={(e) => { setCode(e.target.value); validation.touch('code'); }} onBlur={() => validation.touch('code')} aria-invalid={Boolean(codeError)} aria-describedby={codeError ? 'department-code-error' : undefined} />{codeError && <small className="auth-field-error" id="department-code-error">{codeError}</small>}</div>
             <div className="field-group field-group-full"><label>{t.deptDescription}</label><input className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleSubmit} disabled={saving}>{saving ? t.loading : t.saveDepartment}</button>
+            <button className="primary-button" onClick={handleSubmit} disabled={saving || !canSave}>{saving ? t.loading : t.saveDepartment}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -797,11 +852,15 @@ function RolesTab({ t, jobRoles, totalCount, departments, courses, onRefresh }: 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const validation = useLiveFieldValidation();
+  const nameError = validation.error('name', name, name.trim() ? null : 'El nombre del cargo es obligatorio.');
 
-  const resetForm = () => { setName(''); setDescription(''); setDeptId(''); setEditingId(null); setError(null); setShowForm(false); };
+  const canSave = Boolean(name.trim());
+
+  const resetForm = () => { setName(''); setDescription(''); setDeptId(''); setEditingId(null); setError(null); validation.reset(); setShowForm(false); };
 
   const handleSubmit = async () => {
-    if (!name) { setError(t.roleName); return; }
+    if (!name.trim()) { setError(t.roleName); return; }
     setSaving(true);
     if (editingId) {
       const { error: err } = await updateJobRole(editingId, name, description, deptId || null);
@@ -828,7 +887,7 @@ function RolesTab({ t, jobRoles, totalCount, departments, courses, onRefresh }: 
           <h2>{editingId ? t.editRole : t.newRole}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group"><label>{t.roleName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="field-group"><label>{t.roleName}</label><input className={`auth-input${nameError ? ' invalid' : ''}`} value={name} onChange={(e) => { setName(e.target.value); validation.touch('name'); }} onBlur={() => validation.touch('name')} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'job-role-name-error' : undefined} />{nameError && <small className="auth-field-error" id="job-role-name-error">{nameError}</small>}</div>
             <div className="field-group"><label>{t.department}</label>
               <select className="auth-input" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
                 <option value="">{t.selectDepartment}</option>
@@ -839,7 +898,7 @@ function RolesTab({ t, jobRoles, totalCount, departments, courses, onRefresh }: 
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleSubmit} disabled={saving}>{saving ? t.loading : t.saveRole}</button>
+            <button className="primary-button" onClick={handleSubmit} disabled={saving || !canSave}>{saving ? t.loading : t.saveRole}</button>
           </div>
         </div>
       </div></div>, document.body)}
