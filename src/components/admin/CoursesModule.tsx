@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, ArrowLeft, BookOpen, FileText, Image as ImageIcon, Plus, Settings, Trash2, Users, Video, X, Download, Check, GripVertical, Star, Upload, Loader2, Pencil } from 'lucide-react';
-import { supabase, type CourseWithRelations, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type ModuleType } from '@/lib/supabase';
-import { createCourse, deleteCourse, createModule, updateModule, deleteModule, createExamQuestion, updateExamQuestion, deleteExamQuestion, reorderModules, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
+import { supabase, type CourseWithRelations, type CourseAssignment, type CoursePrerequisite, type Profile, type JobRole, type Department, type Module, type ExamQuestion, type ModuleType } from '@/lib/supabase';
+import { deleteCourse, createModule, updateModule, deleteModule, createExamQuestion, updateExamQuestion, deleteExamQuestion, assignCourseToRole, removeAssignment, addPrerequisite, removePrerequisite } from '@/lib/data';
 import { getIcon, availableIcons, availableAccents } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 import { uploadToImageKit, deleteFromImageKit, detectResourceType, type ResourceType } from '@/lib/imagekit';
@@ -13,6 +13,25 @@ import { SearchBar, filterByText } from './SearchBar';
 import { exportCoursesReport } from '@/lib/pdfReport';
 
 type CourseTab = 'info' | 'modules' | 'exams' | 'assignments' | 'prerequisites';
+
+function useLiveValidation() {
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  return {
+    touch: (field: string) => setTouched((current) => ({ ...current, [field]: true })),
+    reset: () => setTouched({}),
+    error: (field: string, invalid: boolean, message: string) => touched[field] && invalid ? message : null,
+  };
+}
+
+function isValidWebUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 export function CoursesModule({ t, courses, jobRoles, departments, profile, onRefresh, onLeaveGuardChange }: {
   t: AdminStrings;
@@ -206,7 +225,6 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   onLeaveGuardChange: (guard: (() => boolean) | null) => void;
 }) {
   const isNew = !course.id;
-  const [startedAsNew] = useState(isNew);
   const [tab, setTab] = useState<CourseTab>('info');
   const [title, setTitle] = useState(course.title ?? '');
   const [description, setDescription] = useState(course.description ?? '');
@@ -222,6 +240,7 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [titleTouched, setTitleTouched] = useState(false);
   const [courseId, setCourseId] = useState(course.id ?? '');
   const courseImageRef = useRef<HTMLInputElement>(null);
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify({
@@ -231,31 +250,32 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   const currentSnapshot = JSON.stringify({ title, description, category, duration, imageUrl, hasImageFile: Boolean(imageFile), iconName, accent, estimatedHours });
   const infoDirty = currentSnapshot !== savedSnapshot;
   const { toast } = useToast();
+  const validation = useLiveValidation();
+  const titleError = titleTouched && !title.trim() ? 'El título del curso es obligatorio.' : null;
+  const imageUrlError = validation.error('imageUrl', imageInputMode === 'url' && Boolean(imageUrl.trim()) && !isValidWebUrl(imageUrl.trim()), 'Ingresa un enlace válido que comience con http:// o https://.');
 
-  const canLeaveEditor = () => {
-    if (startedAsNew && !courseId) return true;
+  const canLeaveEditor = useCallback(() => {
     if (infoDirty) {
       setTab('info');
       toast('Guarda los cambios del curso antes de salir', 'error');
       return false;
     }
-    if (!startedAsNew) return true;
     const modulesWithoutExam = (course.modules ?? []).filter((module) => !(course.exam_questions ?? []).some((question) => question.module_id === module.id));
     const hasFinalExamQuestions = (course.exam_questions ?? []).some((question) => question.module_id === null);
     if (modulesWithoutExam.length === 0 && hasFinalExamQuestions) return true;
     setTab('exams');
     const pending = [
-      ...modulesWithoutExam.map((module) => module.title),
+      ...modulesWithoutExam.map((module) => `Examen de aprobación: ${module.title}`),
       ...(!hasFinalExamQuestions ? ['Examen final del curso'] : []),
     ];
-    toast(`Agrega preguntas al examen final y al examen de cada módulo antes de salir. Pendientes: ${pending.join(', ')}`, 'error');
+    toast(`Completa los exámenes pendientes antes de salir de la configuración: ${pending.join(', ')}`, 'error');
     return false;
-  };
+  }, [infoDirty, course.modules, course.exam_questions, toast]);
 
   useEffect(() => {
     onLeaveGuardChange(canLeaveEditor);
     return () => onLeaveGuardChange(null);
-  }, [course.modules, course.exam_questions, infoDirty, courseId, startedAsNew, onLeaveGuardChange]);
+  }, [canLeaveEditor, onLeaveGuardChange]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -283,6 +303,9 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
   ];
 
   const handleSaveInfo = async () => {
+    setTitleTouched(true);
+    validation.touch('imageUrl');
+    if (!title.trim() || (imageInputMode === 'url' && imageUrl.trim() && !isValidWebUrl(imageUrl.trim()))) return;
     setSaving(true); setError(null);
     let finalImageUrl = imageInputMode === 'url' ? imageUrl.trim() : imageUrl;
     if (imageInputMode === 'upload' && imageFile) {
@@ -290,8 +313,8 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
       try {
         const result = await uploadToImageKit(imageFile, `courses/${courseId || 'temp'}/cover`);
         finalImageUrl = result.url;
-      } catch (err: any) {
-        setError(err.message ?? 'Error al subir imagen');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al subir imagen');
         setUploadingImage(false);
         setSaving(false);
         return;
@@ -333,7 +356,7 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
         {tab === 'info' && (
           <div className="editor-section">
             <div className="editor-grid">
-              <div className="editor-input-block"><label>{t.courseTitle}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+              <div className="editor-input-block"><label>{t.courseTitle}</label><input className={`auth-input${titleError ? ' invalid' : ''}`} value={title} onChange={(e) => { setTitle(e.target.value); setTitleTouched(true); }} onBlur={() => setTitleTouched(true)} aria-invalid={Boolean(titleError)} aria-describedby={titleError ? 'course-title-error' : undefined} />{titleError && <small className="auth-field-error" id="course-title-error">{titleError}</small>}</div>
               <div className="editor-input-block"><label>{t.courseCategory}</label><input className="auth-input" value={category} onChange={(e) => setCategory(e.target.value)} /></div>
               <div className="editor-input-block editor-input-block-full"><label>{t.courseDescription}</label><textarea className="auth-input" rows={6} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
               <div className="editor-input-block"><label>{t.courseDuration}</label><input className="auth-input" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
@@ -368,7 +391,8 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
                   )
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <input className="auth-input" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://ejemplo.com/imagen.jpg" />
+                    <input className={`auth-input${imageUrlError ? ' invalid' : ''}`} type="url" value={imageUrl} onChange={(e) => { setImageUrl(e.target.value); validation.touch('imageUrl'); }} onBlur={() => validation.touch('imageUrl')} placeholder="https://ejemplo.com/imagen.jpg" aria-invalid={Boolean(imageUrlError)} aria-describedby={imageUrlError ? 'course-image-url-error' : undefined} />
+                    {imageUrlError && <small className="auth-field-error" id="course-image-url-error">{imageUrlError}</small>}
                     {imageUrl && <img src={imageUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />}
                   </div>
                 )}
@@ -376,7 +400,7 @@ function CourseEditor({ t, course, jobRoles, departments, allCourses, profile, o
               <div className="editor-input-block"><label>{t.courseIcon}</label><select className="auth-input" value={iconName} onChange={(e) => setIconName(e.target.value)}>{availableIcons.map((i) => <option key={i} value={i}>{i}</option>)}</select></div>
               <div className="editor-input-block"><label>{t.courseAccent}</label><select className="auth-input" value={accent} onChange={(e) => setAccent(e.target.value)}>{availableAccents.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
             </div>
-            <div className="form-actions-row"><button className="primary-button" onClick={handleSaveInfo} disabled={saving}>{saving ? t.loading : t.saveCourse}</button></div>
+            <div className="form-actions-row"><button className="primary-button" onClick={handleSaveInfo} disabled={saving || !title.trim() || Boolean(imageUrlError)}>{saving ? t.loading : t.saveCourse}</button></div>
           </div>
         )}
         {tab === 'modules' && courseId && <ModulesTab t={t} courseId={courseId} modules={course.modules ?? []} onRefresh={onSaved} />}
@@ -414,8 +438,12 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const validation = useLiveValidation();
+  const titleError = validation.error('title', !title.trim(), 'El título del módulo es obligatorio.');
+  const resourceUrlError = validation.error('resourceUrl', resourceInputMode === 'url' && Boolean(resourceUrl.trim()) && !isValidWebUrl(resourceUrl.trim()), 'Ingresa un enlace válido que comience con http:// o https://.');
+  const canSave = Boolean(title.trim()) && !resourceUrlError;
 
-  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setResourceFile(null); setResourceInputMode('upload'); setError(null); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setTitle(''); setType('text'); setDuration(''); setBody(''); setResourceUrl(''); setResourceType(null); setResourceFileId(''); setResourceName(''); setResourceFile(null); setResourceInputMode('upload'); setError(null); validation.reset(); setShowForm(false); };
   const resetFormKeepOpen = () => {
     setEditingId(null);
     setTitle('');
@@ -429,6 +457,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setResourceFile(null);
     setResourceInputMode('upload');
     setError(null);
+    validation.reset();
     setShowForm(true);
   };
 
@@ -444,6 +473,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     setResourceName(m.resource_url ? m.resource_url.split('/').pop() ?? '' : '');
     setResourceInputMode(m.resource_url ? 'url' : 'upload');
     setError(null);
+    validation.reset();
     setShowForm(true);
   };
 
@@ -452,13 +482,6 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
     if (resourceType === 'video') return 'video';
     if (resourceType === 'pdf' || resourceType === 'powerpoint') return 'pdf';
     return 'text';
-  };
-
-  const getModuleTypeLabel = (moduleType: ModuleType) => {
-    if (moduleType === 'image') return 'Imagen';
-    if (moduleType === 'video') return 'Video';
-    if (moduleType === 'pdf') return 'Presentación PDF/PowerPoint';
-    return 'Texto';
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -482,28 +505,27 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
   };
 
   const handleSave = async () => {
-    if (!title) { setError(t.moduleTitle); return; }
+    validation.touch('title');
+    validation.touch('resourceUrl');
+    if (!title.trim() || (resourceInputMode === 'url' && resourceUrl.trim() && !isValidWebUrl(resourceUrl.trim()))) { setError(t.moduleTitle); return; }
     setSaving(true); setUploading(true);
     let finalResourceUrl = resourceInputMode === 'url' ? resourceUrl.trim() : resourceUrl;
     let finalResourceFileId = resourceFileId;
     let finalResourceType = resourceType;
-    let finalResourceName = resourceName;
     if (resourceInputMode === 'upload' && resourceFile) {
       try {
         const result = await uploadToImageKit(resourceFile, `courses/${courseId}/modules`);
         finalResourceUrl = result.url;
         finalResourceFileId = result.fileId;
         finalResourceType = detectResourceType(result.mimeType || resourceFile.type, result.name || resourceFile.name);
-        finalResourceName = result.name;
-      } catch (err: any) {
-        setError(err.message ?? 'Error al subir archivo');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al subir archivo');
         setUploading(false); setSaving(false);
         return;
       }
     }
     if (resourceInputMode === 'url' && finalResourceUrl) {
       finalResourceType = detectResourceType(undefined, finalResourceUrl) ?? resourceType ?? 'pdf';
-      finalResourceName = finalResourceUrl.split('/').pop() ?? 'enlace';
     }
     const resolvedModuleType = finalResourceType ? mapResourceTypeToModuleType(finalResourceType) : type;
     setType(resolvedModuleType);
@@ -557,7 +579,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
           <h2>{editingId ? 'Editar módulo' : t.addModule}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group field-group-full"><label>{t.moduleTitle}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div className="field-group field-group-full"><label>{t.moduleTitle}</label><input className={`auth-input${titleError ? ' invalid' : ''}`} value={title} onChange={(e) => { setTitle(e.target.value); validation.touch('title'); }} onBlur={() => validation.touch('title')} aria-invalid={Boolean(titleError)} aria-describedby={titleError ? 'module-title-error' : undefined} />{titleError && <small className="auth-field-error" id="module-title-error">{titleError}</small>}</div>
             <div className="field-group"><label>{t.moduleType}</label>
               <select className="auth-input" value={type} onChange={(e) => setType(e.target.value as ModuleType)}>
                 <option value="text">Texto</option>
@@ -598,7 +620,8 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
                 )
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input className="auth-input" type="url" value={resourceUrl} onChange={(e) => { setResourceUrl(e.target.value); setResourceType(detectResourceType(undefined, e.target.value)); }} placeholder="https://ejemplo.com/recurso.pdf" />
+                  <input className={`auth-input${resourceUrlError ? ' invalid' : ''}`} type="url" value={resourceUrl} onChange={(e) => { setResourceUrl(e.target.value); setResourceType(detectResourceType(undefined, e.target.value)); validation.touch('resourceUrl'); }} onBlur={() => validation.touch('resourceUrl')} placeholder="https://ejemplo.com/recurso.pdf" aria-invalid={Boolean(resourceUrlError)} aria-describedby={resourceUrlError ? 'module-resource-url-error' : undefined} />
+                  {resourceUrlError && <small className="auth-field-error" id="module-resource-url-error">{resourceUrlError}</small>}
                   {resourceUrl && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{resourceType ? resourceLabel(resourceType) : 'Enlace externo'}</span>}
                 </div>
               )}
@@ -606,7 +629,7 @@ function ModulesTab({ t, courseId, modules, onRefresh }: {
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleSave} disabled={saving || uploading}>{saving ? t.loading : t.save}</button>
+            <button className="primary-button" onClick={handleSave} disabled={saving || uploading || !canSave}>{saving ? t.loading : t.save}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -657,13 +680,21 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const validation = useLiveValidation();
+  const filledOptions = options.map((value, originalIndex) => ({ value: value.trim(), originalIndex })).filter((option) => option.value);
+  const correctOptionIndex = filledOptions.findIndex((option) => option.originalIndex === correctIndex);
+  const questionError = validation.error('question', !question.trim(), 'El enunciado es obligatorio.');
+  const optionsError = validation.error('options', filledOptions.length < 2, 'Agrega al menos dos opciones con contenido.');
+  const correctAnswerError = validation.error('correctAnswer', correctOptionIndex < 0, 'Marca como correcta una opción con contenido.');
+  const pointsError = validation.error('points', !Number.isInteger(Number(points)) || Number(points) <= 0, 'Los puntos deben ser un número entero mayor que cero.');
+  const canSave = Boolean(question.trim() && filledOptions.length >= 2 && correctOptionIndex >= 0 && Number.isInteger(Number(points)) && Number(points) > 0);
 
   const examGroups = [
     { id: '__final__', label: 'Examen final del curso', moduleId: null, questions: questions.filter((q) => !q.module_id) },
     ...modules.map((m) => ({ id: m.id, label: `Examen de ${m.title}`, moduleId: m.id, questions: questions.filter((q) => q.module_id === m.id) })),
   ];
 
-  const resetForm = () => { setEditingId(null); setQuestion(''); setOptions(['', '']); setCorrectIndex(0); setDifficulty('medium'); setPoints('1'); setError(null); setShowForm(false); };
+  const resetForm = () => { setEditingId(null); setQuestion(''); setOptions(['', '']); setCorrectIndex(0); setDifficulty('medium'); setPoints('1'); setError(null); validation.reset(); setShowForm(false); };
   const resetFormKeepOpen = () => {
     setEditingId(null);
     setQuestion('');
@@ -672,6 +703,7 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
     setDifficulty('medium');
     setPoints('1');
     setError(null);
+    validation.reset();
     setShowForm(true);
   };
 
@@ -684,6 +716,7 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
     setDifficulty(q.difficulty);
     setPoints(String(q.points));
     setError(null);
+    validation.reset();
     setShowForm(true);
   };
 
@@ -696,6 +729,7 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
     setDifficulty('medium');
     setPoints('1');
     setError(null);
+    validation.reset();
     setShowForm(true);
   };
 
@@ -717,15 +751,17 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
   };
 
   const handleSave = async () => {
-    const filledOptions = options.filter(o => o.trim());
-    if (!question || filledOptions.length < 2) { setError(t.questionText + ' / ' + t.options); return; }
-    if (correctIndex >= filledOptions.length) { setError('La respuesta correcta no coincide con las opciones'); return; }
+    validation.touch('question');
+    validation.touch('options');
+    validation.touch('correctAnswer');
+    validation.touch('points');
+    if (!canSave) return;
     setSaving(true);
     const targetExam = examGroups.find((g) => g.id === selectedExamId) ?? examGroups[0];
     const payload = {
-      question,
-      options: filledOptions,
-      correct_index: correctIndex,
+      question: question.trim(),
+      options: filledOptions.map((option) => option.value),
+      correct_index: correctOptionIndex,
       difficulty: difficulty as 'easy' | 'medium' | 'hard',
       points: parseInt(points) || 1,
       module_id: targetExam?.moduleId ?? null,
@@ -735,7 +771,7 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
       if (err) { setError(err); setSaving(false); return; }
       setSaving(false); resetForm(); toast('Pregunta actualizada', 'success'); onRefresh();
     } else {
-      const { error: err } = await createExamQuestion({ ...payload, course_id: courseId, order_index: (targetExam?.questions.length ?? 0) } as any);
+      const { error: err } = await createExamQuestion({ ...payload, course_id: courseId, order_index: (targetExam?.questions.length ?? 0) });
       if (err) { setError(err); setSaving(false); return; }
       setSaving(false); resetFormKeepOpen(); toast('Pregunta creada', 'success'); onRefresh();
     }
@@ -772,17 +808,19 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
           <h2>{editingId ? 'Editar pregunta' : `${examGroups.find((g) => g.id === selectedExamId)?.label ?? 'Examen'} · ${t.addQuestion}`}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
-            <div className="field-group field-group-full"><label>{t.questionText}</label><input className="auth-input" value={question} onChange={(e) => setQuestion(e.target.value)} /></div>
+            <div className="field-group field-group-full"><label>{t.questionText}</label><input className={`auth-input${questionError ? ' invalid' : ''}`} value={question} onChange={(e) => { setQuestion(e.target.value); validation.touch('question'); }} onBlur={() => validation.touch('question')} aria-invalid={Boolean(questionError)} aria-describedby={questionError ? 'exam-question-error' : undefined} />{questionError && <small className="auth-field-error" id="exam-question-error">{questionError}</small>}</div>
             <div className="field-group field-group-full">
               <label>{t.options}</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {options.map((opt, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button type="button" onClick={() => setCorrectIndex(idx)} title="Marcar como correcta" style={{ flex: '0 0 auto', width: 28, height: 28, borderRadius: '50%', border: correctIndex === idx ? '2px solid var(--success)' : '2px solid var(--line-2)', background: correctIndex === idx ? 'var(--success)' : 'transparent', color: correctIndex === idx ? '#fff' : 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{correctIndex === idx ? <Check size={14} /> : String.fromCharCode(65 + idx)}</button>
-                    <input className="auth-input" value={opt} onChange={(e) => updateOption(idx, e.target.value)} placeholder={`Opción ${String.fromCharCode(65 + idx)}`} style={{ flex: 1 }} />
+                    <button type="button" onClick={() => { setCorrectIndex(idx); validation.touch('correctAnswer'); }} title="Marcar como correcta" style={{ flex: '0 0 auto', width: 28, height: 28, borderRadius: '50%', border: correctIndex === idx ? '2px solid var(--success)' : '2px solid var(--line-2)', background: correctIndex === idx ? 'var(--success)' : 'transparent', color: correctIndex === idx ? '#fff' : 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{correctIndex === idx ? <Check size={14} /> : String.fromCharCode(65 + idx)}</button>
+                    <input className={`auth-input${optionsError ? ' invalid' : ''}`} value={opt} onChange={(e) => { updateOption(idx, e.target.value); validation.touch('options'); }} onBlur={() => validation.touch('options')} placeholder={`Opción ${String.fromCharCode(65 + idx)}`} style={{ flex: 1 }} aria-invalid={Boolean(optionsError)} aria-describedby={optionsError ? 'exam-options-error' : undefined} />
                     {options.length > 2 && <button type="button" className="icon-button" onClick={() => removeOption(idx)} title="Quitar"><X size={16} /></button>}
                   </div>
                 ))}
+                {optionsError && <small className="auth-field-error" id="exam-options-error">{optionsError}</small>}
+                {correctAnswerError && <small className="auth-field-error">{correctAnswerError}</small>}
                 <button type="button" className="outline-button" onClick={addOption} style={{ width: 'fit-content', minHeight: 36, padding: '6px 12px' }}><Plus size={14} /> Agregar opción</button>
               </div>
             </div>
@@ -791,11 +829,11 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
                 <option value="easy">{t.easy}</option><option value="medium">{t.medium}</option><option value="hard">{t.hard}</option>
               </select>
             </div>
-            <div className="field-group"><label>{t.pointsLabel}</label><input className="auth-input" type="number" value={points} onChange={(e) => setPoints(e.target.value)} /></div>
+            <div className="field-group"><label>{t.pointsLabel}</label><input className={`auth-input${pointsError ? ' invalid' : ''}`} type="number" min="1" step="1" value={points} onChange={(e) => { setPoints(e.target.value); validation.touch('points'); }} onBlur={() => validation.touch('points')} aria-invalid={Boolean(pointsError)} aria-describedby={pointsError ? 'exam-points-error' : undefined} />{pointsError && <small className="auth-field-error" id="exam-points-error">{pointsError}</small>}</div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleSave} disabled={saving}>{saving ? t.loading : t.save}</button>
+            <button className="primary-button" onClick={handleSave} disabled={saving || !canSave}>{saving ? t.loading : t.save}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -814,7 +852,7 @@ function ExamsTab({ t, courseId, modules, questions, onRefresh }: {
 function AssignmentsTab({ t, courseId, assignments, jobRoles, departments, onRefresh }: {
   t: AdminStrings;
   courseId: string;
-  assignments: any[];
+  assignments: CourseAssignment[];
   jobRoles: JobRole[];
   departments: Department[];
   onRefresh: () => void;
@@ -829,16 +867,23 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, departments, onRef
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const validation = useLiveValidation();
+  const roleError = validation.error('role', !roleId, 'Selecciona un cargo.');
+  const hasInvalidDeadline = Boolean(deadlineDays.trim()) && (!Number.isInteger(Number(deadlineDays)) || Number(deadlineDays) <= 0);
+  const deadlineError = validation.error('deadline', hasInvalidDeadline, 'El plazo debe ser un número entero mayor que cero.');
+  const canAssign = Boolean(roleId) && !hasInvalidDeadline;
 
   const assignedRoleIds = assignments.map((a) => a.job_role_id);
   const availableRoles = jobRoles.filter((r) => !assignedRoleIds.includes(r.id));
 
   const handleAssign = async () => {
-    if (!roleId) { setError(t.selectRole); return; }
+    validation.touch('role');
+    validation.touch('deadline');
+    if (!roleId || hasInvalidDeadline) { setError(!roleId ? t.selectRole : 'Revisa el plazo en días.'); return; }
     setSaving(true);
     const { error: err } = await assignCourseToRole(courseId, roleId, isMandatory, priority, deadlineDays ? parseInt(deadlineDays) : null, 0);
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); setRoleId(''); setDeadlineDays(''); setError(null); setShowForm(false); toast('Curso asignado al cargo', 'success'); onRefresh();
+    setSaving(false); setRoleId(''); setDeadlineDays(''); setError(null); validation.reset(); setShowForm(false); toast('Curso asignado al cargo', 'success'); onRefresh();
   };
 
   const getRoleName = (id: string) => {
@@ -851,22 +896,23 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, departments, onRef
   return (
     <div className="editor-section">
       <div className="section-title"><div><h2>{t.manageAssignments}</h2><p className="muted">{assignments.length} {t.assignedRole}s</p></div>
-        <button className="outline-button" onClick={() => setShowForm(true)}><Plus size={16} />{t.assignCourse}</button>
+        <button className="outline-button" onClick={() => { validation.reset(); setError(null); setShowForm(true); }}><Plus size={16} />{t.assignCourse}</button>
       </div>
-      {showForm && createPortal(<div className="modal-backdrop" onClick={() => setShowForm(false)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={() => setShowForm(false)}><X size={19} /></button>
+      {showForm && createPortal(<div className="modal-backdrop" onClick={() => { setShowForm(false); validation.reset(); }}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={() => { setShowForm(false); validation.reset(); }}><X size={19} /></button>
         <div className="modal-body">
           <h2>{t.assignCourse}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group field-group-full"><label>{t.jobRole}</label>
-              <select className="auth-input" value={roleId} onChange={(e) => setRoleId(e.target.value)}>
+              <select className={`auth-input${roleError ? ' invalid' : ''}`} value={roleId} onChange={(e) => { setRoleId(e.target.value); validation.touch('role'); }} onBlur={() => validation.touch('role')} aria-invalid={Boolean(roleError)} aria-describedby={roleError ? 'assignment-role-error' : undefined}>
                 <option value="">{t.selectRole}</option>
                 {availableRoles.map((r) => {
                   const dept = departments.find((d) => d.id === r.department_id)?.name;
                   return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
                 })}
               </select>
+              {roleError && <small className="auth-field-error" id="assignment-role-error">{roleError}</small>}
             </div>
             <div className="field-group"><label>{t.mandatory}</label>
               <div className="auth-role-select">
@@ -880,11 +926,11 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, departments, onRef
                 <option value="high">{t.high}</option><option value="critical">{t.critical}</option>
               </select>
             </div>
-            <div className="field-group"><label>{t.deadlineDays}</label><input className="auth-input" type="number" value={deadlineDays} onChange={(e) => setDeadlineDays(e.target.value)} /></div>
+            <div className="field-group"><label>{t.deadlineDays}</label><input className={`auth-input${deadlineError ? ' invalid' : ''}`} type="number" min="1" step="1" value={deadlineDays} onChange={(e) => { setDeadlineDays(e.target.value); validation.touch('deadline'); }} onBlur={() => validation.touch('deadline')} aria-invalid={Boolean(deadlineError)} aria-describedby={deadlineError ? 'assignment-deadline-error' : undefined} />{deadlineError && <small className="auth-field-error" id="assignment-deadline-error">{deadlineError}</small>}</div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={() => setShowForm(false)}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleAssign} disabled={saving}>{saving ? t.loading : t.save}</button>
+            <button className="primary-button" onClick={handleAssign} disabled={saving || !canAssign}>{saving ? t.loading : t.save}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -912,7 +958,7 @@ function AssignmentsTab({ t, courseId, assignments, jobRoles, departments, onRef
 function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }: {
   t: AdminStrings;
   courseId: string;
-  prerequisites: any[];
+  prerequisites: CoursePrerequisite[];
   allCourses: CourseWithRelations[];
   onRefresh: () => void;
 }) {
@@ -924,15 +970,19 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const validation = useLiveValidation();
+  const prerequisiteError = validation.error('prerequisite', !prereqId, 'Selecciona un curso prerrequisito.');
+  const canAdd = Boolean(prereqId);
 
   const availableCourses = allCourses.filter((c) => c.id !== courseId && !prerequisites.some((p) => p.prerequisite_course_id === c.id));
 
   const handleAdd = async () => {
+    validation.touch('prerequisite');
     if (!prereqId) { setError(t.selectPrerequisite); return; }
     setSaving(true);
     const { error: err } = await addPrerequisite(courseId, prereqId, isMandatory);
     if (err) { setError(err); setSaving(false); return; }
-    setSaving(false); setPrereqId(''); setError(null); setShowForm(false); toast('Prerequisito agregado', 'success'); onRefresh();
+    setSaving(false); setPrereqId(''); setError(null); validation.reset(); setShowForm(false); toast('Prerequisito agregado', 'success'); onRefresh();
   };
 
   const getCourseTitle = (id: string) => allCourses.find((c) => c.id === id)?.title ?? '';
@@ -942,19 +992,20 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
       <div className="docs-header">
         <div className="docs-header-icon"><Check size={20} /></div>
         <div style={{ flex: 1 }}><h2>{t.prerequisites}</h2><p className="muted">{prerequisites.length} {t.prerequisites.toLowerCase()}</p></div>
-        <button className="outline-button" onClick={() => setShowForm(true)}><Plus size={16} />{t.addPrerequisite}</button>
+        <button className="outline-button" onClick={() => { validation.reset(); setError(null); setShowForm(true); }}><Plus size={16} />{t.addPrerequisite}</button>
       </div>
-      {showForm && createPortal(<div className="modal-backdrop" onClick={() => setShowForm(false)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={() => setShowForm(false)}><X size={19} /></button>
+      {showForm && createPortal(<div className="modal-backdrop" onClick={() => { setShowForm(false); validation.reset(); }}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={() => { setShowForm(false); validation.reset(); }}><X size={19} /></button>
         <div className="modal-body">
           <h2>{t.addPrerequisite}</h2>
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group field-group-full"><label>{t.selectPrerequisite}</label>
-              <select className="auth-input" value={prereqId} onChange={(e) => setPrereqId(e.target.value)}>
+              <select className={`auth-input${prerequisiteError ? ' invalid' : ''}`} value={prereqId} onChange={(e) => { setPrereqId(e.target.value); validation.touch('prerequisite'); }} onBlur={() => validation.touch('prerequisite')} aria-invalid={Boolean(prerequisiteError)} aria-describedby={prerequisiteError ? 'prerequisite-course-error' : undefined}>
                 <option value="">{t.selectCourse}</option>
                 {availableCourses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
+              {prerequisiteError && <small className="auth-field-error" id="prerequisite-course-error">{prerequisiteError}</small>}
             </div>
             <div className="field-group field-group-full"><label>{t.mandatory}</label>
               <div className="auth-role-select">
@@ -965,7 +1016,7 @@ function PrerequisitesTab({ t, courseId, prerequisites, allCourses, onRefresh }:
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={() => setShowForm(false)}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleAdd} disabled={saving}>{saving ? t.loading : t.save}</button>
+            <button className="primary-button" onClick={handleAdd} disabled={saving || !canAdd}>{saving ? t.loading : t.save}</button>
           </div>
         </div>
       </div></div>, document.body)}
