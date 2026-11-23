@@ -331,7 +331,7 @@ export function exportCoursesReport(opts: {
         : '';
       const content = `<div class="course-module-specs"><div class="course-module-spec"><label>Tipo de módulo</label><strong>${escapeHtml(module.type)}</strong></div><div class="course-module-spec"><label>Duración</label><strong>${escapeHtml(module.duration ?? '—')}</strong></div></div><div class="course-module-layout"><section class="course-module-panel"><h4>Contenido del módulo</h4><div class="course-module-content">${module.body ? escapeHtml(module.body) : 'Sin contenido textual.'}</div></section>${resourcePanel}</div>`;
       const bodyLines = Math.ceil((module.body?.length ?? 24) / 100);
-      const resourceLines = resources.reduce((total, resource) => total + Math.ceil((resource.title.length + resource.description?.length + resource.url.length) / 52), 0);
+      const resourceLines = resources.reduce((total, resource) => total + Math.ceil((resource.title.length + (resource.description?.length ?? 0) + resource.url.length) / 52), 0);
       const estimatedHeight = 38 + bodyLines * 4.5 + resourceLines * 4.5;
       return {
         markup: `<article class="course-module-block"><h3>Módulo ${index + 1}: ${escapeHtml(module.title)}</h3>${content}</article>`,
@@ -363,7 +363,7 @@ export function exportCoursesReport(opts: {
   beginReport('Reporte General de Cursos');
   const body = summaryCards([
     { value: opts.courses.length, label: 'Cursos totales', detail: 'Cursos incluidos en el catálogo' },
-    { value: opts.courses.reduce((acc, c) => acc + 1, 0), label: 'Cursos con módulos', detail: 'Cursos con contenido asociado' },
+    { value: opts.courses.filter((course) => (course.modules?.length ?? (course.moduleName ? 1 : 0)) > 0).length, label: 'Cursos con módulos', detail: 'Cursos con contenido asociado' },
     { value: opts.courses.reduce((acc, c) => acc + c.assignments.length, 0), label: 'Asignaciones', detail: 'Relaciones con cargos' },
     { value: opts.courses.reduce((acc, c) => acc + c.prerequisites.length, 0), label: 'Prerrequisitos', detail: 'Condiciones previas registradas' },
   ]) + section('Listado de Cursos', table(['Título', 'Categoría', 'Duración', 'Horas', 'Módulos', 'Asignaciones'],
@@ -491,7 +491,7 @@ export function exportExamResultsReport(opts: {
   if (filterLabel) body += `<p class="muted" style="margin-bottom:16px">Trabajador: <strong>${escapeHtml(filterLabel)}</strong></p>`;
 
   body += summaryCards([
-    { value: opts.attempts.length, label: 'Intentos totales', detail: 'Evaluaciones registradas' },
+    { value: opts.attempts.length, label: 'Intentos totales', detail: `Puntaje promedio: ${avgScore}` },
     { value: passed, label: 'Aprobados', detail: 'Resultados que cumplen el mínimo' },
     { value: opts.attempts.length - passed, label: 'Reprobados', detail: 'Requieren refuerzo o repetición' },
     { value: opts.attempts.length > 0 ? `${Math.round((passed / opts.attempts.length) * 100)}%` : '—', label: 'Tasa de aprobación', detail: 'Aprobados sobre el total' },

@@ -1,11 +1,7 @@
-import { AlertCircle, Award, BarChart3, Bell, BookOpen, Check, CheckCircle, ChevronRight, Clock3, Download, FileText, History, Lock, Plus, Settings, ShieldCheck, Star, Trash2, Users, X, Zap, User, Mail, TrendingUp, Info, AlertTriangle, BellRing, XCircle, PlayCircle, Image, Presentation, FileCheck, Calendar, Eye, Filter, Palette, ArrowRight, ArrowDown, Lock as LockIcon } from 'lucide-react';
-import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
-import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications, createNotification, deleteNotification, fetchAllFeedback, fetchBadges, createBadge, deleteBadge, fetchUserBadges, fetchSystemSettings, updateSystemSetting, createSystemSetting, fetchAuditLogs } from '@/lib/data';
+import { Award, BarChart3, Bell, BookOpen, Check, ChevronRight, ShieldCheck, Star, Users, Zap, User, TrendingUp, MessageSquare } from 'lucide-react';
 import { getIcon } from '@/lib/icons';
 import type { AdminSection } from '@/lib/routes';
-import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
-import { PaginatedList } from '../PaginatedList';
 
 export function DashboardModule({ t, data, onNavigate }: {
   t: AdminStrings;
@@ -27,8 +23,8 @@ export function DashboardModule({ t, data, onNavigate }: {
     { icon: Users, value: String(team.length), label: t.totalUsers, tone: 'g2' },
     { icon: ShieldCheck, value: String(jobRoles.length), label: t.totalRoles, tone: 'g4' },
     { icon: Award, value: String(certificates.length), label: t.totalCertificates, tone: 'g3' },
-    { icon: BarChart3, value: `${totalProgress}%`, label: t.completion, tone: 'g1' },
-    { icon: Check, value: `${passRate}%`, label: t.passRate, tone: 'g2' },
+    { icon: User, value: String(activeUsers), label: t.activeUsers, tone: 'g1' },
+    { icon: MessageSquare, value: String(feedback.length), label: t.totalFeedback, tone: 'g2' },
     { icon: Star, value: String(badges.length), label: t.totalBadges, tone: 'g3' },
     { icon: Bell, value: String(notifications.length), label: t.totalNotifications, tone: 'g4' },
   ];
@@ -172,7 +168,7 @@ export function DashboardModule({ t, data, onNavigate }: {
               <p className="muted dash-empty">{t.noCourses}</p>
             ) : (
               <div className="dash-list">
-                {courses.slice(0, 4).map((c) => {
+                {courses.slice(0, 5).map((c) => {
                   const Icon = getIcon(c.icon_name);
                   return (
                     <div key={c.id} className="dash-list-row">

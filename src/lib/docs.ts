@@ -51,7 +51,7 @@ export const docSections: DocSection[] = [
       },
       {
         heading: 'Tarjetas de estadísticas',
-        body: 'En la parte superior del Dashboard verás 8 tarjetas de estadísticas. Cada tarjeta tiene un ícono, un número grande y una etiqueta. Estas son: Cursos totales (cantidad de cursos creados en el sistema), Usuarios totales (empleados y administradores registrados), Cargos totales (posiciones definidas), Certificados totales (certificados emitidos), Completación promedio (porcentaje global de módulos completados), Tasa de aprobación (porcentaje de exámenes aprobados), Insignias totales (insignias creadas) y Notificaciones totales (notificaciones enviadas). Los datos se calculan en tiempo real desde la base de datos.',
+        body: 'En la parte superior del Dashboard verás 8 tarjetas de estadísticas. Cada tarjeta tiene un ícono, un número grande y una etiqueta. Estas son: Cursos totales (cantidad de cursos creados en el sistema), Usuarios totales (empleados y administradores registrados), Cargos totales (posiciones definidas), Certificados totales (certificados emitidos), Usuarios activos (miembros del equipo habilitados), Feedback total (comentarios registrados), Insignias totales (insignias creadas) y Notificaciones totales (notificaciones enviadas). Los datos se calculan en tiempo real desde la base de datos.',
         visual: 'stat-cards',
         example: 'Si acabas de crear un curso nuevo llamado "Operación de Bombas", al volver al Dashboard verás que el número de "Cursos totales" aumentó en 1 automáticamente.',
       },
