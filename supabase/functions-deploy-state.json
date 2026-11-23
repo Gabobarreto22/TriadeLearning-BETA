@@ -1,0 +1,13 @@
+{
+  "projectId": "70751756",
+  "functions": {
+    "create-user": {
+      "hasChanged": false,
+      "hash": "06297616d4d9417861d67e4705819a19f31058576b27f631779aa8af2313022b"
+    },
+    "upload-imagekit": {
+      "hasChanged": false,
+      "hash": "e2ca7db130c2d4b0e228d9f60b54764d4b70da177af686897660726e7e83cec0"
+    }
+  }
+}

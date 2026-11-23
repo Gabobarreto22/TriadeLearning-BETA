@@ -51,8 +51,6 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const {
       email,
-      password,
-      password_confirmation,
       full_name,
       job_role_id,
       role,
@@ -69,15 +67,8 @@ Deno.serve(async (req: Request) => {
     const normalizedDireccion = String(direccion ?? "").trim();
     const normalizedAvatarUrl = typeof avatar_url === "string" ? avatar_url.trim() : null;
 
-    if (!normalizedEmail || !password || !normalizedName || !password_confirmation || !normalizedCedula || !normalizedTelefono || !normalizedDireccion) {
+    if (!normalizedEmail || !normalizedName || !normalizedCedula || !normalizedTelefono || !normalizedDireccion) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (String(password) !== String(password_confirmation)) {
-      return new Response(JSON.stringify({ error: "Passwords do not match" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -92,7 +83,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: newUserData, error: createErr } = await supabase.auth.admin.createUser({
       email: normalizedEmail,
-      password,
+      password: normalizedCedula,
       email_confirm: true,
     });
 
