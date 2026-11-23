@@ -571,6 +571,8 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [cedula, setCedula] = useState('');
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
@@ -582,7 +584,7 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const resetForm = () => { setName(''); setEmail(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setError(null); setEditingUser(null); setShowForm(false); };
+  const resetForm = () => { setName(''); setEmail(''); setPassword(''); setPasswordConfirmation(''); setCedula(''); setTelefono(''); setDireccion(''); setAvatarUrl(null); setError(null); setEditingUser(null); setShowForm(false); };
 
   const handleSubmit = async () => {
     setError(null);
@@ -592,12 +594,16 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
       const { error: err } = await updateProfile(editingUser.id, { full_name: name, cedula, telefono, direccion, avatar_url: avatarUrl ?? editingUser.avatar_url ?? null });
       if (err) { setError(err); setSaving(false); return; }
     } else {
+      if (!password || !passwordConfirmation) { setError(t.personPassword + ' / Confirmación de contraseña'); setSaving(false); return; }
+      if (password !== passwordConfirmation) { setError('Las contraseñas no coinciden'); setSaving(false); return; }
       if (!avatarUrl) { setError('La foto del usuario es obligatoria'); setSaving(false); return; }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
         body: JSON.stringify({
           email,
+          password,
+          password_confirmation: passwordConfirmation,
           full_name: name,
           cedula,
           telefono,
@@ -619,6 +625,8 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
     setEditingUser(p);
     setName(p.full_name);
     setEmail(p.email ?? '');
+    setPassword('');
+    setPasswordConfirmation('');
     setCedula(p.cedula ?? '');
     setTelefono(p.telefono ?? '');
     setDireccion(p.direccion ?? '');
@@ -640,6 +648,8 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group"><label>{t.personName}</label><input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div className="field-group"><label>{t.personEmail}</label><input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editingUser} /></div>
+            {!editingUser && <div className="field-group"><label>{t.personPassword}</label><input className="auth-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>}
+            {!editingUser && <div className="field-group"><label>Confirmar contraseña</label><input className="auth-input" type="password" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} /></div>}
             <div className="field-group"><label>Cédula</label><input className="auth-input" value={cedula} onChange={(e) => setCedula(e.target.value)} /></div>
             <div className="field-group"><label>Teléfono</label><input className="auth-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} /></div>
             <div className="field-group field-group-full"><label>Dirección</label><input className="auth-input" value={direccion} onChange={(e) => setDireccion(e.target.value)} /></div>

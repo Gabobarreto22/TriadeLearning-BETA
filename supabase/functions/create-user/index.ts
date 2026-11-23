@@ -51,6 +51,8 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const {
       email,
+      password,
+      password_confirmation,
       full_name,
       job_role_id,
       role,
@@ -74,6 +76,23 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    let adminPassword: string | null = null;
+    if (userRole === "admin") {
+      if (!password || !password_confirmation) {
+        return new Response(JSON.stringify({ error: "Password and confirmation are required for admins" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (String(password) !== String(password_confirmation)) {
+        return new Response(JSON.stringify({ error: "Passwords do not match" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      adminPassword = String(password);
+    }
+
     if (userRole === "employee" && !job_role_id) {
       return new Response(JSON.stringify({ error: "Job role is required for employees" }), {
         status: 400,
@@ -83,7 +102,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: newUserData, error: createErr } = await supabase.auth.admin.createUser({
       email: normalizedEmail,
-      password: normalizedCedula,
+      password: userRole === "admin" ? adminPassword! : normalizedCedula,
       email_confirm: true,
     });
 
