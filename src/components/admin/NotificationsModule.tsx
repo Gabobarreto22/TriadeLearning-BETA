@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Bell, Check, ChevronDown, Clock3, Plus, Trash2, Users, X, User } from 'lucide-react';
-import { supabase, type Profile, type JobRole, type CourseWithRelations, type Certificate, type RoleCertification, type Notification, type CourseFeedback, type Badge, type UserBadge, type SystemSetting, type AuditLog, type UserCourseRequirement } from '@/lib/supabase';
-import { fetchUserCourseRequirements, assignCourseToUser, fetchAllCertificates, fetchRoleCertifications, fetchAllNotifications, createNotification, deleteNotification, fetchAllFeedback, fetchBadges, createBadge, deleteBadge, fetchUserBadges, fetchSystemSettings, updateSystemSetting, createSystemSetting, fetchAuditLogs } from '@/lib/data';
-import { getIcon } from '@/lib/icons';
-import type { AdminSection } from '@/lib/routes';
+import type { Profile } from '@/lib/supabase';
+import { createNotification, deleteNotification } from '@/lib/data';
 import { useToast } from '@/lib/toast';
 import type { AdminStrings, AdminData } from './types';
 import { PaginatedList } from '../PaginatedList';
@@ -25,6 +23,7 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const [type, setType] = useState<NotificationType>('info');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -34,10 +33,20 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   const [search, setSearch] = useState('');
   const { toast } = useToast();
 
-  const resetForm = () => { setRecipients('user'); setUserId(''); setRoleId(''); setType('info'); setTitle(''); setMessage(''); setError(null); setFormPicker(null); setShowForm(false); };
+  const resetForm = () => { setRecipients('user'); setUserId(''); setRoleId(''); setType('info'); setTitle(''); setMessage(''); setTouchedFields({}); setError(null); setFormPicker(null); setShowForm(false); };
 
   const roleMembers = team.filter((u) => u.job_role_id === roleId);
   const targets: Profile[] = recipients === 'role' ? roleMembers : team.filter((u) => u.id === userId);
+  const titleError = touchedFields.title && !title.trim() ? 'El título es obligatorio.' : null;
+  const messageError = touchedFields.message && !message.trim() ? 'El mensaje es obligatorio.' : null;
+  const recipientError = touchedFields.recipient && targets.length === 0
+    ? recipients === 'role' && roleId
+      ? 'El cargo seleccionado no tiene personas asignadas.'
+      : recipients === 'role' ? 'Selecciona un cargo.' : 'Selecciona una persona.'
+    : null;
+  const canCreate = Boolean(title.trim() && message.trim() && targets.length > 0);
+
+  const touchField = (field: string) => setTouchedFields((current) => ({ ...current, [field]: true }));
   const notificationTypes: { value: NotificationType; label: string; icon: JSX.Element }[] = [
     { value: 'info', label: t.info, icon: <Bell size={14} /> },
     { value: 'success', label: t.success, icon: <Check size={14} /> },
@@ -47,10 +56,13 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
   ];
 
   const handleCreate = async () => {
-    if (!title || !message) { setError(t.title + ' / ' + t.message); return; }
+    touchField('title');
+    touchField('message');
+    touchField('recipient');
+    if (!title.trim() || !message.trim()) { setError(t.title + ' / ' + t.message); return; }
     if (targets.length === 0) { setError(recipients === 'role' ? t.selectRole : t.user); return; }
     setSaving(true);
-    const results = await Promise.all(targets.map((u) => createNotification({ user_id: u.id, type, title, message })));
+    const results = await Promise.all(targets.map((u) => createNotification({ user_id: u.id, type, title: title.trim(), message: message.trim() })));
     const failed = results.find((r) => r.error);
     if (failed?.error) { setError(failed.error); setSaving(false); return; }
     setSaving(false); resetForm(); toast(targets.length > 1 ? `Notificación enviada a ${targets.length} personas` : 'Notificación enviada', 'success'); onRefresh();
@@ -118,25 +130,27 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
           {error && <div className="auth-error" style={{ marginBottom: 12 }}><AlertCircle size={16} />{error}</div>}
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group field-group-full"><label>Destinatario</label>
-              <div className="segmented-control">
-                <button type="button" className={recipients === 'user' ? 'active' : ''} onClick={() => setRecipients('user')}><User size={14} />Persona</button>
-                <button type="button" className={recipients === 'role' ? 'active' : ''} onClick={() => setRecipients('role')}><Users size={14} />Cargo</button>
+              <div className="segmented-control" aria-invalid={Boolean(recipientError)}>
+                <button type="button" className={recipients === 'user' ? 'active' : ''} onClick={() => { setRecipients('user'); touchField('recipient'); setError(null); }}><User size={14} />Persona</button>
+                <button type="button" className={recipients === 'role' ? 'active' : ''} onClick={() => { setRecipients('role'); touchField('recipient'); setError(null); }}><Users size={14} />Cargo</button>
               </div>
             </div>
             {recipients === 'user' ? (
               <div className="field-group field-group-full"><label>{t.user}</label>
-                <button type="button" className="selection-trigger" onClick={() => setFormPicker('user')}>
+                <button type="button" className={`selection-trigger${recipientError ? ' invalid' : ''}`} onClick={() => { touchField('recipient'); setFormPicker('user'); }} aria-invalid={Boolean(recipientError)} aria-describedby={recipientError ? 'notification-recipient-error' : undefined}>
                   <span>{team.find((u) => u.id === userId)?.full_name ?? 'Seleccionar trabajador'}</span>
                   <User size={16} />
                 </button>
+                {recipientError && <small className="auth-field-error" id="notification-recipient-error">{recipientError}</small>}
               </div>
             ) : (
               <div className="field-group field-group-full"><label>{t.jobRole}</label>
-                <button type="button" className="selection-trigger" onClick={() => setFormPicker('role')}>
+                <button type="button" className={`selection-trigger${recipientError ? ' invalid' : ''}`} onClick={() => { touchField('recipient'); setFormPicker('role'); }} aria-invalid={Boolean(recipientError)} aria-describedby={recipientError ? 'notification-recipient-error' : undefined}>
                   <span>{jobRoles.find((r) => r.id === roleId)?.name ?? 'Seleccionar cargo'}</span>
                   <Users size={16} />
                 </button>
                 {roleId && <small className="muted">{roleMembers.length} {roleMembers.length === 1 ? 'persona recibirá' : 'personas recibirán'} esta notificación</small>}
+                {recipientError && <small className="auth-field-error" id="notification-recipient-error">{recipientError}</small>}
               </div>
             )}
             <div className="field-group field-group-full"><label>{t.type}</label>
@@ -145,12 +159,12 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
                 <ChevronDown size={16} />
               </button>
             </div>
-            <div className="field-group field-group-full"><label>{t.title}</label><input className="auth-input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div className="field-group field-group-full"><label>{t.message}</label><textarea className="auth-input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} /></div>
+            <div className="field-group field-group-full"><label>{t.title}</label><input className={`auth-input${titleError ? ' invalid' : ''}`} value={title} onChange={(e) => { setTitle(e.target.value); touchField('title'); setError(null); }} onBlur={() => touchField('title')} aria-invalid={Boolean(titleError)} aria-describedby={titleError ? 'notification-title-error' : undefined} />{titleError && <small className="auth-field-error" id="notification-title-error">{titleError}</small>}</div>
+            <div className="field-group field-group-full"><label>{t.message}</label><textarea className={`auth-input${messageError ? ' invalid' : ''}`} rows={3} value={message} onChange={(e) => { setMessage(e.target.value); touchField('message'); setError(null); }} onBlur={() => touchField('message')} aria-invalid={Boolean(messageError)} aria-describedby={messageError ? 'notification-message-error' : undefined} />{messageError && <small className="auth-field-error" id="notification-message-error">{messageError}</small>}</div>
           </div>
           <div className="form-actions-row" style={{ marginTop: 4 }}>
             <button className="outline-button" onClick={resetForm}>{t.cancel}</button>
-            <button className="primary-button" onClick={handleCreate} disabled={saving}>{saving ? t.loading : t.saveNotification}</button>
+            <button className="primary-button" onClick={handleCreate} disabled={saving || !canCreate}>{saving ? t.loading : t.saveNotification}</button>
           </div>
         </div>
       </div></div>, document.body)}
@@ -170,6 +184,7 @@ export function NotificationsModule({ t, data, onRefresh }: { t: AdminStrings; d
             if (formPicker === 'user') setUserId(value);
             else if (formPicker === 'role') setRoleId(value);
             else setType(value as NotificationType);
+            if (formPicker === 'user' || formPicker === 'role') { touchField('recipient'); setError(null); }
             setFormPicker(null);
           }}
           onClose={() => setFormPicker(null)}
