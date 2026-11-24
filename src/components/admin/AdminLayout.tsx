@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Award, BarChart3, Bell, BookOpen, FileText, History, LayoutDashboard, Star, Users } from 'lucide-react';
+import { Award, BarChart3, Bell, BookOpen, ClipboardCheck, FileText, History, LayoutDashboard, Star, Users } from 'lucide-react';
 import { adminStringsByLanguage } from '@/components/admin/strings';
 import type { AdminData } from '@/components/admin/types';
 import { HelpButton } from '@/components/docs/HelpButton';
@@ -90,7 +90,7 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     { key: 'feedback', label: at.feedback, icon: Star },
     { key: 'notifications', label: at.notifications, icon: Bell },
     { key: 'reports', label: at.reports, icon: BarChart3 },
-    { key: 'examResults', label: at.examResults, icon: BarChart3 },
+    { key: 'examResults', label: at.examResults, icon: ClipboardCheck },
     { key: 'audit', label: at.audit, icon: History },
     { key: 'documentation', label: at.documentation, icon: FileText },
   ];

@@ -328,6 +328,11 @@ export type AdminStrings = {
   reportFeedback: string;
   reportNotifications: string;
   reportExamResults: string;
+  generateReport: string;
+  employeesInRole: string;
+  employeesFullyCompliant: string;
+  completedAssignments: string;
+  assignmentCompletion: string;
   reportAudit: string;
   reportByCourse: string;
   reportByWorker: string;

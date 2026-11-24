@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { BarChart3, BookOpen, Download, FileText, Star, Users } from 'lucide-react';
+import { BarChart3, BookOpen, FileText, Star, Users } from 'lucide-react';
 import { strToU8, zipSync } from 'fflate';
 import type { AdminData, AdminStrings } from './types';
 import { openReportPreviewModal } from './ReportPreviewModal';
+import { ReportDropdown } from './ReportDropdown';
+import { PaginatedList } from '../PaginatedList';
+import { SelectionModal, type SelectionOption } from './SelectionModal';
 
 type ReportType = 'compliance' | 'progress' | 'exams' | 'feedback';
 type ReportMetric = { label: string; value: string | number; icon: typeof Users; tone: string };
@@ -80,26 +83,35 @@ const statusLabels = (t: AdminStrings): Record<string, string> => ({
   cancelled: t.cancelled,
 });
 
+function selectedFilterLabelFor(options: SelectionOption[], value: string) {
+  return options.find((option) => option.value === value)?.label ?? '';
+}
+
 export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData }) {
   const [reportType, setReportType] = useState<ReportType>('compliance');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [workerFilter, setWorkerFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('all');
+  const [filterPicker, setFilterPicker] = useState<'role' | 'worker' | 'status' | 'course' | null>(null);
   const statusNames = statusLabels(t);
 
   const requirements = data.userCourseReqs.map((requirement) => {
     const user = data.team.find((person) => person.id === requirement.user_id);
     const course = data.courses.find((item) => item.id === requirement.course_id);
-    const role = data.jobRoles.find((item) => item.id === requirement.job_role_id);
+    const role = data.jobRoles.find((item) => item.id === user?.job_role_id);
     const department = data.departments.find((item) => item.id === role?.department_id);
     return { requirement, user, course, role, department };
   }).filter((record) => record.user?.role === 'employee');
 
-  const roleOptions = data.jobRoles.filter((role) => requirements.some((record) => record.role?.id === role.id));
+  const activeEmployees = data.team.filter((user) => user.role === 'employee' && user.is_active);
+  const roleOptions = data.jobRoles.filter((role) => activeEmployees.some((employee) => employee.job_role_id === role.id));
+  const roleFilterOptions: SelectionOption[] = [{ value: 'all', label: t.allRoles }, ...roleOptions.map((role) => ({ value: role.id, label: role.name }))];
+  const workerFilterOptions: SelectionOption[] = [{ value: 'all', label: t.allWorkers }, ...activeEmployees.map((employee) => ({ value: employee.id, label: employee.full_name }))];
+  const statusFilterOptions: SelectionOption[] = [{ value: 'all', label: t.allStatuses }, ...Object.entries(statusNames).map(([value, label]) => ({ value, label }))];
   const activeCourses = data.courses.filter((course) =>
     data.userCourseReqs.some((requirement) => requirement.course_id === course.id) ||
-    data.examAttempts.some((attempt) => data.userCourseReqs.find((requirement) => requirement.id === attempt.user_course_requirement_id)?.course_id === course.id) ||
+    data.examAttempts.some((attempt) => attempt.status === 'completed' && data.userCourseReqs.find((requirement) => requirement.id === attempt.user_course_requirement_id)?.course_id === course.id) ||
     data.feedback.some((entry) => data.userCourseReqs.find((requirement) => requirement.id === entry.user_course_requirement_id)?.course_id === course.id),
   );
 
@@ -111,51 +123,66 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
     const roleRows = data.jobRoles
       .filter((role) => roleFilter === 'all' || role.id === roleFilter)
       .map((role) => {
-        const assigned = requirements.filter((record) => record.role?.id === role.id);
-        const employeeIds = [...new Set(assigned.map((record) => record.user?.id).filter((id): id is string => Boolean(id)))];
-        const completedEmployees = employeeIds.filter((userId) => {
-          const userRequirements = assigned.filter((record) => record.user?.id === userId);
-          return userRequirements.length > 0 && userRequirements.every((record) => record.requirement.status === 'completed');
+        const roleEmployees = activeEmployees.filter((employee) => employee.job_role_id === role.id);
+        const roleCourses = data.courses.filter((course) => course.assignments.some((assignment) => assignment.job_role_id === role.id));
+        const expectedAssignments = roleEmployees.flatMap((employee) => roleCourses.flatMap((course) => {
+          const userRequirements = data.userCourseReqs
+            .filter((requirement) => requirement.user_id === employee.id && requirement.course_id === course.id && requirement.job_role_id === role.id)
+            .sort((left, right) => right.assigned_at.localeCompare(left.assigned_at));
+          const latestRequirement = userRequirements[0];
+          if (latestRequirement && ['exempted', 'cancelled'].includes(latestRequirement.status)) return [];
+          return [{ employeeId: employee.id, status: latestRequirement?.status ?? 'pending' }];
+        }));
+        const employeeIds = roleEmployees.map((employee) => employee.id);
+        const completedEmployees = employeeIds.filter((employeeId) => {
+          const employeeAssignments = expectedAssignments.filter((assignment) => assignment.employeeId === employeeId);
+          return employeeAssignments.length > 0 && employeeAssignments.every((assignment) => assignment.status === 'completed');
         }).length;
-        const completedRequirements = assigned.filter((record) => record.requirement.status === 'completed').length;
-        const percentage = employeeIds.length ? Math.round((completedEmployees / employeeIds.length) * 100) : 0;
+        const completedRequirements = expectedAssignments.filter((assignment) => assignment.status === 'completed').length;
+        const assignmentCompletion = expectedAssignments.length ? Math.round((completedRequirements / expectedAssignments.length) * 100) : 0;
+        const employeeCompletion = employeeIds.length ? Math.round((completedEmployees / employeeIds.length) * 100) : 0;
         const department = data.departments.find((item) => item.id === role.department_id)?.name ?? '—';
-        return { role: role.name, department, employees: employeeIds.length, completedEmployees, courses: assigned.length, completedRequirements, percentage };
+        return { role: role.name, department, employees: employeeIds.length, completedEmployees, assignmentCount: expectedAssignments.length, completedRequirements, assignmentCompletion, employeeCompletion };
       })
       .filter((row) => row.employees > 0);
-    const enrolledEmployees = new Set(requirements.map((record) => record.user?.id).filter(Boolean)).size;
-    const avgCompliance = roleRows.length ? Math.round(roleRows.reduce((total, row) => total + row.percentage, 0) / roleRows.length) : 0;
-    columns = [t.jobRoleCol, t.departmentCol, t.totalUsers, t.completed, t.assignedCourses, t.completion];
-    rows = roleRows.map((row) => [row.role, row.department, String(row.employees), `${row.completedEmployees}/${row.employees}`, `${row.completedRequirements}/${row.courses}`, `${row.percentage}%`]);
+    const enrolledEmployees = roleRows.reduce((total, row) => total + row.employees, 0);
+    const totalAssignments = roleRows.reduce((total, row) => total + row.assignmentCount, 0);
+    const completedAssignments = roleRows.reduce((total, row) => total + row.completedRequirements, 0);
+    const assignmentCompletion = totalAssignments ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
+    const fullyCompliantEmployees = roleRows.reduce((total, row) => total + row.completedEmployees, 0);
+    columns = [t.jobRoleCol, t.departmentCol, t.employeesInRole, t.employeesFullyCompliant, t.completedAssignments, t.assignmentCompletion];
+    rows = roleRows.map((row) => [row.role, row.department, String(row.employees), `${row.completedEmployees}/${row.employees} (${row.employeeCompletion}%)`, `${row.completedRequirements}/${row.assignmentCount}`, `${row.assignmentCompletion}%`]);
     metrics = [
       { label: t.jobRole, value: roleRows.length, icon: Users, tone: 'g1' },
-      { label: t.activeUsers, value: enrolledEmployees, icon: Users, tone: 'g2' },
-      { label: t.assignedCourses, value: requirements.length, icon: BookOpen, tone: 'g3' },
-      { label: t.completion, value: `${avgCompliance}%`, icon: BarChart3, tone: 'g4' },
+      { label: t.employeesInRole, value: enrolledEmployees, icon: Users, tone: 'g2' },
+      { label: t.employeesFullyCompliant, value: fullyCompliantEmployees, icon: BookOpen, tone: 'g3' },
+      { label: t.assignmentCompletion, value: `${assignmentCompletion}%`, icon: BarChart3, tone: 'g4' },
     ];
   } else if (reportType === 'progress') {
-    const visible = requirements.filter(({ requirement, role, department }) =>
+    const visible = requirements.filter(({ requirement, role }) =>
       (roleFilter === 'all' || role?.id === roleFilter) &&
-      (departmentFilter === 'all' || department?.id === departmentFilter) &&
+      (workerFilter === 'all' || requirement.user_id === workerFilter) &&
       (statusFilter === 'all' || requirement.status === statusFilter),
     );
     columns = [t.user, t.courseName, t.jobRoleCol, t.departmentCol, t.progressCol, t.status, t.lastAccessed];
     rows = visible.map(({ requirement, user, course, role, department }) => [
       user?.full_name ?? '—', course?.title ?? '—', role?.name ?? '—', department?.name ?? '—',
-      `${Math.round(requirement.progress_percent ?? 0)}%`, statusNames[requirement.status] ?? requirement.status,
+      `${requirement.status === 'completed' ? 100 : Math.max(0, Math.min(100, Math.round(requirement.progress_percent ?? 0)))}%`, statusNames[requirement.status] ?? requirement.status,
       requirement.last_accessed_at ? new Date(requirement.last_accessed_at).toLocaleDateString() : '—',
     ]);
-    const averageProgress = visible.length ? Math.round(visible.reduce((total, record) => total + (record.requirement.progress_percent ?? 0), 0) / visible.length) : 0;
+    const activeRequirements = visible.filter((record) => !['exempted', 'cancelled'].includes(record.requirement.status));
+    const averageProgress = activeRequirements.length ? Math.round(activeRequirements.reduce((total, record) => total + (record.requirement.status === 'completed' ? 100 : Math.max(0, Math.min(100, record.requirement.progress_percent ?? 0))), 0) / activeRequirements.length) : 0;
     const completed = visible.filter((record) => record.requirement.status === 'completed').length;
     metrics = [
       { label: t.totalUsers, value: new Set(visible.map((record) => record.user?.id).filter(Boolean)).size, icon: Users, tone: 'g1' },
-      { label: t.assignedCourses, value: visible.length, icon: BookOpen, tone: 'g2' },
-      { label: t.completed, value: completed, icon: Star, tone: 'g3' },
-      { label: t.avgScore, value: `${averageProgress}%`, icon: BarChart3, tone: 'g4' },
+      { label: t.totalAssignments, value: visible.length, icon: BookOpen, tone: 'g2' },
+      { label: t.completedAssignments, value: completed, icon: Star, tone: 'g3' },
+      { label: t.totalProgress, value: `${averageProgress}%`, icon: BarChart3, tone: 'g4' },
     ];
   } else if (reportType === 'exams') {
     const attemptsByCourse = new Map<string, typeof data.examAttempts>();
-    for (const attempt of data.examAttempts) {
+    const completedAttempts = data.examAttempts.filter((attempt) => attempt.status === 'completed');
+    for (const attempt of completedAttempts) {
       const courseId = data.userCourseReqs.find((requirement) => requirement.id === attempt.user_course_requirement_id)?.course_id;
       if (!courseId || (courseFilter !== 'all' && courseId !== courseFilter)) continue;
       const existing = attemptsByCourse.get(courseId) ?? [];
@@ -170,7 +197,7 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
     }).sort((left, right) => left.course.localeCompare(right.course));
     const total = examRows.reduce((sum, row) => sum + row.attempts, 0);
     const passed = examRows.reduce((sum, row) => sum + row.passed, 0);
-    const average = total ? Math.round(data.examAttempts.filter((attempt) => {
+    const average = total ? Math.round(completedAttempts.filter((attempt) => {
       const courseId = data.userCourseReqs.find((requirement) => requirement.id === attempt.user_course_requirement_id)?.course_id;
       return courseFilter === 'all' || courseId === courseFilter;
     }).reduce((sum, attempt) => sum + attempt.score, 0) / total) : 0;
@@ -194,22 +221,35 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
     const feedbackRows = [...feedbackByCourse.entries()].map(([courseId, entries]) => {
       const course = data.courses.find((item) => item.id === courseId);
       const average = entries.reduce((sum, entry) => sum + entry.rating, 0) / entries.length;
-      const recommendations = entries.filter((entry) => entry.would_recommend === true).length;
-      const difficult = entries.filter((entry) => entry.difficulty_level === 'hard' || entry.difficulty_level === 'very_hard').length;
-      return { course: course?.title ?? '—', count: entries.length, average: average.toFixed(1), recommendations, recommendationRate: Math.round((recommendations / entries.length) * 100), difficult, difficultyRate: Math.round((difficult / entries.length) * 100) };
+      const recommendationAnswers = entries.filter((entry) => entry.would_recommend !== null);
+      const recommendations = recommendationAnswers.filter((entry) => entry.would_recommend === true).length;
+      const difficultyAnswers = entries.filter((entry) => entry.difficulty_level !== null);
+      const difficult = difficultyAnswers.filter((entry) => entry.difficulty_level === 'hard' || entry.difficulty_level === 'very_hard').length;
+      return {
+        course: course?.title ?? '—', count: entries.length, average: average.toFixed(1),
+        recommendations, recommendationAnswers: recommendationAnswers.length,
+        recommendationRate: recommendationAnswers.length ? Math.round((recommendations / recommendationAnswers.length) * 100) : 0,
+        difficult, difficultyAnswers: difficultyAnswers.length,
+        difficultyRate: difficultyAnswers.length ? Math.round((difficult / difficultyAnswers.length) * 100) : 0,
+      };
     }).sort((left, right) => left.course.localeCompare(right.course));
     const total = feedbackRows.reduce((sum, row) => sum + row.count, 0);
     const average = total ? (data.feedback.filter((entry) => {
       const courseId = data.userCourseReqs.find((requirement) => requirement.id === entry.user_course_requirement_id)?.course_id;
       return courseFilter === 'all' || courseId === courseFilter;
     }).reduce((sum, entry) => sum + entry.rating, 0) / total).toFixed(1) : '0.0';
-    const recommendations = feedbackRows.reduce((sum, row) => sum + row.recommendations, 0);
+    const selectedFeedback = data.feedback.filter((entry) => {
+      const courseId = data.userCourseReqs.find((requirement) => requirement.id === entry.user_course_requirement_id)?.course_id;
+      return courseFilter === 'all' || courseId === courseFilter;
+    });
+    const recommendations = selectedFeedback.filter((entry) => entry.would_recommend !== null);
+    const positiveRecommendations = recommendations.filter((entry) => entry.would_recommend === true).length;
     columns = [t.courseName, t.totalFeedback, t.rating, t.recommend, t.difficulty];
-    rows = feedbackRows.map((row) => [row.course, String(row.count), `${row.average}/5`, `${row.recommendations} (${row.recommendationRate}%)`, `${row.difficult} (${row.difficultyRate}%)`]);
+    rows = feedbackRows.map((row) => [row.course, String(row.count), `${row.average}/5`, `${row.recommendations}/${row.recommendationAnswers} (${row.recommendationRate}%)`, `${row.difficult}/${row.difficultyAnswers} (${row.difficultyRate}%)`]);
     metrics = [
       { label: t.totalFeedback, value: total, icon: Star, tone: 'g1' },
       { label: t.avgScore, value: `${average}/5`, icon: BarChart3, tone: 'g2' },
-      { label: t.recommend, value: total ? `${Math.round((recommendations / total) * 100)}%` : '0%', icon: Users, tone: 'g3' },
+      { label: t.recommend, value: recommendations.length ? `${Math.round((positiveRecommendations / recommendations.length) * 100)}%` : '—', icon: Users, tone: 'g3' },
       { label: t.courseName, value: feedbackRows.length, icon: BookOpen, tone: 'g4' },
     ];
   }
@@ -231,16 +271,57 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
   const exportExcel = () => downloadXlsx(`reporte-${fileStem}.xlsx`, columns, rows);
   const exportCsv = () => downloadCsv(`reporte-${fileStem}.csv`, columns, rows);
   const exportPdf = () => createPrintableReport(reportTitles[reportType], metrics, columns, rows);
+  const reportActions = [
+    { value: 'excel', label: t.exportExcel },
+    { value: 'pdf', label: t.exportPdf },
+    { value: 'csv', label: t.exportCsv },
+  ];
+  const handleReportAction = (action: string) => {
+    if (action === 'excel') exportExcel();
+    else if (action === 'pdf') exportPdf();
+    else if (action === 'csv') exportCsv();
+  };
+  const filterOptions: SelectionOption[] = filterPicker === 'role'
+    ? roleFilterOptions
+    : filterPicker === 'worker'
+      ? workerFilterOptions
+      : filterPicker === 'status'
+        ? statusFilterOptions
+        : [{ value: 'all', label: t.allCourses }, ...activeCourses.map((course) => ({ value: course.id, label: course.title }))];
+  const filterValue = filterPicker === 'role'
+    ? roleFilter
+    : filterPicker === 'worker'
+      ? workerFilter
+      : filterPicker === 'status'
+        ? statusFilter
+        : courseFilter;
+  const filterTitle = filterPicker === 'role'
+    ? t.jobRole
+    : filterPicker === 'worker'
+      ? t.user
+      : filterPicker === 'status'
+        ? t.status
+        : t.courseName;
+  const filterSearchPlaceholder = filterPicker === 'role'
+    ? `${t.search} ${t.jobRole.toLowerCase()}`
+    : filterPicker === 'worker'
+      ? `${t.search} ${t.user.toLowerCase()}`
+      : filterPicker === 'status'
+        ? `${t.search} ${t.status.toLowerCase()}`
+        : `${t.search} ${t.courseName.toLowerCase()}`;
+  const applyFilter = (value: string) => {
+    if (filterPicker === 'role') setRoleFilter(value);
+    else if (filterPicker === 'worker') setWorkerFilter(value);
+    else if (filterPicker === 'status') setStatusFilter(value);
+    else if (filterPicker === 'course') setCourseFilter(value);
+    setFilterPicker(null);
+  };
 
   return (
     <div className="page animate-in">
       <div className="page-heading">
         <div><p className="eyebrow">{t.reports}</p><h1>{t.reports}</h1><p className="muted">{t.reportsDesc}</p></div>
-        <div className="report-export-actions">
-          <button type="button" className="outline-button" onClick={exportExcel} disabled={rows.length === 0}><Download size={16} />{t.exportExcel}</button>
-          <button type="button" className="primary-button" onClick={exportPdf} disabled={rows.length === 0}><FileText size={16} />{t.exportPdf}</button>
-          <button type="button" className="outline-button" onClick={exportCsv} disabled={rows.length === 0}><Download size={16} />{t.exportCsv}</button>
-        </div>
+        <ReportDropdown label={t.generateReport} options={reportActions} onSelect={handleReportAction} />
       </div>
 
       <div className="admin-tabs report-tabs" role="tablist" aria-label={t.reports}>
@@ -249,15 +330,25 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
 
       <div className="reports-filter-row">
         {reportType === 'compliance' && (
-          <label className="field-group"><span>{t.jobRole}</span><select className="auth-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">{t.allRoles}</option>{roleOptions.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+          <div className="field-group"><label>{t.jobRole}</label><button type="button" className="selection-trigger" onClick={() => setFilterPicker('role')}><span>{selectedFilterLabelFor(roleFilterOptions, roleFilter)}</span><Users size={16} /></button></div>
         )}
         {reportType === 'progress' && <>
-          <label className="field-group"><span>{t.jobRole}</span><select className="auth-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">{t.allRoles}</option>{roleOptions.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
-          <label className="field-group"><span>{t.department}</span><select className="auth-input" value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}><option value="all">{t.allDepts}</option>{data.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
-          <label className="field-group"><span>{t.status}</span><select className="auth-input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">{t.allStatuses}</option>{Object.entries(statusNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <div className="field-group"><label>{t.jobRole}</label><button type="button" className="selection-trigger" onClick={() => setFilterPicker('role')}><span>{selectedFilterLabelFor(roleFilterOptions, roleFilter)}</span><Users size={16} /></button></div>
+          <div className="field-group"><label>{t.user}</label><button type="button" className="selection-trigger" onClick={() => setFilterPicker('worker')}><span>{selectedFilterLabelFor(workerFilterOptions, workerFilter)}</span><Users size={16} /></button></div>
+          <div className="field-group"><label>{t.status}</label><button type="button" className="selection-trigger" onClick={() => setFilterPicker('status')}><span>{selectedFilterLabelFor(statusFilterOptions, statusFilter)}</span><BarChart3 size={16} /></button></div>
         </>}
-        {(reportType === 'exams' || reportType === 'feedback') && <label className="field-group"><span>{t.courseName}</span><select className="auth-input" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option value="all">{t.allCourses}</option>{activeCourses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</select></label>}
+        {(reportType === 'exams' || reportType === 'feedback') && <div className="field-group"><label>{t.courseName}</label><button type="button" className="selection-trigger" onClick={() => setFilterPicker('course')}><span>{selectedFilterLabelFor([{ value: 'all', label: t.allCourses }, ...activeCourses.map((course) => ({ value: course.id, label: course.title }))], courseFilter)}</span><BookOpen size={16} /></button></div>}
       </div>
+
+      {filterPicker && <SelectionModal
+        eyebrow={t.reports}
+        title={filterTitle}
+        options={filterOptions}
+        selectedValue={filterValue}
+        searchPlaceholder={filterSearchPlaceholder}
+        onSelect={applyFilter}
+        onClose={() => setFilterPicker(null)}
+      />}
 
       <div className="stats-grid reports-metrics-grid">
         {metrics.map((metric) => {
@@ -269,9 +360,9 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
       <section className="section-card reports-table-section">
         <div className="section-title"><div><h2>{reportTitles[reportType]}</h2><p className="muted">{rows.length} {t.resultsCount}</p></div></div>
         {rows.length === 0 ? <div className="empty-state"><BarChart3 size={28} /><h3>{t.noData}</h3></div> : (
-          <div className="reports-table-scroll"><table className="reports-table"><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>
-            {rows.map((row, index) => <tr key={`${reportType}-${index}`}>{row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}</tr>)}
-          </tbody></table></div>
+          <PaginatedList items={rows}>{(pageRows, firstItemIndex) => <div className="reports-table-scroll"><table className="reports-table"><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>
+            {pageRows.map((row, index) => <tr key={`${reportType}-${firstItemIndex + index}`}>{row.map((cell, cellIndex) => <td key={`${firstItemIndex + index}-${cellIndex}`}>{cell}</td>)}</tr>)}
+          </tbody></table></div>}</PaginatedList>
         )}
       </section>
     </div>
