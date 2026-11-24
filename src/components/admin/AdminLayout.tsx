@@ -90,11 +90,13 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     { key: 'feedback', label: at.feedback, icon: Star },
     { key: 'notifications', label: at.notifications, icon: Bell },
     { key: 'reports', label: at.reports, icon: BarChart3 },
+    { key: 'examResults', label: at.examResults, icon: BarChart3 },
     { key: 'audit', label: at.audit, icon: History },
     { key: 'documentation', label: at.documentation, icon: FileText },
   ];
   const currentItem = navItems.find((item) => adminPaths[item.key] === pathname);
   const currentKey = currentItem?.key;
+  const helpDocId = currentKey === 'examResults' ? 'reports' : currentKey;
   const initials = profile.full_name.slice(0, 2).toUpperCase();
 
   const contextValue: AdminContextValue = {
@@ -111,8 +113,8 @@ export function AdminLayout({ profile }: { profile: Profile }) {
     initials={initials}
     mobileOpen={mobileOpen}
     onMobileOpenChange={setMobileOpen}
-    topbarExtras={currentKey && currentKey !== 'documentation' && docSummaryMap[currentKey]
-      ? <HelpButton summary={docSummaryMap[currentKey]} docId={currentKey} labels={docsLabels[language]} onNavigateDoc={navigateDoc} />
+    topbarExtras={helpDocId && helpDocId !== 'documentation' && docSummaryMap[helpDocId]
+      ? <HelpButton summary={docSummaryMap[helpDocId]} docId={helpDocId} labels={docsLabels[language]} onNavigateDoc={navigateDoc} />
       : null}
     sidebarContent={<>
       <nav className="admin-nav-scroll">

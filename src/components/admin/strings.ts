@@ -312,6 +312,9 @@ export const adminStringsES: AdminStrings = {
   reportSingleCourse: 'Reporte de Curso',
   generatePdf: 'Generar PDF',
   allWorkers: 'Todos los trabajadores',
+  allCourses: 'Todos los cursos',
+  lastAccessed: 'Último acceso',
+  resultsCount: 'registros',
 };
 
 export const adminStringsEN: AdminStrings = {
@@ -625,6 +628,9 @@ export const adminStringsEN: AdminStrings = {
   reportSingleCourse: 'Course Report',
   generatePdf: 'Generate PDF',
   allWorkers: 'All workers',
+  allCourses: 'All courses',
+  lastAccessed: 'Last accessed',
+  resultsCount: 'records',
 };
 
 export const adminStringsByLanguage: Record<Language, AdminStrings> = {

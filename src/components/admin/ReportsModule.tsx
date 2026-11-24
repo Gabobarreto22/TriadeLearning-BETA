@@ -1,244 +1,279 @@
 import { useState } from 'react';
-import { AlertCircle, FileText, Users } from 'lucide-react';
-import type { AdminStrings, AdminData } from './types';
-import { PaginatedList } from '../PaginatedList';
-import { ReportDropdown } from './ReportDropdown';
-import { SelectionModal } from './SelectionModal';
-import { exportExamResultsReport } from '@/lib/pdfReport';
+import { BarChart3, BookOpen, Download, FileText, Star, Users } from 'lucide-react';
+import { strToU8, zipSync } from 'fflate';
+import type { AdminData, AdminStrings } from './types';
+import { openReportPreviewModal } from './ReportPreviewModal';
+
+type ReportType = 'compliance' | 'progress' | 'exams' | 'feedback';
+type ReportMetric = { label: string; value: string | number; icon: typeof Users; tone: string };
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] as string);
+}
+
+function downloadCsv(filename: string, columns: string[], rows: string[][]) {
+  const content = [columns, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+  const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadXlsx(filename: string, columns: string[], rows: string[][]) {
+  const xmlEscape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character] as string);
+  const columnName = (index: number) => {
+    let value = index + 1;
+    let name = '';
+    while (value > 0) {
+      const remainder = (value - 1) % 26;
+      name = String.fromCharCode(65 + remainder) + name;
+      value = Math.floor((value - 1) / 26);
+    }
+    return name;
+  };
+  const sheetRows = [columns, ...rows].map((row, rowIndex) => {
+    const cells = row.map((cell, columnIndex) => {
+      const reference = `${columnName(columnIndex)}${rowIndex + 1}`;
+      return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(String(cell ?? ''))}</t></is></c>`;
+    }).join('');
+    return `<row r="${rowIndex + 1}">${cells}</row>`;
+  }).join('');
+  const files = {
+    '[Content_Types].xml': strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'),
+    '_rels/.rels': strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'),
+    'xl/workbook.xml': strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets></workbook>'),
+    'xl/_rels/workbook.xml.rels': strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'),
+    'xl/worksheets/sheet1.xml': strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`),
+  };
+  const blob = new Blob([zipSync(files)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function createPrintableReport(title: string, metrics: ReportMetric[], columns: string[], rows: string[][]) {
+  const cards = metrics.map((metric) => `<div class="metric"><strong>${escapeHtml(metric.value)}</strong><span>${escapeHtml(metric.label)}</span></div>`).join('');
+  const header = columns.map((column) => `<th>${escapeHtml(column)}</th>`).join('');
+  const body = rows.length
+    ? rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${Math.max(columns.length, 1)}">Sin datos disponibles</td></tr>`;
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
+    *{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#17212b;margin:32px;font-size:12px}header{border-bottom:2px solid #264653;padding-bottom:14px;margin-bottom:22px}header img{width:160px;max-height:42px;object-fit:contain;object-position:left}h1{font-size:24px;margin:0 0 6px}p{color:#66727c;margin:0 0 18px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}.metric{border:1px solid #dce3e8;border-radius:6px;padding:12px;display:grid;gap:4px}.metric strong{font-size:21px}.metric span{color:#52616b;font-size:11px}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #e6eaed;vertical-align:top}th{background:#f1f5f7;font-size:10px;text-transform:uppercase}tr:nth-child(even) td{background:#fafbfc}@media print{body{margin:12mm}header{margin-bottom:18px}}
+    </style></head><body><header><img src="/LOGOTIPO_POSITIVO.png" alt="TRIADE"></header><h1>${escapeHtml(title)}</h1><p>${new Date().toLocaleString()}</p><div class="metrics">${cards}</div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+  openReportPreviewModal(html);
+}
+
+const statusLabels = (t: AdminStrings): Record<string, string> => ({
+  pending: t.pending,
+  in_progress: t.inProgress,
+  completed: t.completed,
+  overdue: t.overdue,
+  exempted: t.exempted,
+  cancelled: t.cancelled,
+});
 
 export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData }) {
-  const { courses, team, examAttempts, userCourseReqs } = data;
-  const employeeUsers = team.filter((user) => user.role === 'employee');
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
-  const [workerPickerOpen, setWorkerPickerOpen] = useState(false);
-  const [reportPickerOpen, setReportPickerOpen] = useState(false);
+  const [reportType, setReportType] = useState<ReportType>('compliance');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [courseFilter, setCourseFilter] = useState('all');
+  const statusNames = statusLabels(t);
 
-  const allAttempts = examAttempts.map((a) => {
-    const req = userCourseReqs.find((r) => r.id === a.user_course_requirement_id);
-    const user = team.find((u) => u.id === req?.user_id);
-    const course = courses.find((c) => c.id === req?.course_id);
-    return {
-      userName: user?.full_name ?? '—',
-      courseTitle: course?.title ?? '—',
-      score: a.score,
-      passed: a.passed,
-      attempted_at: a.completed_at ?? a.created_at,
-    };
-  });
+  const requirements = data.userCourseReqs.map((requirement) => {
+    const user = data.team.find((person) => person.id === requirement.user_id);
+    const course = data.courses.find((item) => item.id === requirement.course_id);
+    const role = data.jobRoles.find((item) => item.id === requirement.job_role_id);
+    const department = data.departments.find((item) => item.id === role?.department_id);
+    return { requirement, user, course, role, department };
+  }).filter((record) => record.user?.role === 'employee');
 
-  const selectedEmployee = employeeUsers.find((u) => u.id === selectedEmployeeId) ?? null;
+  const roleOptions = data.jobRoles.filter((role) => requirements.some((record) => record.role?.id === role.id));
+  const activeCourses = data.courses.filter((course) =>
+    data.userCourseReqs.some((requirement) => requirement.course_id === course.id) ||
+    data.examAttempts.some((attempt) => data.userCourseReqs.find((requirement) => requirement.id === attempt.user_course_requirement_id)?.course_id === course.id) ||
+    data.feedback.some((entry) => data.userCourseReqs.find((requirement) => requirement.id === entry.user_course_requirement_id)?.course_id === course.id),
+  );
 
-  const workerAttempts = selectedEmployee
-    ? examAttempts
-        .filter((a) => {
-          const req = userCourseReqs.find((r) => r.id === a.user_course_requirement_id);
-          return req?.user_id === selectedEmployee.id;
-        })
-        .map((a) => {
-          const req = userCourseReqs.find((r) => r.id === a.user_course_requirement_id);
-          const course = courses.find((c) => c.id === req?.course_id);
-          return {
-            userName: selectedEmployee.full_name,
-            courseTitle: course?.title ?? '—',
-            score: a.score,
-            passed: a.passed,
-            attempted_at: a.completed_at ?? a.created_at,
-          };
-        })
-    : [];
+  let columns: string[] = [];
+  let rows: string[][] = [];
+  let metrics: ReportMetric[] = [];
 
-  const completedCourses = selectedEmployee
-    ? userCourseReqs
-        .filter((req) => req.user_id === selectedEmployee.id && req.status === 'completed')
-        .map((req) => ({
-          ...req,
-          course: courses.find((course) => course.id === req.course_id),
-        }))
-        .filter((req) => req.course)
-    : [];
+  if (reportType === 'compliance') {
+    const roleRows = data.jobRoles
+      .filter((role) => roleFilter === 'all' || role.id === roleFilter)
+      .map((role) => {
+        const assigned = requirements.filter((record) => record.role?.id === role.id);
+        const employeeIds = [...new Set(assigned.map((record) => record.user?.id).filter((id): id is string => Boolean(id)))];
+        const completedEmployees = employeeIds.filter((userId) => {
+          const userRequirements = assigned.filter((record) => record.user?.id === userId);
+          return userRequirements.length > 0 && userRequirements.every((record) => record.requirement.status === 'completed');
+        }).length;
+        const completedRequirements = assigned.filter((record) => record.requirement.status === 'completed').length;
+        const percentage = employeeIds.length ? Math.round((completedEmployees / employeeIds.length) * 100) : 0;
+        const department = data.departments.find((item) => item.id === role.department_id)?.name ?? '—';
+        return { role: role.name, department, employees: employeeIds.length, completedEmployees, courses: assigned.length, completedRequirements, percentage };
+      })
+      .filter((row) => row.employees > 0);
+    const enrolledEmployees = new Set(requirements.map((record) => record.user?.id).filter(Boolean)).size;
+    const avgCompliance = roleRows.length ? Math.round(roleRows.reduce((total, row) => total + row.percentage, 0) / roleRows.length) : 0;
+    columns = [t.jobRoleCol, t.departmentCol, t.totalUsers, t.completed, t.assignedCourses, t.completion];
+    rows = roleRows.map((row) => [row.role, row.department, String(row.employees), `${row.completedEmployees}/${row.employees}`, `${row.completedRequirements}/${row.courses}`, `${row.percentage}%`]);
+    metrics = [
+      { label: t.jobRole, value: roleRows.length, icon: Users, tone: 'g1' },
+      { label: t.activeUsers, value: enrolledEmployees, icon: Users, tone: 'g2' },
+      { label: t.assignedCourses, value: requirements.length, icon: BookOpen, tone: 'g3' },
+      { label: t.completion, value: `${avgCompliance}%`, icon: BarChart3, tone: 'g4' },
+    ];
+  } else if (reportType === 'progress') {
+    const visible = requirements.filter(({ requirement, role, department }) =>
+      (roleFilter === 'all' || role?.id === roleFilter) &&
+      (departmentFilter === 'all' || department?.id === departmentFilter) &&
+      (statusFilter === 'all' || requirement.status === statusFilter),
+    );
+    columns = [t.user, t.courseName, t.jobRoleCol, t.departmentCol, t.progressCol, t.status, t.lastAccessed];
+    rows = visible.map(({ requirement, user, course, role, department }) => [
+      user?.full_name ?? '—', course?.title ?? '—', role?.name ?? '—', department?.name ?? '—',
+      `${Math.round(requirement.progress_percent ?? 0)}%`, statusNames[requirement.status] ?? requirement.status,
+      requirement.last_accessed_at ? new Date(requirement.last_accessed_at).toLocaleDateString() : '—',
+    ]);
+    const averageProgress = visible.length ? Math.round(visible.reduce((total, record) => total + (record.requirement.progress_percent ?? 0), 0) / visible.length) : 0;
+    const completed = visible.filter((record) => record.requirement.status === 'completed').length;
+    metrics = [
+      { label: t.totalUsers, value: new Set(visible.map((record) => record.user?.id).filter(Boolean)).size, icon: Users, tone: 'g1' },
+      { label: t.assignedCourses, value: visible.length, icon: BookOpen, tone: 'g2' },
+      { label: t.completed, value: completed, icon: Star, tone: 'g3' },
+      { label: t.avgScore, value: `${averageProgress}%`, icon: BarChart3, tone: 'g4' },
+    ];
+  } else if (reportType === 'exams') {
+    const attemptsByCourse = new Map<string, typeof data.examAttempts>();
+    for (const attempt of data.examAttempts) {
+      const courseId = data.userCourseReqs.find((requirement) => requirement.id === attempt.user_course_requirement_id)?.course_id;
+      if (!courseId || (courseFilter !== 'all' && courseId !== courseFilter)) continue;
+      const existing = attemptsByCourse.get(courseId) ?? [];
+      existing.push(attempt);
+      attemptsByCourse.set(courseId, existing);
+    }
+    const examRows = [...attemptsByCourse.entries()].map(([courseId, attempts]) => {
+      const course = data.courses.find((item) => item.id === courseId);
+      const passed = attempts.filter((attempt) => attempt.passed).length;
+      const average = attempts.length ? Math.round(attempts.reduce((sum, attempt) => sum + attempt.score, 0) / attempts.length) : 0;
+      return { course: course?.title ?? '—', attempts: attempts.length, passed, failed: attempts.length - passed, rate: Math.round((passed / attempts.length) * 100), average };
+    }).sort((left, right) => left.course.localeCompare(right.course));
+    const total = examRows.reduce((sum, row) => sum + row.attempts, 0);
+    const passed = examRows.reduce((sum, row) => sum + row.passed, 0);
+    const average = total ? Math.round(data.examAttempts.filter((attempt) => {
+      const courseId = data.userCourseReqs.find((requirement) => requirement.id === attempt.user_course_requirement_id)?.course_id;
+      return courseFilter === 'all' || courseId === courseFilter;
+    }).reduce((sum, attempt) => sum + attempt.score, 0) / total) : 0;
+    columns = [t.courseName, t.totalExams, t.passed, t.failed, t.passRate, t.avgScore];
+    rows = examRows.map((row) => [row.course, String(row.attempts), String(row.passed), String(row.failed), `${row.rate}%`, `${row.average}%`]);
+    metrics = [
+      { label: t.totalExams, value: total, icon: FileText, tone: 'g1' },
+      { label: t.passed, value: passed, icon: Star, tone: 'g2' },
+      { label: t.passRate, value: total ? `${Math.round((passed / total) * 100)}%` : '0%', icon: BarChart3, tone: 'g3' },
+      { label: t.avgScore, value: `${average}%`, icon: BarChart3, tone: 'g4' },
+    ];
+  } else {
+    const feedbackByCourse = new Map<string, typeof data.feedback>();
+    for (const entry of data.feedback) {
+      const courseId = data.userCourseReqs.find((requirement) => requirement.id === entry.user_course_requirement_id)?.course_id;
+      if (!courseId || (courseFilter !== 'all' && courseId !== courseFilter)) continue;
+      const existing = feedbackByCourse.get(courseId) ?? [];
+      existing.push(entry);
+      feedbackByCourse.set(courseId, existing);
+    }
+    const feedbackRows = [...feedbackByCourse.entries()].map(([courseId, entries]) => {
+      const course = data.courses.find((item) => item.id === courseId);
+      const average = entries.reduce((sum, entry) => sum + entry.rating, 0) / entries.length;
+      const recommendations = entries.filter((entry) => entry.would_recommend === true).length;
+      const difficult = entries.filter((entry) => entry.difficulty_level === 'hard' || entry.difficulty_level === 'very_hard').length;
+      return { course: course?.title ?? '—', count: entries.length, average: average.toFixed(1), recommendations, recommendationRate: Math.round((recommendations / entries.length) * 100), difficult, difficultyRate: Math.round((difficult / entries.length) * 100) };
+    }).sort((left, right) => left.course.localeCompare(right.course));
+    const total = feedbackRows.reduce((sum, row) => sum + row.count, 0);
+    const average = total ? (data.feedback.filter((entry) => {
+      const courseId = data.userCourseReqs.find((requirement) => requirement.id === entry.user_course_requirement_id)?.course_id;
+      return courseFilter === 'all' || courseId === courseFilter;
+    }).reduce((sum, entry) => sum + entry.rating, 0) / total).toFixed(1) : '0.0';
+    const recommendations = feedbackRows.reduce((sum, row) => sum + row.recommendations, 0);
+    columns = [t.courseName, t.totalFeedback, t.rating, t.recommend, t.difficulty];
+    rows = feedbackRows.map((row) => [row.course, String(row.count), `${row.average}/5`, `${row.recommendations} (${row.recommendationRate}%)`, `${row.difficult} (${row.difficultyRate}%)`]);
+    metrics = [
+      { label: t.totalFeedback, value: total, icon: Star, tone: 'g1' },
+      { label: t.avgScore, value: `${average}/5`, icon: BarChart3, tone: 'g2' },
+      { label: t.recommend, value: total ? `${Math.round((recommendations / total) * 100)}%` : '0%', icon: Users, tone: 'g3' },
+      { label: t.courseName, value: feedbackRows.length, icon: BookOpen, tone: 'g4' },
+    ];
+  }
 
-  const employeeFailedAttempts = selectedEmployee
-    ? userCourseReqs
-        .filter((req) => req.user_id === selectedEmployee.id)
-        .map((req) => {
-          const course = courses.find((course) => course.id === req.course_id);
-          const attempts = examAttempts.filter((attempt) => attempt.user_course_requirement_id === req.id);
-          return {
-            id: req.id,
-            courseTitle: course?.title ?? 'Curso sin nombre',
-            failedAttempts: attempts.filter((attempt) => !attempt.passed),
-          };
-        })
-        .filter((item) => item.failedAttempts.length > 0)
-    : [];
-
-  const examReportOpts = [
-    { value: 'byWorker', label: t.reportByWorker },
+  const reportTitles: Record<ReportType, string> = {
+    compliance: t.complianceReport,
+    progress: t.progressReport,
+    exams: t.examResults,
+    feedback: t.feedbackReport,
+  };
+  const fileStem = reportType === 'compliance' ? 'cumplimiento' : reportType === 'progress' ? 'progreso' : reportType === 'exams' ? 'examenes' : 'feedback';
+  const tabs: { id: ReportType; label: string }[] = [
+    { id: 'compliance', label: t.complianceReport },
+    { id: 'progress', label: t.progressReport },
+    { id: 'exams', label: t.examResults },
+    { id: 'feedback', label: t.feedbackReport },
   ];
 
-  const exportWorkerReport = (workerId: string) => {
-      const worker = employeeUsers.find((u) => u.id === workerId);
-      if (!worker) return;
-      const attempts = examAttempts
-        .filter((a) => {
-          const req = userCourseReqs.find((r) => r.id === a.user_course_requirement_id);
-          return req?.user_id === worker.id;
-        })
-        .map((a) => {
-          const req = userCourseReqs.find((r) => r.id === a.user_course_requirement_id);
-          const course = courses.find((c) => c.id === req?.course_id);
-          return {
-            userName: worker.full_name,
-            courseTitle: course?.title ?? '—',
-            score: a.score,
-            passed: a.passed,
-            attempted_at: a.completed_at ?? a.created_at,
-          };
-        });
-      exportExamResultsReport({ attempts, scope: 'byWorker', filterLabel: worker.full_name });
-  };
+  const exportExcel = () => downloadXlsx(`reporte-${fileStem}.xlsx`, columns, rows);
+  const exportCsv = () => downloadCsv(`reporte-${fileStem}.csv`, columns, rows);
+  const exportPdf = () => createPrintableReport(reportTitles[reportType], metrics, columns, rows);
 
   return (
     <div className="page animate-in">
       <div className="page-heading">
-        <div><p className="eyebrow">REPORTES</p><h1>{t.examResults}</h1><p className="muted">{t.reportsDesc}</p></div>
-        <ReportDropdown label={t.reportExamResults} options={examReportOpts} onSelect={() => setReportPickerOpen(true)} />
-      </div>
-
-      {reportPickerOpen && (
-        <SelectionModal
-          eyebrow={t.reportExamResults}
-          title="Seleccionar trabajador"
-          options={employeeUsers.map((u) => ({ value: u.id, label: u.full_name }))}
-          selectedValue=""
-          searchPlaceholder="Buscar trabajador"
-          onSelect={(value) => { setReportPickerOpen(false); exportWorkerReport(value); }}
-          onClose={() => setReportPickerOpen(false)}
-        />
-      )}
-      {workerPickerOpen && (
-        <SelectionModal
-          eyebrow={t.user}
-          title="Seleccionar trabajador"
-          options={[{ value: '', label: t.allWorkers }, ...employeeUsers.map((u) => ({ value: u.id, label: u.full_name }))]}
-          selectedValue={selectedEmployeeId}
-          searchPlaceholder="Buscar trabajador"
-          onSelect={(value) => { setSelectedEmployeeId(value); setWorkerPickerOpen(false); }}
-          onClose={() => setWorkerPickerOpen(false)}
-        />
-      )}
-
-      <div className="section-card">
-        <div className="section-title">
-          <div>
-            <h2>{t.examResults}</h2>
-            <p className="muted">{employeeUsers.length} {t.teamMembers.toLowerCase()}</p>
-          </div>
+        <div><p className="eyebrow">{t.reports}</p><h1>{t.reports}</h1><p className="muted">{t.reportsDesc}</p></div>
+        <div className="report-export-actions">
+          <button type="button" className="outline-button" onClick={exportExcel} disabled={rows.length === 0}><Download size={16} />{t.exportExcel}</button>
+          <button type="button" className="primary-button" onClick={exportPdf} disabled={rows.length === 0}><FileText size={16} />{t.exportPdf}</button>
+          <button type="button" className="outline-button" onClick={exportCsv} disabled={rows.length === 0}><Download size={16} />{t.exportCsv}</button>
         </div>
-
-        {employeeUsers.length === 0 ? <p className="muted" style={{ padding: '20px 0' }}>{t.noData}</p> : (
-          <div style={{ display: 'grid', gap: 18 }}>
-            <div className="field-group field-group-full">
-              <label>{t.user}</label>
-              <button type="button" className="selection-trigger" onClick={() => setWorkerPickerOpen(true)}>
-                <span>{selectedEmployee?.full_name ?? t.allWorkers}</span>
-                <Users size={16} />
-              </button>
-            </div>
-
-            {!selectedEmployeeId ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-                  <strong>{t.allWorkers}</strong>
-                  <span className="meta-tag">{allAttempts.length} {t.totalExams.toLowerCase()}</span>
-                </div>
-                {allAttempts.length === 0 ? (
-                  <p className="muted">{t.noData}</p>
-                ) : (
-                  <PaginatedList items={allAttempts}>{(pageAttempts) => <div className="admin-list-stack">
-                    {pageAttempts.map((a, i) => (
-                      <div key={i} className="admin-course-row">
-                        <div className="course-icon gray-2"><FileText size={18} /></div>
-                        <div className="course-row-info">
-                          <strong>{a.userName}</strong>
-                          <small>{a.courseTitle} · {a.score !== null ? `${a.score}%` : '—'}</small>
-                        </div>
-                        <span className={`status-badge ${a.passed ? 'active' : 'inactive'}`}>{a.passed ? t.passed : t.failed}</span>
-                      </div>
-                    ))}
-                  </div>}</PaginatedList>
-                )}
-              </div>
-            ) : selectedEmployee ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-                  <strong>{selectedEmployee.full_name}</strong>
-                  <span className="meta-tag">{completedCourses.length} {t.completed.toLowerCase()}</span>
-                </div>
-
-                {completedCourses.length === 0 ? (
-                  <p className="muted">{t.noData}</p>
-                ) : (
-                  <PaginatedList items={completedCourses}>{(pageCompletedCourses) => <div className="admin-list-stack">
-                    {pageCompletedCourses.map((req) => (
-                      <div key={req.id} className="admin-course-row">
-                        <div className="course-icon gray-2"><FileText size={18} /></div>
-                        <div className="course-row-info">
-                          <strong>{req.course?.title ?? 'Curso sin nombre'}</strong>
-                          <small>{req.completed_at ? new Date(req.completed_at).toLocaleDateString() : '—'}</small>
-                        </div>
-                        <span className="status-badge active">{t.completed}</span>
-                      </div>
-                    ))}
-                  </div>}</PaginatedList>
-                )}
-
-                {workerAttempts.length > 0 && (
-                  <div style={{ marginTop: 22 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-                      <strong>{t.examResults}</strong>
-                      <span className="meta-tag">{workerAttempts.length} {t.totalExams.toLowerCase()}</span>
-                    </div>
-                    <PaginatedList items={workerAttempts}>{(pageWorkerAttempts) => <div className="admin-list-stack">
-                      {pageWorkerAttempts.map((a, i) => (
-                        <div key={i} className="admin-course-row">
-                          <div className="course-icon gray-2">{a.passed ? <FileText size={18} /> : <AlertCircle size={18} />}</div>
-                          <div className="course-row-info">
-                            <strong>{a.courseTitle}</strong>
-                            <small>{a.score !== null ? `${a.score}%` : '—'}</small>
-                          </div>
-                          <span className={`status-badge ${a.passed ? 'active' : 'inactive'}`}>{a.passed ? t.passed : t.failed}</span>
-                        </div>
-                      ))}
-                    </div>}</PaginatedList>
-                  </div>
-                )}
-
-                {employeeFailedAttempts.length > 0 && (
-                  <div style={{ marginTop: 22 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-                      <strong>Intentos fallidos</strong>
-                      <span className="meta-tag">{employeeFailedAttempts.reduce((total, item) => total + item.failedAttempts.length, 0)} total</span>
-                    </div>
-                    <PaginatedList items={employeeFailedAttempts}>{(pageFailed) => <div className="admin-list-stack">
-                      {pageFailed.map((item) => (
-                        <div key={item.id} className="admin-course-row">
-                          <div className="course-icon gray-2"><AlertCircle size={18} /></div>
-                          <div className="course-row-info">
-                            <strong>{item.courseTitle}</strong>
-                            <small>{item.failedAttempts.length} intento(s) fallido(s)</small>
-                          </div>
-                          <span className="status-badge inactive">{item.failedAttempts.length}</span>
-                        </div>
-                      ))}
-                    </div>}</PaginatedList>
-                  </div>
-                )}
-              </div>
-            ) : <p className="muted">{t.noData}</p>}
-          </div>
-        )}
       </div>
+
+      <div className="admin-tabs report-tabs" role="tablist" aria-label={t.reports}>
+        {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={reportType === tab.id} className={reportType === tab.id ? 'admin-tab active' : 'admin-tab'} onClick={() => setReportType(tab.id)}>{tab.label}</button>)}
+      </div>
+
+      <div className="reports-filter-row">
+        {reportType === 'compliance' && (
+          <label className="field-group"><span>{t.jobRole}</span><select className="auth-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">{t.allRoles}</option>{roleOptions.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+        )}
+        {reportType === 'progress' && <>
+          <label className="field-group"><span>{t.jobRole}</span><select className="auth-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">{t.allRoles}</option>{roleOptions.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+          <label className="field-group"><span>{t.department}</span><select className="auth-input" value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}><option value="all">{t.allDepts}</option>{data.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
+          <label className="field-group"><span>{t.status}</span><select className="auth-input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">{t.allStatuses}</option>{Object.entries(statusNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        </>}
+        {(reportType === 'exams' || reportType === 'feedback') && <label className="field-group"><span>{t.courseName}</span><select className="auth-input" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option value="all">{t.allCourses}</option>{activeCourses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</select></label>}
+      </div>
+
+      <div className="stats-grid reports-metrics-grid">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return <div key={metric.label} className="stat-card"><div className={`stat-icon ${metric.tone}`}><Icon size={18} /></div><div><strong>{metric.value}</strong><span>{metric.label}</span></div></div>;
+        })}
+      </div>
+
+      <section className="section-card reports-table-section">
+        <div className="section-title"><div><h2>{reportTitles[reportType]}</h2><p className="muted">{rows.length} {t.resultsCount}</p></div></div>
+        {rows.length === 0 ? <div className="empty-state"><BarChart3 size={28} /><h3>{t.noData}</h3></div> : (
+          <div className="reports-table-scroll"><table className="reports-table"><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>
+            {rows.map((row, index) => <tr key={`${reportType}-${index}`}>{row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}</tr>)}
+          </tbody></table></div>
+        )}
+      </section>
     </div>
   );
 }

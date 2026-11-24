@@ -342,4 +342,7 @@ export type AdminStrings = {
   reportSingleCourse: string;
   generatePdf: string;
   allWorkers: string;
+  allCourses: string;
+  lastAccessed: string;
+  resultsCount: string;
 };

@@ -665,6 +665,20 @@ html.dark .form-actions-row .primary-button:active{background:#ffffff !important
 .selection-trigger:hover{border-color:var(--primary)}
 .selection-trigger.invalid{border-color:#dc2626}
 .selection-trigger small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+.report-export-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.report-tabs{overflow-x:auto;flex-wrap:nowrap}
+.report-tabs .admin-tab{white-space:nowrap;flex:0 0 auto}
+.reports-filter-row{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+.reports-filter-row .field-group{flex:1 1 190px;min-width:170px}
+.reports-filter-row .field-group>span{font-size:12px;font-weight:700;color:var(--muted)}
+.reports-metrics-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}
+.reports-table-section{min-width:0}
+.reports-table-scroll{width:100%;overflow-x:auto}
+.reports-table{width:100%;min-width:680px;border-collapse:collapse;text-align:left;font-size:12px}
+.reports-table th{padding:11px 12px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.reports-table td{padding:12px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top}
+.reports-table tbody tr:hover td{background:var(--surface-2)}
+@media(max-width:720px){.reports-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.report-export-actions{width:100%}.report-export-actions button{flex:1}}
 .notification-type-current{display:flex;align-items:center;gap:8px}
 
 /* STATUS BADGE */

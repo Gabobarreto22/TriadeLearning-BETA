@@ -7,7 +7,7 @@ import { adminPaths, employeePaths } from '@/lib/routes';
 import { AuthPage } from '@/pages/AuthPage';
 import {
   AdminAuditPage, AdminCertificationsPage, AdminCoursesPage, AdminDashboardPage, AdminDocumentationPage,
-  AdminFeedbackPage, AdminNotificationsPage, AdminPersonnelPage, AdminReportsPage,
+  AdminExamResultsPage, AdminFeedbackPage, AdminNotificationsPage, AdminPersonnelPage, AdminReportsPage,
 } from '@/pages/admin/AdminPages';
 import {
   CalendarPage, CatalogPage, CertificatesPage, CoursePlayerPage, DashboardPage, DocumentationPage,
@@ -31,6 +31,7 @@ export default function App() {
         <Route path={adminPaths.feedback} element={<AdminFeedbackPage />} />
         <Route path={adminPaths.notifications} element={<AdminNotificationsPage />} />
         <Route path={adminPaths.reports} element={<AdminReportsPage />} />
+        <Route path={adminPaths.examResults} element={<AdminExamResultsPage />} />
         <Route path={adminPaths.audit} element={<AdminAuditPage />} />
         <Route path={adminPaths.documentation} element={<AdminDocumentationPage />} />
         <Route path="*" element={<Navigate to={adminPaths.dashboard} replace />} />
