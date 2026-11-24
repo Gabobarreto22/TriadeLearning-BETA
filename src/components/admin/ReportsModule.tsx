@@ -159,7 +159,8 @@ export function ReportsModule({ t, data }: { t: AdminStrings; data: AdminData })
       { label: t.assignmentCompletion, value: `${assignmentCompletion}%`, icon: BarChart3, tone: 'g4' },
     ];
   } else if (reportType === 'progress') {
-    const visible = requirements.filter(({ requirement, role }) =>
+    const visible = requirements.filter(({ requirement, course, role }) =>
+      Boolean(role && requirement.job_role_id === role.id && course?.assignments.some((assignment) => assignment.job_role_id === role.id)) &&
       (roleFilter === 'all' || role?.id === roleFilter) &&
       (workerFilter === 'all' || requirement.user_id === workerFilter) &&
       (statusFilter === 'all' || requirement.status === statusFilter),
