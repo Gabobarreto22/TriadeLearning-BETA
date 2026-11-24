@@ -247,6 +247,7 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [jobRolePickerOpen, setJobRolePickerOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -414,13 +415,10 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
             <div className="field-group"><label>Teléfono</label><input className={`auth-input${telefonoError ? ' invalid' : ''}`} value={telefono} onChange={(e) => { setTelefono(e.target.value); validation.touch('telefono'); }} onBlur={() => validation.touch('telefono')} aria-invalid={Boolean(telefonoError)} aria-describedby={telefonoError ? 'employee-telefono-error' : undefined} />{telefonoError && <small className="auth-field-error" id="employee-telefono-error">{telefonoError}</small>}</div>
             <div className="field-group field-group-full"><label>Dirección</label><input className={`auth-input${direccionError ? ' invalid' : ''}`} value={direccion} onChange={(e) => { setDireccion(e.target.value); validation.touch('direccion'); }} onBlur={() => validation.touch('direccion')} aria-invalid={Boolean(direccionError)} aria-describedby={direccionError ? 'employee-direccion-error' : undefined} />{direccionError && <small className="auth-field-error" id="employee-direccion-error">{direccionError}</small>}</div>
             <div className="field-group field-group-full"><label>{t.jobRole}</label>
-              <select className={`auth-input${jobRoleError ? ' invalid' : ''}`} value={jobRoleId} onChange={(e) => { setJobRoleId(e.target.value); validation.touch('jobRole'); }} onBlur={() => validation.touch('jobRole')} aria-invalid={Boolean(jobRoleError)} aria-describedby={jobRoleError ? 'employee-role-error' : undefined}>
-                <option value="">{t.selectRole}</option>
-                {jobRoles.map((r) => {
-                  const dept = departments.find((d) => d.id === r.department_id)?.name;
-                  return <option key={r.id} value={r.id}>{dept ? `${r.name} · ${dept}` : r.name}</option>;
-                })}
-              </select>
+              <button type="button" className={`selection-trigger${jobRoleError ? ' invalid' : ''}`} onClick={() => { validation.touch('jobRole'); setJobRolePickerOpen(true); }} aria-invalid={Boolean(jobRoleError)} aria-describedby={jobRoleError ? 'employee-role-error' : undefined}>
+                <span>{getJobRoleName(jobRoleId) || t.selectRole}</span>
+                <Briefcase size={16} />
+              </button>
               {jobRoleError && <small className="auth-field-error" id="employee-role-error">{jobRoleError}</small>}
             </div>
             <UserPhotoField value={avatarUrl} uploading={photoUploading} onTouch={() => validation.touch('avatar')} error={photoError || undefined} onClear={() => setAvatarUrl(null)} onChange={async (file) => {
@@ -441,6 +439,21 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
           </div>
         </div>
       </div></div>, document.body)}
+      {jobRolePickerOpen && (
+        <SelectionModal
+          eyebrow={t.personnelTabs.employees}
+          title="Seleccionar cargo"
+          options={jobRoles.map((role) => ({
+            value: role.id,
+            label: role.name,
+            hint: departments.find((department) => department.id === role.department_id)?.name,
+          }))}
+          selectedValue={jobRoleId}
+          searchPlaceholder="Buscar cargo"
+          onSelect={(value) => { setJobRoleId(value); validation.touch('jobRole'); setJobRolePickerOpen(false); }}
+          onClose={() => setJobRolePickerOpen(false)}
+        />
+      )}
 
       {changeRoleUser && createPortal(<div className="modal-backdrop" onClick={() => setChangeRoleUser(null)}><div className="course-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setChangeRoleUser(null)}><X size={19} /></button>
@@ -843,6 +856,7 @@ function RolesTab({ t, jobRoles, totalCount, departments, courses, onRefresh }: 
   onRefresh: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [departmentPickerOpen, setDepartmentPickerOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [deptId, setDeptId] = useState('');
@@ -889,10 +903,10 @@ function RolesTab({ t, jobRoles, totalCount, departments, courses, onRefresh }: 
           <div className="modal-form-grid" style={{ marginTop: 10 }}>
             <div className="field-group"><label>{t.roleName}</label><input className={`auth-input${nameError ? ' invalid' : ''}`} value={name} onChange={(e) => { setName(e.target.value); validation.touch('name'); }} onBlur={() => validation.touch('name')} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'job-role-name-error' : undefined} />{nameError && <small className="auth-field-error" id="job-role-name-error">{nameError}</small>}</div>
             <div className="field-group"><label>{t.department}</label>
-              <select className="auth-input" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
-                <option value="">{t.selectDepartment}</option>
-                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
+              <button type="button" className="selection-trigger" onClick={() => setDepartmentPickerOpen(true)}>
+                <span>{departments.find((department) => department.id === deptId)?.name ?? t.selectDepartment}</span>
+                <Building2 size={16} />
+              </button>
             </div>
             <div className="field-group field-group-full"><label>{t.roleDescription}</label><textarea className="auth-input" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} /></div>
           </div>
@@ -902,6 +916,17 @@ function RolesTab({ t, jobRoles, totalCount, departments, courses, onRefresh }: 
           </div>
         </div>
       </div></div>, document.body)}
+      {departmentPickerOpen && (
+        <SelectionModal
+          eyebrow={t.personnelTabs.roles}
+          title="Seleccionar departamento"
+          options={[{ value: '', label: 'Sin departamento' }, ...departments.map((department) => ({ value: department.id, label: department.name }))]}
+          selectedValue={deptId}
+          searchPlaceholder="Buscar departamento"
+          onSelect={(value) => { setDeptId(value); setDepartmentPickerOpen(false); }}
+          onClose={() => setDepartmentPickerOpen(false)}
+        />
+      )}
 
       {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
