@@ -37,10 +37,10 @@ Deno.serve(async (req: Request) => {
 
     const { data: adminProfile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_active")
       .eq("id", userData.user.id)
-      .single();
-    if (adminProfile?.role !== "admin") {
+      .maybeSingle();
+    if (adminProfile?.role !== "admin" || !adminProfile.is_active) {
       return new Response(JSON.stringify({ error: "Admin access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
       ban_duration: isActive ? "none" : PERMANENT_BAN,
     });
     if (authError) {
-      return new Response(JSON.stringify({ error: authError.message }), {
+      return new Response(JSON.stringify({ error: "No se pudo actualizar el estado del usuario" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
       await supabase.auth.admin.updateUserById(userId, {
         ban_duration: isActive ? PERMANENT_BAN : "none",
       });
-      return new Response(JSON.stringify({ error: profileError.message }), {
+      return new Response(JSON.stringify({ error: "No se pudo actualizar el estado del usuario" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,8 +91,8 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ success: true, is_active: isActive }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+  } catch {
+    return new Response(JSON.stringify({ error: "No se pudo actualizar el estado del usuario" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

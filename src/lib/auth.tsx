@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        loadProfile(data.session.user.id);
+        void loadProfile(data.session.user.id);
       } else {
         setLoading(false);
       }
@@ -35,7 +35,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })();
     });
 
-    return () => listener.subscription.unsubscribe();
+    const checkActiveSession = () => {
+      void supabase.auth.getUser().then(({ data }) => {
+        if (data.user) void loadProfile(data.user.id);
+      });
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkActiveSession();
+    };
+    const sessionCheck = window.setInterval(checkActiveSession, 30000);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      listener.subscription.unsubscribe();
+      window.clearInterval(sessionCheck);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   async function loadProfile(userId: string) {
@@ -45,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', userId)
       .maybeSingle();
     if (error || !data) {
+      await supabase.auth.signOut();
       setProfile(null);
     } else if (!data.is_active) {
       await supabase.auth.signOut();
@@ -60,8 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error?.message ?? null };
     if (data.user) {
-      const { data: prof } = await supabase.from('profiles').select('is_active').eq('id', data.user.id).maybeSingle();
-      if (prof && !prof.is_active) {
+      const { data: prof, error: profileError } = await supabase.from('profiles').select('is_active').eq('id', data.user.id).maybeSingle();
+      if (profileError) {
+        await supabase.auth.signOut();
+        return { error: 'No se pudo validar el estado de tu cuenta.' };
+      }
+      if (!prof) {
+        await supabase.auth.signOut();
+        return { error: 'No se pudo validar el estado de tu cuenta.' };
+      }
+      if (!prof.is_active) {
         await supabase.auth.signOut();
         return { error: 'Tu cuenta está deshabilitada. Contacta al administrador.' };
       }
