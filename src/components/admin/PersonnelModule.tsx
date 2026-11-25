@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Briefcase, Building2, History, Plus, Settings, ShieldCheck, Trash2, Users, X, AlertCircle, BookOpen } from 'lucide-react';
+import { Briefcase, Building2, History, Plus, Power, Settings, ShieldCheck, Trash2, Users, X, AlertCircle, BookOpen } from 'lucide-react';
 import { supabase, type Profile, type JobRole, type Department, type CourseWithRelations, type UserJobRoleHistory } from '@/lib/supabase';
 import { uploadToImageKit } from '@/lib/imagekit';
 import {
   createDepartment, updateDepartment, deleteDepartment,
   createJobRole, updateJobRole, deleteJobRole,
-  updateProfile, deleteProfile,
+  updateProfile, setUserStatus,
   fetchUserJobRoleHistory, changeUserRole,
   fetchUserCourseRequirementsForUser, fetchCertificatesForUser, fetchRoleCertificationsForUser, fetchUserBadgesForUser,
 } from '@/lib/data';
@@ -16,6 +16,7 @@ import { PaginatedList } from '../PaginatedList';
 import { ReportDropdown } from './ReportDropdown';
 import { SelectionModal } from './SelectionModal';
 import { SearchBar, filterByText } from './SearchBar';
+import { FilterSelect } from './FilterSelect';
 import { exportPersonnelReport } from '@/lib/pdfReport';
 
 function useLiveFieldValidation() {
@@ -259,8 +260,9 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
   const [saving, setSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [disableConfirm, setDisableConfirm] = useState<Profile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [changeRoleUser, setChangeRoleUser] = useState<Profile | null>(null);
   const [changeReason, setChangeReason] = useState('');
   const [newRoleId, setNewRoleId] = useState('');
@@ -276,6 +278,14 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
   const { toast } = useToast();
   const validation = useLiveFieldValidation();
   const selectedEmployeeId = selectedEmployee?.id;
+  const visibleTeam = statusFilter === 'all' ? team : team.filter((m) => (statusFilter === 'active' ? m.is_active : !m.is_active));
+
+  const handleToggleStatus = async (m: Profile) => {
+    const { error: err } = await setUserStatus(m.id, !m.is_active);
+    if (err) { toast(err, 'error'); return; }
+    toast(m.is_active ? t.userDisabled : t.userEnabled, 'success');
+    onRefresh();
+  };
   const emailError = validation.error('email', email, !email.trim() ? 'El correo es obligatorio.' : !editingUser && !isValidEmail(email) ? 'Ingresa un correo válido.' : null);
   const nameError = validation.error('name', name, name.trim() ? null : 'El nombre es obligatorio.');
   const cedulaError = validation.error('cedula', cedula, cedula.trim() ? null : 'La cédula es obligatoria.');
@@ -482,11 +492,11 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
         </div>
       </div></div>, document.body)}
 
-      {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="exit-warning-icon"><Trash2 size={40} /></div>
+      {disableConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDisableConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="exit-warning-icon"><Power size={40} /></div>
         <h2>{t.deleteUserConfirm}</h2>
-        <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); const { error: deleteError } = await deleteProfile(deleteConfirm); setDeleting(false); if (deleteError) { toast(deleteError, 'error'); return; } setDeleteConfirm(null); toast('Usuario eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
+        <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDisableConfirm(null)}>{t.cancel}</button>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); const { error: statusError } = await setUserStatus(disableConfirm.id, false); setDeleting(false); if (statusError) { toast(statusError, 'error'); return; } setDisableConfirm(null); toast(t.userDisabled, 'success'); onRefresh(); }}>{deleting ? t.loading : t.disableUser}</button></div>
       </div></div>, document.body)}
 
       {selectedEmployee && createPortal(<div className="modal-backdrop" onClick={() => setSelectedEmployee(null)}><div className="course-modal" style={{ maxWidth: 980, width: '90vw', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
@@ -586,8 +596,13 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
         </div>
       </div></div>, document.body)}
 
-      {team.length === 0 ? <div className="empty-state"><Users size={30} /><h3>{t.noTeam}</h3></div> :
-      <PaginatedList items={team}>{(pageTeam) => <div className="team-table">{pageTeam.map((m) => (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <div style={{ minWidth: 220 }}>
+          <FilterSelect label={t.statusFilter} value={statusFilter} onChange={(value) => setStatusFilter(value as 'all' | 'active' | 'inactive')} placeholder="" options={[{ value: 'all', label: t.allStatusesFilter }, { value: 'active', label: t.active }, { value: 'inactive', label: t.inactive }]} />
+        </div>
+      </div>
+      {visibleTeam.length === 0 ? <div className="empty-state"><Users size={30} /><h3>{t.noTeam}</h3></div> :
+      <PaginatedList items={visibleTeam}>{(pageTeam) => <div className="team-table">{pageTeam.map((m) => (
         <div key={m.id} className="admin-team-row" onClick={() => setSelectedEmployee(m)} style={{ cursor: 'pointer' }}>
           <div className="avatar avatar-small">{m.full_name.slice(0, 2).toUpperCase()}</div>
           <div>
@@ -599,7 +614,7 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
             <button className="icon-button" onClick={() => setSelectedEmployee(m)} title="Ver resumen"><Users size={16} /></button>
             <button className="icon-button" onClick={() => startEdit(m)} title={t.editUser}><Settings size={16} /></button>
             <button className="icon-button" onClick={() => setChangeRoleUser(m)} title={t.changeRole}><Briefcase size={16} /></button>
-            <button className="icon-button" onClick={() => setDeleteConfirm(m.id)} title={t.delete}><Trash2 size={16} /></button>
+            <button className="icon-button" onClick={() => (m.is_active ? setDisableConfirm(m) : handleToggleStatus(m))} title={m.is_active ? t.disableUser : t.enableUser}><Power size={16} /></button>
           </div>
         </div>
       ))}</div>}</PaginatedList>}
@@ -627,8 +642,17 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
   const [saving, setSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [disableConfirm, setDisableConfirm] = useState<Profile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const visibleTeam = statusFilter === 'all' ? team : team.filter((m) => (statusFilter === 'active' ? m.is_active : !m.is_active));
+
+  const handleToggleStatus = async (m: Profile) => {
+    const { error: err } = await setUserStatus(m.id, !m.is_active);
+    if (err) { toast(err, 'error'); return; }
+    toast(m.is_active ? t.userDisabled : t.userEnabled, 'success');
+    onRefresh();
+  };
   const { toast } = useToast();
   const validation = useLiveFieldValidation();
   const nameError = validation.error('name', name, name.trim() ? null : 'El nombre es obligatorio.');
@@ -735,15 +759,20 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
         </div>
       </div></div>, document.body)}
 
-      {deleteConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="exit-warning-icon"><Trash2 size={40} /></div>
+      {disableConfirm && createPortal(<div className="modal-backdrop" onClick={() => setDisableConfirm(null)}><div className="exit-warning-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="exit-warning-icon"><Power size={40} /></div>
         <h2>{t.deleteAdminConfirm}</h2>
-        <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); const { error: deleteError } = await deleteProfile(deleteConfirm); setDeleting(false); if (deleteError) { toast(deleteError, 'error'); return; } setDeleteConfirm(null); toast('Administrador eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
+        <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDisableConfirm(null)}>{t.cancel}</button>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); const { error: statusError } = await setUserStatus(disableConfirm.id, false); setDeleting(false); if (statusError) { toast(statusError, 'error'); return; } setDisableConfirm(null); toast(t.userDisabled, 'success'); onRefresh(); }}>{deleting ? t.loading : t.disableUser}</button></div>
       </div></div>, document.body)}
 
-      {team.length === 0 ? <div className="empty-state"><Settings size={30} /><h3>{t.noAdmins}</h3></div> :
-      <PaginatedList items={team}>{(pageTeam) => <div className="team-table">{pageTeam.map((m) => (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <div style={{ minWidth: 220 }}>
+          <FilterSelect label={t.statusFilter} value={statusFilter} onChange={(value) => setStatusFilter(value as 'all' | 'active' | 'inactive')} placeholder="" options={[{ value: 'all', label: t.allStatusesFilter }, { value: 'active', label: t.active }, { value: 'inactive', label: t.inactive }]} />
+        </div>
+      </div>
+      {visibleTeam.length === 0 ? <div className="empty-state"><Settings size={30} /><h3>{t.noAdmins}</h3></div> :
+      <PaginatedList items={visibleTeam}>{(pageTeam) => <div className="team-table">{pageTeam.map((m) => (
         <div key={m.id} className="admin-team-row">
           <div className="avatar avatar-small">{m.full_name.slice(0, 2).toUpperCase()}</div>
           <div>
@@ -754,7 +783,7 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
           <span className={`status-badge ${m.is_active ? 'active' : 'inactive'}`}>{m.is_active ? t.active : t.inactive}</span>
           <div className="admin-course-actions">
             <button className="icon-button" onClick={() => startEdit(m)} title={t.editAdmin}><Settings size={16} /></button>
-            <button className="icon-button" onClick={() => setDeleteConfirm(m.id)} title={t.delete}><Trash2 size={16} /></button>
+            <button className="icon-button" onClick={() => (m.is_active ? setDisableConfirm(m) : handleToggleStatus(m))} title={m.is_active ? t.disableUser : t.enableUser}><Power size={16} /></button>
           </div>
         </div>
       ))}</div>}</PaginatedList>}

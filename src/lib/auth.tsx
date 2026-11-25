@@ -46,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (error || !data) {
       setProfile(null);
+    } else if (!data.is_active) {
+      await supabase.auth.signOut();
+      setProfile(null);
     } else {
       const { job_role, ...profileData } = data;
       setProfile({ ...profileData, job_role: job_role?.name ?? '' } as Profile);
@@ -54,8 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error?.message ?? null };
+    if (data.user) {
+      const { data: prof } = await supabase.from('profiles').select('is_active').eq('id', data.user.id).maybeSingle();
+      if (prof && !prof.is_active) {
+        await supabase.auth.signOut();
+        return { error: 'Tu cuenta está deshabilitada. Contacta al administrador.' };
+      }
+    }
+    return { error: null };
   }
 
   async function signUp(email: string, password: string, fullName: string, jobRoleId: string, role: 'employee' | 'admin') {

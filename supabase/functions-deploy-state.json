@@ -5,6 +5,14 @@
       "hasChanged": false,
       "hash": "5300fcd1f0a0ac1afdaaa21d83c1b04fdbd7e43820a0f10a0c953ea5fe8a41d5"
     },
+    "delete-user": {
+      "hasChanged": false,
+      "hash": "d9d3cd270f644f2f5430dffe6e3f048a4a42c9054cb707ec7fb2ee5ac2c37e74"
+    },
+    "set-user-status": {
+      "hasChanged": false,
+      "hash": "3b6a25bee14542bb7b30dd805b86502c2b26a98ee766bbc1f268fd7c8cd49c8a"
+    },
     "upload-imagekit": {
       "hasChanged": false,
       "hash": "e2ca7db130c2d4b0e228d9f60b54764d4b70da177af686897660726e7e83cec0"

@@ -256,6 +256,12 @@ export type AdminStrings = {
   deleteConfirm: string;
   deleteUserConfirm: string;
   deleteAdminConfirm: string;
+  disableUser: string;
+  enableUser: string;
+  userDisabled: string;
+  userEnabled: string;
+  statusFilter: string;
+  allStatusesFilter: string;
   deleteRoleConfirm: string;
   deleteDeptConfirm: string;
   deleteBadgeConfirm: string;
