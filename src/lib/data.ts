@@ -203,7 +203,7 @@ export async function updateProfile(id: string, updates: Partial<Profile>): Prom
 }
 
 export async function deleteProfile(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('profiles').delete().eq('id', id);
+  const { error } = await supabase.functions.invoke('delete-user', { body: { user_id: id } });
   return { error: error?.message ?? null };
 }
 
@@ -448,7 +448,7 @@ export async function saveExamResult(userId: string, courseId: string, examType:
         .update({ status: 'completed', completed_at: new Date().toISOString(), progress_percent: 100 })
         .eq('id', userCourseRequirementId);
       if (ucrErr) return { error: ucrErr.message };
-      const { cert: _cert, error: certErr } = await createCertificateForRequirement(userCourseRequirementId);
+      const { error: certErr } = await createCertificateForRequirement(userCourseRequirementId);
       if (certErr) return { error: certErr };
     }
   }

@@ -486,7 +486,7 @@ function EmployeesTab({ t, team, totalCount, jobRoles, departments, onRefresh }:
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteUserConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteProfile(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Usuario eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); const { error: deleteError } = await deleteProfile(deleteConfirm); setDeleting(false); if (deleteError) { toast(deleteError, 'error'); return; } setDeleteConfirm(null); toast('Usuario eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {selectedEmployee && createPortal(<div className="modal-backdrop" onClick={() => setSelectedEmployee(null)}><div className="course-modal" style={{ maxWidth: 980, width: '90vw', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
@@ -739,7 +739,7 @@ function AdminsTab({ t, team, totalCount, onRefresh }: {
         <div className="exit-warning-icon"><Trash2 size={40} /></div>
         <h2>{t.deleteAdminConfirm}</h2>
         <div className="exit-warning-actions"><button className="outline-button" onClick={() => setDeleteConfirm(null)}>{t.cancel}</button>
-        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); await deleteProfile(deleteConfirm); setDeleting(false); setDeleteConfirm(null); toast('Administrador eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
+        <button className="primary-button exit-confirm" disabled={deleting} onClick={async () => { setDeleting(true); const { error: deleteError } = await deleteProfile(deleteConfirm); setDeleting(false); if (deleteError) { toast(deleteError, 'error'); return; } setDeleteConfirm(null); toast('Administrador eliminado', 'success'); onRefresh(); }}>{deleting ? t.loading : t.delete}</button></div>
       </div></div>, document.body)}
 
       {team.length === 0 ? <div className="empty-state"><Settings size={30} /><h3>{t.noAdmins}</h3></div> :
