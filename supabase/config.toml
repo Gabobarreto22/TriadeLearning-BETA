@@ -4,5 +4,8 @@ verify_jwt = true
 [functions.delete-user]
 verify_jwt = true
 
+[functions.set-user-status]
+verify_jwt = true
+
 [functions.upload-imagekit]
 verify_jwt = true

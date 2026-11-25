@@ -202,8 +202,8 @@ export async function updateProfile(id: string, updates: Partial<Profile>): Prom
   return { error: error?.message ?? null };
 }
 
-export async function deleteProfile(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.functions.invoke('delete-user', { body: { user_id: id } });
+export async function setUserStatus(id: string, isActive: boolean): Promise<{ error: string | null }> {
+  const { error } = await supabase.functions.invoke('set-user-status', { body: { user_id: id, is_active: isActive } });
   return { error: error?.message ?? null };
 }
 
